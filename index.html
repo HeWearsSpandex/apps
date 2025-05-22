@@ -37,6 +37,10 @@
 
   <script>
     window.initMap = function() {
+      const start = new google.maps.LatLng(50.410, -3.880); // JHB HQ
+      const end = new google.maps.LatLng(45.8150, 15.9819); // Zagreb
+      const totalRouteDistance = 2000000; // in meters
+
       const bonusWayne = Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000;
       const fractionWayne = bonusWayne / totalRouteDistance;
       const latWayne = start.lat() + (end.lat() - start.lat()) * fractionWayne;
@@ -138,11 +142,9 @@
 
       const formattedBonusWayne = bonusWayne.toLocaleString();
       const animatedMarker = new AnimatedMarker(waynePosition, "Wayne", "https://robohash.org/wayne?set=set5", `${formattedBonusWayne} bonus meters`);
+      staticMarkers.push({ name: "Wayne", lat: latWayne, lng: lngWayne, img: "https://robohash.org/wayne?set=set5", bonus: bonusWayne });
       animatedMarker.setMap(map);
-      const leaderboardList = document.getElementById("leaderboard-list");
-      const wayneItem = document.createElement("li");
-      wayneItem.textContent = `Wayne: ${formattedBonusWayne} bonus meters`;
-      leaderboardList.appendChild(wayneItem);
+      
 
       new google.maps.Marker({
         position: { lat: 50.410, lng: -3.880 },
@@ -155,7 +157,6 @@
       });
 
       staticMarkers
-        .slice()
         .sort((a, b) => a.bonus - b.bonus)
         .forEach(pos => {
           const formattedBonus = pos.bonus.toLocaleString();
