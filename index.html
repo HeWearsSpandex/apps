@@ -81,17 +81,16 @@
           content: `<strong>${pos.name}</strong>`
         });
 
-        marker.div?.addEventListener("click", () => {
-          label.setPosition(new google.maps.LatLng(pos.lat, pos.lng));
-          label.open(map);
-        });
+        const interval = setInterval(() => {
+          if (marker.div) {
+            marker.div.addEventListener("click", () => {
+              label.setPosition(new google.maps.LatLng(pos.lat, pos.lng));
+              label.open(map);
+            });
+            clearInterval(interval);
+          }
+        }, 200);
       });
-      });
-    },
-      });
-
-      const animatedMarker = new AnimatedMarker(new google.maps.LatLng(50.427, -3.833));
-      animatedMarker.setMap(map);
     }
   </script>
 
