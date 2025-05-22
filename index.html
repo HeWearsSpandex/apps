@@ -77,13 +77,13 @@ function initMap() {
         content: `<strong>Wayne</strong><br><small>128 bonus meters</small>`
       });
 
-      const interval = setInterval(() => {
+      const hqInterval = setInterval(() => {
         if (animatedMarker.div) {
           animatedMarker.div.addEventListener("click", () => {
             label.setPosition(centerPosition);
             label.open(map);
           });
-          clearInterval(interval);
+          clearInterval(hqInterval);
         }
       }, 200);
 
@@ -121,13 +121,13 @@ function initMap() {
           content: `<strong>${pos.name}</strong><br><small>${pos.bonus}</small>`
         });
 
-        const interval = setInterval(() => {
+                const markerInterval = setInterval(() => {
           if (marker.div) {
             marker.div.addEventListener("click", () => {
               label.setPosition(position);
               label.open(map);
             });
-            clearInterval(interval);
+            clearInterval(markerInterval);
           }
         }, 200);
       });
