@@ -38,7 +38,6 @@
   <script>
     window.initMap = function() {
       const people = ["Harvey", "Isla", "Leo", "Freya", "Theo", "Grace", "Mason", "Evie", "Wayne"];
-      const totalRouteDistance = 2000000;
       const routePoints = [
         new google.maps.LatLng(50.410, -3.880), // JHB HQ
         new google.maps.LatLng(51.5074, -0.1278), // London
@@ -54,8 +53,6 @@
       ];
 
       const totalRouteDistance = 2000000;
-      
-      const end = new google.maps.LatLng(45.8150, 15.9819); // Zagreb
 
       const staticMarkers = people.map(name => {
         const bonus = Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000;
@@ -75,7 +72,9 @@
           bonus,
           img: `https://robohash.org/${name.toLowerCase()}?set=set5`,
           segmentIndex,
-          remainingFraction
+          remainingFraction,
+          lat,
+          lng
         };
       });
 
@@ -132,11 +131,8 @@
       const map = new google.maps.Map(document.getElementById("map"), {});
       const bounds = new google.maps.LatLngBounds();
       bounds.extend(new google.maps.LatLng(50.410, -3.880)); // JHB HQ
-            staticMarkers.forEach(pos => bounds.extend(new google.maps.LatLng(pos.lat, pos.lng)));
+      staticMarkers.forEach(pos => bounds.extend(new google.maps.LatLng(pos.lat, pos.lng)));
       map.fitBounds(bounds, 100);
-
-      
-      
 
       new google.maps.Marker({
         position: { lat: 50.410, lng: -3.880 },
@@ -169,8 +165,10 @@
             if (step >= totalSteps) return clearInterval(interval);
             const lat = startSeg.lat() + (endSeg.lat() - startSeg.lat()) * (step / totalSteps) * pos.remainingFraction;
             const lng = startSeg.lng() + (endSeg.lng() - startSeg.lng()) * (step / totalSteps) * pos.remainingFraction;
-            marker.position = new google.maps.LatLng(lat, lng);
-            marker.draw();
+            if (isFinite(lat) && isFinite(lng)) {
+              marker.position = new google.maps.LatLng(lat, lng);
+              marker.draw();
+            }
             step++;
           }, 30);
         });
@@ -180,5 +178,9 @@
   <script async defer
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&callback=initMap">
   </script>
+  <p style="padding: 1em; font-size: 14px; color: red;">
+    ⚠️ If you're seeing a Google Maps error: <strong>RefererNotAllowedMapError</strong>, you must authorise the following URL in your Google Cloud Console:<br>
+    <code>https://web-sandbox.oaiusercontent.com/index.html</code>
+  </p>
 </body>
 </html>
