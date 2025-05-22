@@ -65,7 +65,9 @@
         const endSeg = routePoints[segmentIndex + 1];
 
         const lat = startSeg.lat() + (endSeg.lat() - startSeg.lat()) * remainingFraction;
+        const seaSafeLat = Math.max(Math.min(lat, 60), 40);
         const lng = startSeg.lng() + (endSeg.lng() - startSeg.lng()) * remainingFraction;
+        const seaSafeLng = Math.max(Math.min(lng, 20), -10);
 
         return {
           name,
@@ -73,8 +75,8 @@
           img: `https://robohash.org/${name.toLowerCase()}?set=set5`,
           segmentIndex,
           remainingFraction,
-          lat,
-          lng
+          lat: seaSafeLat,
+          lng: seaSafeLng
         };
       });
 
@@ -145,7 +147,7 @@
       });
 
       staticMarkers
-        .sort((a, b) => a.bonus - b.bonus)
+        .sort((a, b) => b.bonus - a.bonus)
         .forEach(pos => {
           const formattedBonus = pos.bonus.toLocaleString();
           const leaderboardList = document.getElementById("leaderboard-list");
