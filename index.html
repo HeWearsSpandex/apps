@@ -151,19 +151,20 @@
         }
       });
 
-      staticMarkers.forEach(pos => {
-        const formattedBonus = pos.bonus.toLocaleString();
-        const leaderboardList = document.getElementById("leaderboard-list");
-        const listItem = document.createElement("li");
-        listItem.textContent = `${pos.name}: ${formattedBonus} bonus meters`;
-        leaderboardList.appendChild(listItem);
+      staticMarkers
+        .slice()
+        .sort((a, b) => a.bonus - b.bonus)
+        .forEach(pos => {
+          const formattedBonus = pos.bonus.toLocaleString();
+          const leaderboardList = document.getElementById("leaderboard-list");
+          const listItem = document.createElement("li");
+          listItem.textContent = `${pos.name}: ${formattedBonus} bonus meters`;
+          leaderboardList.appendChild(listItem);
 
-        const position = new google.maps.LatLng(pos.lat, pos.lng);
-        const marker = new AnimatedMarker(position, pos.name, pos.img, `${formattedBonus} bonus meters`);
-        marker.setMap(map);
-
-        
-      });
+          const position = new google.maps.LatLng(pos.lat, pos.lng);
+          const marker = new AnimatedMarker(position, pos.name, pos.img, `${formattedBonus} bonus meters`);
+          marker.setMap(map);
+        });
     }
   </script>
 
