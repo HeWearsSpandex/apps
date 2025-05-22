@@ -22,7 +22,7 @@
   <div id="map"></div>
 
   <script>
-function initMap() {
+window.initMap = function() {
   class AnimatedMarker extends google.maps.OverlayView {
     constructor(position, name = "", imageUrl = "") {
       super();
@@ -132,15 +132,7 @@ function initMap() {
         }, 200);
       });
 
-        const interval = setInterval(() => {
-          if (marker.div) {
-            marker.div.addEventListener("click", () => {
-              label.setPosition(new google.maps.LatLng(pos.lat, pos.lng));
-              label.open(map);
-            });
-            clearInterval(interval);
-          }
-        }, 200);
+        
       });
     }
   </script>
