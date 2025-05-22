@@ -166,13 +166,33 @@
           listItem.textContent = `${pos.name}: ${formattedBonus} bonus meters`;
           leaderboardList.appendChild(listItem);
 
-          const startSeg = routePoints[pos.segmentIndex];
-          const endSeg = routePoints[pos.segmentIndex + 1];
-
-          let step = 0;
-          const totalSteps = 100;
-          const marker = new AnimatedMarker(startSeg, pos.name, pos.img, `${formattedBonus} bonus meters`);
+          const marker = new AnimatedMarker(routePoints[0], pos.name, pos.img, `${formattedBonus} bonus meters`);
           marker.setMap(map);
+
+          const totalDistance = pos.bonus;
+          const maxDistance = 2000000;
+          const totalSteps = 200;
+          let currentStep = 0;
+
+          const animate = () => {
+            const fraction = (totalDistance / maxDistance) * (currentStep / totalSteps);
+            const totalRouteLength = routePoints.length - 1;
+            let pathIndex = Math.min(Math.floor(fraction * totalRouteLength), totalRouteLength - 1);
+            let segFraction = (fraction * totalRouteLength) - pathIndex;
+
+            const start = routePoints[pathIndex];
+            const end = routePoints[pathIndex + 1];
+            const lat = start.lat() + (end.lat() - start.lat()) * segFraction;
+            const lng = start.lng() + (end.lng() - start.lng()) * segFraction;
+
+            marker.position = new google.maps.LatLng(lat, lng);
+            marker.draw();
+
+            currentStep++;
+            if (currentStep <= totalSteps) requestAnimationFrame(animate);
+          };
+
+          animate();
 
           const interval = setInterval(() => {
             if (step >= totalSteps) return clearInterval(interval);
