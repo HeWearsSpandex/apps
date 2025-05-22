@@ -22,49 +22,48 @@
   <div id="map"></div>
 
   <script>
-    class AnimatedMarker extends google.maps.OverlayView {
-      constructor(position, name = "", imageUrl = "") {
-        super();
-        this.position = position;
-        this.name = name;
-        this.imageUrl = imageUrl;
-        this.div = null;
-      }
+function initMap() {
+  class AnimatedMarker extends google.maps.OverlayView {
+    constructor(position, name = "", imageUrl = "") {
+      super();
+      this.position = position;
+      this.name = name;
+      this.imageUrl = imageUrl;
+      this.div = null;
+    }
 
-      onAdd() {
-        this.div = document.createElement("div");
-        this.div.className = "animated-marker";
-        this.div.style.position = "absolute";
-        this.div.style.width = "40px";
-        this.div.style.height = "40px";
-        this.div.style.zIndex = "1000";
-        this.div.style.pointerEvents = "auto";
-        const img = document.createElement("img");
-        img.src = this.imageUrl || "https://i.imgur.com/8Km9tLL.png";
-        img.alt = this.name;
-        img.style.width = "100%";
-        img.style.height = "100%";
-        this.div.appendChild(img);
-        const panes = this.getPanes();
-        panes.overlayMouseTarget.appendChild(this.div);
-      }
+    onAdd() {
+      this.div = document.createElement("div");
+      this.div.className = "animated-marker";
+      this.div.style.position = "absolute";
+      this.div.style.width = "40px";
+      this.div.style.height = "40px";
+      this.div.style.zIndex = "1000";
+      this.div.style.pointerEvents = "auto";
+      const img = document.createElement("img");
+      img.src = this.imageUrl || "https://i.imgur.com/8Km9tLL.png";
+      img.alt = this.name;
+      img.style.width = "100%";
+      img.style.height = "100%";
+      this.div.appendChild(img);
+      const panes = this.getPanes();
+      panes.overlayMouseTarget.appendChild(this.div);
+    }
 
-      draw() {
-        const projection = this.getProjection();
-        if (!projection || !this.div) return;
-        const point = projection.fromLatLngToDivPixel(this.position);
-        if (point) {
-          this.div.style.left = `${point.x - 20}px`;
-          this.div.style.top = `${point.y - 20}px`;
-        }
-      }
-
-      onRemove() {
-        if (this.div) this.div.remove();
+    draw() {
+      const projection = this.getProjection();
+      if (!projection || !this.div) return;
+      const point = projection.fromLatLngToDivPixel(this.position);
+      if (point) {
+        this.div.style.left = `${point.x - 20}px`;
+        this.div.style.top = `${point.y - 20}px`;
       }
     }
 
-    function initMap() {
+    onRemove() {
+      if (this.div) this.div.remove();
+    }
+  }
       const centerPosition = new google.maps.LatLng(50.427, -3.833);
       const map = new google.maps.Map(document.getElementById("map"), {
         zoom: 10,
