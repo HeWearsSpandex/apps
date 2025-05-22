@@ -48,7 +48,8 @@
         { lat: 51.400, lng: -2.000, name: "Ryan", img: "https://robohash.org/ryan?set=set5" },
         { lat: 51.500, lng: -1.700, name: "Megan", img: "https://robohash.org/megan?set=set5" },
         { lat: 51.550, lng: -1.600, name: "Cameron", img: "https://robohash.org/cameron?set=set5" }
-      ];
+      ].map(marker => ({ ...marker, bonus: Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000 }))
+        .sort((a, b) => b.bonus - a.bonus);
 
       class AnimatedMarker extends google.maps.OverlayView {
         constructor(position, name = "", imageUrl = "", bonus = "") {
@@ -127,8 +128,7 @@
       });
 
       staticMarkers.forEach(pos => {
-        const bonus = Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000;
-        const formattedBonus = bonus.toLocaleString();
+        const formattedBonus = pos.bonus.toLocaleString();
         const leaderboardList = document.getElementById("leaderboard-list");
         const listItem = document.createElement("li");
         listItem.textContent = `${pos.name}: ${formattedBonus} bonus meters`;
