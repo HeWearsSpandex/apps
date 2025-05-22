@@ -32,6 +32,10 @@
       onAdd() {
         this.div = document.createElement("div");
         this.div.className = "animated-marker";
+        this.div.style.position = "absolute";
+        this.div.style.width = "40px";
+        this.div.style.height = "40px";
+        this.div.style.zIndex = "1000";
         this.div.innerHTML = `<img src="https://i.imgur.com/8Km9tLL.png" alt="Face Marker">`;
         const panes = this.getPanes();
         panes.overlayMouseTarget.appendChild(this.div);
@@ -41,9 +45,10 @@
         const projection = this.getProjection();
         if (!projection || !this.div) return;
         const point = projection.fromLatLngToDivPixel(this.position);
-        this.div.style.position = "absolute";
-        this.div.style.left = `${point.x}px`;
-        this.div.style.top = `${point.y}px`;
+        if (point) {
+          this.div.style.left = `${point.x - 20}px`;
+          this.div.style.top = `${point.y - 20}px`;
+        }
       }
 
       onRemove() {
