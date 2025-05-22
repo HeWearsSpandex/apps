@@ -37,30 +37,8 @@
 
   <script>
     window.initMap = function() {
-      const people = ["Harvey", "Isla", "Leo", "Freya", "Theo", "Grace", "Mason", "Evie"];
-      const bonusWayne = Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000;
+      const people = ["Harvey", "Isla", "Leo", "Freya", "Theo", "Grace", "Mason", "Evie", "Wayne"];
       const totalRouteDistance = 2000000;
-      const routePoints = [
-        new google.maps.LatLng(50.410, -3.880), // JHB HQ
-        new google.maps.LatLng(51.5074, -0.1278), // London
-        new google.maps.LatLng(48.8566, 2.3522), // Paris
-        new google.maps.LatLng(50.8503, 4.3517), // Brussels
-        new google.maps.LatLng(52.3676, 4.9041), // Amsterdam
-        new google.maps.LatLng(52.5200, 13.4050), // Berlin
-        new google.maps.LatLng(50.0755, 14.4378), // Prague
-        new google.maps.LatLng(48.2082, 16.3738), // Vienna
-        new google.maps.LatLng(48.1486, 17.1077), // Bratislava
-        new google.maps.LatLng(47.4979, 19.0402), // Budapest
-        new google.maps.LatLng(45.8150, 15.9819)  // Zagreb
-      ];
-      let remainingFractionWayne = (bonusWayne / totalRouteDistance) * routePoints.length;
-      let segmentIndexWayne = Math.min(Math.floor(remainingFractionWayne), routePoints.length - 2);
-      remainingFractionWayne -= segmentIndexWayne;
-      const startWayne = routePoints[segmentIndexWayne];
-      const endWayne = routePoints[segmentIndexWayne + 1];
-      const latWayne = startWayne.lat() + (endWayne.lat() - startWayne.lat()) * remainingFractionWayne;
-      const lngWayne = startWayne.lng() + (endWayne.lng() - startWayne.lng()) * remainingFractionWayne;
-      const waynePosition = new google.maps.LatLng(latWayne, lngWayne);
       const routePoints = [
         new google.maps.LatLng(50.410, -3.880), // JHB HQ
         new google.maps.LatLng(51.5074, -0.1278), // London
@@ -88,6 +66,9 @@
 
         const startSeg = routePoints[segmentIndex];
         const endSeg = routePoints[segmentIndex + 1];
+
+        const lat = startSeg.lat() + (endSeg.lat() - startSeg.lat()) * remainingFraction;
+        const lng = startSeg.lng() + (endSeg.lng() - startSeg.lng()) * remainingFraction;
 
         return {
           name,
@@ -151,14 +132,10 @@
       const map = new google.maps.Map(document.getElementById("map"), {});
       const bounds = new google.maps.LatLngBounds();
       bounds.extend(new google.maps.LatLng(50.410, -3.880)); // JHB HQ
-      bounds.extend(waynePosition);
-      staticMarkers.forEach(pos => bounds.extend(new google.maps.LatLng(pos.lat, pos.lng)));
+            staticMarkers.forEach(pos => bounds.extend(new google.maps.LatLng(pos.lat, pos.lng)));
       map.fitBounds(bounds, 100);
 
-      const formattedBonusWayne = bonusWayne.toLocaleString();
-      const animatedMarker = new AnimatedMarker(waynePosition, "Wayne", "https://robohash.org/wayne?set=set5", `${formattedBonusWayne} bonus meters`);
-      staticMarkers.push({ name: "Wayne", lat: latWayne, lng: lngWayne, img: "https://robohash.org/wayne?set=set5", bonus: bonusWayne });
-      animatedMarker.setMap(map);
+      
       
 
       new google.maps.Marker({
