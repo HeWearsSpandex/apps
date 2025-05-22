@@ -112,8 +112,7 @@ window.initMap = function() {
       ];
 
       staticMarkers.forEach(pos => {
-        const adjustedLng = baseLng + (pos.offset * 0.01); // shift east by offset
-        const position = new google.maps.LatLng(baseLat, adjustedLng);
+        const position = new google.maps.LatLng(pos.lat, pos.lng);
         const marker = new AnimatedMarker(position, pos.name, pos.img);
         marker.setMap(map);
 
