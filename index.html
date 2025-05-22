@@ -7,8 +7,9 @@
       height: 100vh;
       width: 100%;
     }
-    $1
-      font-family: 'Arial', sans-serif;      background: white;
+    .marker-label {
+      font-family: 'Arial', sans-serif;
+      background: white;
       padding: 4px 6px;
       border-radius: 4px;
       font-size: 12px;
@@ -17,10 +18,12 @@
       transform: translate(-50%, -100%);
       pointer-events: none;
     }
+    .animated-marker {
+      animation: bounce 1s infinite;
+    }
     .animated-marker img {
       width: 64px;
       height: 64px;
-      animation: bounce 1s infinite;
     }
     @keyframes bounce {
       0%, 100% { transform: translateY(0); }
@@ -103,31 +106,14 @@
       staticMarkers.forEach(pos => bounds.extend(new google.maps.LatLng(pos.lat, pos.lng)));
       map.fitBounds(bounds, 100);
 
-      const animatedMarker = new AnimatedMarker(waynePosition, "Wayne", "https://robohash.org/wayne?set=set5");
+      const bonusWayne = Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000;
+      const formattedBonusWayne = bonusWayne.toLocaleString();
+      const animatedMarker = new AnimatedMarker(waynePosition, "Wayne", "https://robohash.org/wayne?set=set5", `${formattedBonusWayne} bonus meters`);
       animatedMarker.setMap(map);
-
-      const wayneLabel = document.createElement("div");
-      wayneLabel.className = "marker-label";
-      wayneLabel.innerHTML = `<strong>Wayne</strong><br><small>${(Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000).toLocaleString()} bonus meters</small>`;
-      document.body.appendChild(wayneLabel);
-
-      const updateWayneLabel = () => {
-        const projection = animatedMarker.getProjection();
-        const point = projection ? projection.fromLatLngToDivPixel(waynePosition) : null;
-        if (point) {
-          wayneLabel.style.left = `${point.x}px`;
-          wayneLabel.style.top = `${point.y + 64}px`;
-        }
-      };
-
-      const wayneInterval = setInterval(() => {
-        if (animatedMarker.div) {
-          updateWayneLabel();
-          google.maps.event.addListener(map, "zoom_changed", updateWayneLabel);
-          google.maps.event.addListener(map, "center_changed", updateWayneLabel);
-          clearInterval(wayneInterval);
-        }
-      }, 200);
+      const leaderboardList = document.getElementById("leaderboard-list");
+      const wayneItem = document.createElement("li");
+      wayneItem.textContent = `Wayne: ${formattedBonusWayne} bonus meters`;
+      leaderboardList.appendChild(wayneItem);
 
       new google.maps.Marker({
         position: { lat: 50.410, lng: -3.880 },
