@@ -83,8 +83,7 @@ window.initMap = function() {
             const map = new google.maps.Map(document.getElementById("map"), {});
 
       const bounds = new google.maps.LatLngBounds();
-      const waynePosition = new google.maps.LatLng(50.850, -3.000);
-      bounds.extend(new google.maps.LatLng(50.410, -3.880)); // JHB HQ
+            bounds.extend(new google.maps.LatLng(50.410, -3.880)); // JHB HQ
       bounds.extend(waynePosition);
       staticMarkers.forEach(pos => bounds.extend(new google.maps.LatLng(pos.lat, pos.lng)));
       map.fitBounds(bounds, 100);
@@ -106,8 +105,8 @@ window.initMap = function() {
         const projection = animatedMarker.getProjection();
         const point = projection ? projection.fromLatLngToDivPixel(waynePosition) : null;
         if (point) {
-          wayneLabel.style.left = `${point.x + 25}px`;
-          wayneLabel.style.top = `${point.y}px`;
+          wayneLabel.style.left = `${point.x}px`;
+          wayneLabel.style.top = `${point.y + 64}px`;
         }
       };
 
@@ -173,7 +172,7 @@ window.initMap = function() {
   if (marker.div) {
     const textLabel = document.createElement("div");
     textLabel.className = "marker-label";
-    textLabel.innerHTML = `<strong>${pos.name}</strong><br><small>${(Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000).toLocaleString()} bonus meters</small>`;
+    textLabel.innerHTML = `<strong>${pos.name}</strong><br><small>${formattedBonus} bonus meters</small>`;
     textLabel.style.position = "absolute";
     textLabel.style.whiteSpace = "nowrap";
     textLabel.style.zIndex = "1001";
@@ -183,8 +182,8 @@ window.initMap = function() {
       const projection = marker.getProjection();
       const point = projection ? projection.fromLatLngToDivPixel(position) : null;
       if (point) {
-        textLabel.style.left = `${point.x + 25}px`;
-        textLabel.style.top = `${point.y}px`;
+        textLabel.style.left = `${point.x}px`;
+        textLabel.style.top = `${point.y + 64}px`;
       }
     };
 
