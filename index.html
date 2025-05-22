@@ -144,6 +144,8 @@
       bounds.extend(new google.maps.LatLng(50.410, -3.880)); // JHB HQ
       staticMarkers.forEach(pos => bounds.extend(new google.maps.LatLng(pos.lat, pos.lng)));
       map.fitBounds(bounds, 100);
+      map.panTo(new google.maps.LatLng(50.410, -3.880));
+      map.setZoom(6);
 
       new google.maps.Marker({
         position: { lat: 50.410, lng: -3.880 },
