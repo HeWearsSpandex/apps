@@ -7,8 +7,8 @@
       height: 100vh;
       width: 100%;
     }
-    .marker-label {
-      background: white;
+    $1
+      font-family: 'Arial', sans-serif;      background: white;
       padding: 4px 6px;
       border-radius: 4px;
       font-size: 12px;
@@ -149,14 +149,14 @@
             textLabel.style.position = "absolute";
             textLabel.style.whiteSpace = "nowrap";
             textLabel.style.zIndex = "1001";
-            document.body.appendChild(textLabel);
+            marker.div.appendChild(textLabel);
 
             const updateLabelPosition = () => {
               const projection = marker.getProjection();
               const point = projection ? projection.fromLatLngToDivPixel(position) : null;
               if (point) {
-                textLabel.style.left = `${point.x}px`;
-                textLabel.style.top = `${point.y + 64}px`;
+                textLabel.style.left = "0";
+              textLabel.style.top = "64px";
               }
             };
 
