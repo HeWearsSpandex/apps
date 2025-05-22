@@ -36,7 +36,13 @@
         this.div.style.width = "40px";
         this.div.style.height = "40px";
         this.div.style.zIndex = "1000";
-        this.div.innerHTML = `<img src="https://i.imgur.com/8Km9tLL.png" alt="Face Marker">`;
+        this.div.style.pointerEvents = "auto";
+        const img = document.createElement("img");
+        img.src = "https://i.imgur.com/8Km9tLL.png";
+        img.alt = "Face Marker";
+        img.style.width = "100%";
+        img.style.height = "100%";
+        this.div.appendChild(img);
         const panes = this.getPanes();
         panes.overlayMouseTarget.appendChild(this.div);
       }
@@ -67,19 +73,38 @@
       animatedMarker.setMap(map);
 
       const staticMarkers = [
-        { lat: 50.429, lng: -3.830, name: "Alex" },
-        { lat: 50.425, lng: -3.836, name: "Cameron" },
-        { lat: 50.430, lng: -3.840, name: "Lewis" },
-        { lat: 50.422, lng: -3.829, name: "James" },
-        { lat: 50.426, lng: -3.820, name: "Sophie" },
-        { lat: 50.428, lng: -3.845, name: "Daniel" },
-        { lat: 50.421, lng: -3.832, name: "Chloe" },
-        { lat: 50.432, lng: -3.838, name: "Ryan" },
-        { lat: 50.424, lng: -3.842, name: "Megan" }
+        { lat: 50.429, lng: -3.830, name: "Alex", img: "https://i.imgur.com/1.png" },
+        { lat: 50.425, lng: -3.836, name: "Cameron", img: "https://i.imgur.com/2.png" },
+        { lat: 50.430, lng: -3.840, name: "Lewis", img: "https://i.imgur.com/3.png" },
+        { lat: 50.422, lng: -3.829, name: "James", img: "https://i.imgur.com/4.png" },
+        { lat: 50.426, lng: -3.820, name: "Sophie", img: "https://i.imgur.com/5.png" },
+        { lat: 50.428, lng: -3.845, name: "Daniel", img: "https://i.imgur.com/6.png" },
+        { lat: 50.421, lng: -3.832, name: "Chloe", img: "https://i.imgur.com/7.png" },
+        { lat: 50.432, lng: -3.838, name: "Ryan", img: "https://i.imgur.com/8.png" },
+        { lat: 50.424, lng: -3.842, name: "Megan", img: "https://i.imgur.com/9.png" }
       ];
 
       staticMarkers.forEach(pos => {
         const marker = new AnimatedMarker(new google.maps.LatLng(pos.lat, pos.lng));
+        if (pos.img) {
+          marker.onAdd = function () {
+            this.div = document.createElement("div");
+            this.div.className = "animated-marker";
+            this.div.style.position = "absolute";
+            this.div.style.width = "40px";
+            this.div.style.height = "40px";
+            this.div.style.zIndex = "1000";
+            this.div.style.pointerEvents = "auto";
+            const img = document.createElement("img");
+            img.src = pos.img;
+            img.alt = pos.name;
+            img.style.width = "100%";
+            img.style.height = "100%";
+            this.div.appendChild(img);
+            const panes = this.getPanes();
+            panes.overlayMouseTarget.appendChild(this.div);
+          };
+        }
         marker.setMap(map);
 
         const label = new google.maps.InfoWindow({
