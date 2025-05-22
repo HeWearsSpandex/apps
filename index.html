@@ -18,8 +18,8 @@
       pointer-events: none;
     }
     .animated-marker img {
-      width: 40px;
-      height: 40px;
+      width: 64px;
+      height: 64px;
       animation: bounce 1s infinite;
     }
     @keyframes bounce {
@@ -29,6 +29,7 @@
   </style>
 </head>
 <body>
+  <div id="leaderboard" style="position: absolute; top: 10px; right: 10px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); z-index: 1002; font-size: 14px; max-height: 90vh; overflow-y: auto;"><strong>Leaderboard</strong><ul id="leaderboard-list" style="padding-left: 18px; margin-top: 6px;"></ul></div>
   <div id="map"></div>
 
   <script>
@@ -46,8 +47,8 @@ window.initMap = function() {
       this.div = document.createElement("div");
       this.div.className = "animated-marker";
       this.div.style.position = "absolute";
-      this.div.style.width = "40px";
-      this.div.style.height = "40px";
+      this.div.style.width = "64px";
+      this.div.style.height = "64px";
       this.div.style.zIndex = "1000";
       this.div.style.pointerEvents = "auto";
       const img = document.createElement("img");
@@ -65,8 +66,8 @@ window.initMap = function() {
       if (!projection || !this.div) return;
       const point = projection.fromLatLngToDivPixel(this.position);
       if (point) {
-        this.div.style.left = `${point.x - 20}px`;
-        this.div.style.top = `${point.y - 20}px`;
+        this.div.style.left = `${point.x - 32}px`;
+        this.div.style.top = `${point.y - 32}px`;
       }
     }
 
@@ -84,10 +85,30 @@ window.initMap = function() {
       const animatedMarker = new AnimatedMarker(waynePosition, "Wayne", "https://robohash.org/wayne?set=set5");
       animatedMarker.setMap(map);
 
-      const label = document.createElement("div");
-label.className = "marker-label";
-label.innerHTML = `<strong>Wayne</strong><br><small>${(Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000).toLocaleString()} bonus meters</small>`;
-document.body.appendChild(label);
+      const wayneLabel = document.createElement("div");
+      wayneLabel.className = "marker-label";
+      wayneLabel.innerHTML = `<strong>Wayne</strong><br><small>${(Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000).toLocaleString()} bonus meters</small>`;
+      wayneLabel.style.position = "absolute";
+      wayneLabel.style.whiteSpace = "nowrap";
+      wayneLabel.style.zIndex = "1001";
+      document.body.appendChild(wayneLabel);
+
+      const updateWayneLabel = () => {
+        const point = animatedMarker.getProjection().fromLatLngToDivPixel(waynePosition);
+        if (point) {
+          wayneLabel.style.left = `${point.x + 25}px`;
+          wayneLabel.style.top = `${point.y}px`;
+        }
+      };
+
+      const wayneInterval = setInterval(() => {
+        if (animatedMarker.div) {
+          updateWayneLabel();
+          google.maps.event.addListener(map, "zoom_changed", updateWayneLabel);
+          google.maps.event.addListener(map, "center_changed", updateWayneLabel);
+          clearInterval(wayneInterval);
+        }
+      }, 200);
 
       const hqInterval = setInterval(() => {
         if (animatedMarker.div) {
@@ -124,6 +145,12 @@ document.body.appendChild(label);
       ];
 
       staticMarkers.forEach(pos => {
+        const bonus = Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000;
+        const formattedBonus = bonus.toLocaleString();
+        const leaderboardList = document.getElementById("leaderboard-list");
+        const listItem = document.createElement("li");
+        listItem.textContent = `${pos.name}: ${formattedBonus} bonus meters`;
+        leaderboardList.appendChild(listItem);
         const position = new google.maps.LatLng(pos.lat, pos.lng);
         const marker = new AnimatedMarker(position, pos.name, pos.img);
         marker.setMap(map);
