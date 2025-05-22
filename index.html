@@ -70,28 +70,67 @@ function initMap() {
         center: centerPosition,
       });
 
-      const animatedMarker = new AnimatedMarker(centerPosition);
+      const animatedMarker = new AnimatedMarker(centerPosition, "Wayne", "https://robohash.org/wayne?set=set5");
       animatedMarker.setMap(map);
 
+      const label = new google.maps.InfoWindow({
+        content: `<strong>Wayne</strong><br><small>128 bonus meters</small>`
+      });
+
+      const interval = setInterval(() => {
+        if (animatedMarker.div) {
+          animatedMarker.div.addEventListener("click", () => {
+            label.setPosition(centerPosition);
+            label.open(map);
+          });
+          clearInterval(interval);
+        }
+      }, 200);
+
+      new google.maps.Marker({
+        position: centerPosition,
+        map: map,
+        title: "JHB HQ",
+        icon: {
+          url: "https://upload.wikimedia.org/wikipedia/commons/e/ec/RedDot.svg",
+          scaledSize: new google.maps.Size(20, 20)
+        }
+      });
+
+      const baseLat = 50.427;
+      const baseLng = -3.833;
       const staticMarkers = [
-        { lat: 50.437, lng: -3.823, name: "Alex", img: "https://robohash.org/alex?set=set5" },
-        { lat: 50.415, lng: -3.846, name: "Cameron", img: "https://robohash.org/cameron?set=set5" },
-        { lat: 50.440, lng: -3.860, name: "Lewis", img: "https://robohash.org/lewis?set=set5" },
-        { lat: 50.402, lng: -3.809, name: "James", img: "https://robohash.org/james?set=set5" },
-        { lat: 50.446, lng: -3.790, name: "Sophie", img: "https://robohash.org/sophie?set=set5" },
-        { lat: 50.448, lng: -3.870, name: "Daniel", img: "https://robohash.org/daniel?set=set5" },
-        { lat: 50.408, lng: -3.820, name: "Chloe", img: "https://robohash.org/chloe?set=set5" },
-        { lat: 50.452, lng: -3.840, name: "Ryan", img: "https://robohash.org/ryan?set=set5" },
-        { lat: 50.418, lng: -3.862, name: "Megan", img: "https://robohash.org/megan?set=set5" }
+        { offset: 6.3, name: "Alex", img: "https://robohash.org/alex?set=set5", bonus: "63,289 bonus meters" },
+        { offset: 3.5, name: "Cameron", img: "https://robohash.org/cameron?set=set5", bonus: "34,782 bonus meters" },
+        { offset: 5.8, name: "Lewis", img: "https://robohash.org/lewis?set=set5", bonus: "58,371 bonus meters" },
+        { offset: 4.9, name: "James", img: "https://robohash.org/james?set=set5", bonus: "49,003 bonus meters" },
+        { offset: 2.8, name: "Sophie", img: "https://robohash.org/sophie?set=set5", bonus: "27,580 bonus meters" },
+        { offset: 6.9, name: "Daniel", img: "https://robohash.org/daniel?set=set5", bonus: "68,912 bonus meters" },
+        { offset: 3.1, name: "Chloe", img: "https://robohash.org/chloe?set=set5", bonus: "31,745 bonus meters" },
+        { offset: 4.4, name: "Ryan", img: "https://robohash.org/ryan?set=set5", bonus: "44,920 bonus meters" },
+        { offset: 5.2, name: "Megan", img: "https://robohash.org/megan?set=set5", bonus: "52,168 bonus meters" }
       ];
 
       staticMarkers.forEach(pos => {
-        const marker = new AnimatedMarker(new google.maps.LatLng(pos.lat, pos.lng), pos.name, pos.img);
+        const adjustedLng = baseLng + (pos.offset * 0.01); // shift east by offset
+        const position = new google.maps.LatLng(baseLat, adjustedLng);
+        const marker = new AnimatedMarker(position, pos.name, pos.img);
         marker.setMap(map);
 
         const label = new google.maps.InfoWindow({
-          content: `<strong>${pos.name}</strong>`
+          content: `<strong>${pos.name}</strong><br><small>${pos.bonus}</small>`
         });
+
+        const interval = setInterval(() => {
+          if (marker.div) {
+            marker.div.addEventListener("click", () => {
+              label.setPosition(position);
+              label.open(map);
+            });
+            clearInterval(interval);
+          }
+        }, 200);
+      });
 
         const interval = setInterval(() => {
           if (marker.div) {
