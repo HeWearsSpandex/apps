@@ -66,8 +66,9 @@
         const requiresJump = waterCrossingSegments.includes(segmentIndex);
         const bonusThreshold = 250000;
         if (requiresJump && bonus < bonusThreshold) {
-          segmentIndex = 0;
-          remainingFraction = 1.0; // Stick at London
+          segmentIndex = 1; // Lock at London
+          remainingFraction = 0.0;
+        } // Stick at London
         }
 
         const startSeg = routePoints[segmentIndex];
