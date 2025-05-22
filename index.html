@@ -94,7 +94,8 @@ window.initMap = function() {
       document.body.appendChild(wayneLabel);
 
       const updateWayneLabel = () => {
-        const point = animatedMarker.getProjection().fromLatLngToDivPixel(waynePosition);
+        const projection = animatedMarker.getProjection();
+        const point = projection ? projection.fromLatLngToDivPixel(waynePosition) : null;
         if (point) {
           wayneLabel.style.left = `${point.x + 25}px`;
           wayneLabel.style.top = `${point.y}px`;
@@ -121,9 +122,9 @@ window.initMap = function() {
       }, 200);
 
       new google.maps.Marker({
-        position: { lat: 50.420, lng: -3.850 },
+        position: { lat: 50.410, lng: -3.880 },
         icon: {
-          url: "https://www.jhbukltd.co.uk/assets/images/logo.png",
+          url: "https://jhbukltd.co.uk/assets/images/logo.png",
           scaledSize: new google.maps.Size(64, 64)
         }
       });
@@ -132,14 +133,14 @@ window.initMap = function() {
       const baseLng = -3.833;
       const staticMarkers = [
         { lat: 50.910, lng: -1.404, name: "Alex", img: "https://robohash.org/alex?set=set5" },
-        { lat: 50.750, lng: -3.550, name: "Cameron", img: "https://robohash.org/cameron?set=set5" },
         { lat: 50.900, lng: -3.400, name: "Lewis", img: "https://robohash.org/lewis?set=set5" },
         { lat: 51.000, lng: -3.200, name: "James", img: "https://robohash.org/james?set=set5" },
         { lat: 51.050, lng: -2.900, name: "Sophie", img: "https://robohash.org/sophie?set=set5" },
         { lat: 51.200, lng: -2.600, name: "Daniel", img: "https://robohash.org/daniel?set=set5" },
         { lat: 51.300, lng: -2.300, name: "Chloe", img: "https://robohash.org/chloe?set=set5" },
         { lat: 51.400, lng: -2.000, name: "Ryan", img: "https://robohash.org/ryan?set=set5" },
-        { lat: 51.500, lng: -1.700, name: "Megan", img: "https://robohash.org/megan?set=set5" }
+        { lat: 51.500, lng: -1.700, name: "Megan", img: "https://robohash.org/megan?set=set5" },
+        { lat: 51.550, lng: -1.600, name: "Cameron", img: "https://robohash.org/cameron?set=set5" }
       ];
 
       staticMarkers.forEach(pos => {
@@ -168,7 +169,8 @@ window.initMap = function() {
     document.body.appendChild(textLabel);
 
     const updateLabelPosition = () => {
-      const point = marker.getProjection().fromLatLngToDivPixel(position);
+      const projection = marker.getProjection();
+      const point = projection ? projection.fromLatLngToDivPixel(position) : null;
       if (point) {
         textLabel.style.left = `${point.x + 25}px`;
         textLabel.style.top = `${point.y}px`;
