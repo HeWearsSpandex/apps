@@ -48,11 +48,12 @@
       ];
 
       class AnimatedMarker extends google.maps.OverlayView {
-        constructor(position, name = "", imageUrl = "") {
+        constructor(position, name = "", imageUrl = "", bonus = "") {
           super();
           this.position = position;
           this.name = name;
           this.imageUrl = imageUrl;
+          this.bonus = bonus;
           this.div = null;
         }
         onAdd() {
@@ -69,6 +70,15 @@
           img.style.width = "100%";
           img.style.height = "100%";
           this.div.appendChild(img);
+
+          const label = document.createElement("div");
+          label.className = "marker-label";
+          label.innerHTML = `<strong>${this.name}</strong><br><small>${this.bonus}</small>`;
+          label.style.position = "absolute";
+          label.style.top = "64px";
+          label.style.left = "0";
+          label.style.textAlign = "center";
+          this.div.appendChild(label);
           const panes = this.getPanes();
           panes.overlayMouseTarget.appendChild(this.div);
         }
@@ -138,34 +148,10 @@
         leaderboardList.appendChild(listItem);
 
         const position = new google.maps.LatLng(pos.lat, pos.lng);
-        const marker = new AnimatedMarker(position, pos.name, pos.img);
+        const marker = new AnimatedMarker(position, pos.name, pos.img, `${formattedBonus} bonus meters`);
         marker.setMap(map);
 
-        const markerInterval = setInterval(() => {
-          if (marker.div) {
-            const textLabel = document.createElement("div");
-            textLabel.className = "marker-label";
-            textLabel.innerHTML = `<strong>${pos.name}</strong><br><small>${formattedBonus} bonus meters</small>`;
-            textLabel.style.position = "absolute";
-            textLabel.style.whiteSpace = "nowrap";
-            textLabel.style.zIndex = "1001";
-            marker.div.appendChild(textLabel);
-
-            const updateLabelPosition = () => {
-              const projection = marker.getProjection();
-              const point = projection ? projection.fromLatLngToDivPixel(position) : null;
-              if (point) {
-                textLabel.style.left = "0";
-              textLabel.style.top = "64px";
-              }
-            };
-
-            updateLabelPosition();
-            google.maps.event.addListener(map, "zoom_changed", updateLabelPosition);
-            google.maps.event.addListener(map, "center_changed", updateLabelPosition);
-            clearInterval(markerInterval);
-          }
-        }, 200);
+        
       });
     }
   </script>
