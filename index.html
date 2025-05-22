@@ -38,17 +38,45 @@
   <script>
     window.initMap = function() {
       const waynePosition = new google.maps.LatLng(50.850, -3.000);
-      const staticMarkers = [
-        { lat: 50.900, lng: -3.400, name: "Lewis", img: "https://robohash.org/lewis?set=set5" },
-        { lat: 51.000, lng: -3.200, name: "James", img: "https://robohash.org/james?set=set5" },
-        { lat: 51.050, lng: -2.900, name: "Sophie", img: "https://robohash.org/sophie?set=set5" },
-        { lat: 51.200, lng: -2.600, name: "Daniel", img: "https://robohash.org/daniel?set=set5" },
-        { lat: 51.300, lng: -2.300, name: "Chloe", img: "https://robohash.org/chloe?set=set5" },
-        { lat: 51.400, lng: -2.000, name: "Ryan", img: "https://robohash.org/ryan?set=set5" },
-        { lat: 51.500, lng: -1.700, name: "Megan", img: "https://robohash.org/megan?set=set5" },
-        { lat: 51.550, lng: -1.600, name: "Cameron", img: "https://robohash.org/cameron?set=set5" }
-      ].map(marker => ({ ...marker, bonus: Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000 }))
-        .sort((a, b) => b.bonus - a.bonus);
+      const people = [
+        "Harvey", "Isla", "Leo", "Freya", "Theo", "Grace", "Mason", "Evie"
+      ];
+
+      const capitals = [
+        { name: "Paris", lat: 48.8566, lng: 2.3522 },
+        { name: "Brussels", lat: 50.8503, lng: 4.3517 },
+        { name: "Amsterdam", lat: 52.3676, lng: 4.9041 },
+        { name: "Berlin", lat: 52.5200, lng: 13.4050 },
+        { name: "Prague", lat: 50.0755, lng: 14.4378 },
+        { name: "Vienna", lat: 48.2082, lng: 16.3738 },
+        { name: "Bratislava", lat: 48.1486, lng: 17.1077 },
+        { name: "Budapest", lat: 47.4979, lng: 19.0402 },
+        { name: "Zagreb", lat: 45.8150, lng: 15.9819 }
+      ];
+
+      const totalRouteDistance = 2000000; // in meters
+      const routeSegments = people.length - 1;
+      const segmentDistance = totalRouteDistance / routeSegments;
+
+      const start = new google.maps.LatLng(50.410, -3.880); // JHB HQ
+      const end = new google.maps.LatLng(45.8150, 15.9819); // Zagreb
+
+      const staticMarkers = people.map((name, index) => {
+        const cumulativeDistance = segmentDistance * index;
+        const fraction = cumulativeDistance / totalRouteDistance;
+
+        const lat = start.lat() + (end.lat() - start.lat()) * fraction;
+        const lng = start.lng() + (end.lng() - start.lng()) * fraction;
+        const bonus = Math.floor(fraction * totalRouteDistance);
+
+        return {
+          name,
+          lat,
+          lng,
+          img: `https://robohash.org/${name.toLowerCase()}?set=set5`,
+          bonus
+        };
+      });
 
       class AnimatedMarker extends google.maps.OverlayView {
         constructor(position, name = "", imageUrl = "", bonus = "") {
