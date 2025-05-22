@@ -76,7 +76,7 @@ window.initMap = function() {
       if (this.div) this.div.remove();
     }
   }
-      const waynePosition = new google.maps.LatLng(50.850, -3.000);
+      // const waynePosition duplicated below — removing this one to avoid redeclaration error
       const map = new google.maps.Map(document.getElementById("map"), {});
       const bounds = new google.maps.LatLngBounds();
       bounds.extend(new google.maps.LatLng(50.410, -3.880)); // JHB HQ
