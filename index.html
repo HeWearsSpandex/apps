@@ -79,10 +79,13 @@ window.initMap = function() {
     }
   }
       const centerPosition = new google.maps.LatLng(50.427, -3.833);
-      const map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 8,
-        center: { lat: 51.0, lng: -2.7 },
-      });
+      const map = new google.maps.Map(document.getElementById("map"), {});
+
+      const bounds = new google.maps.LatLngBounds();
+      bounds.extend(new google.maps.LatLng(50.410, -3.880)); // JHB HQ
+      bounds.extend(waynePosition);
+      staticMarkers.forEach(pos => bounds.extend(new google.maps.LatLng(pos.lat, pos.lng)));
+      map.fitBounds(bounds, 100);
 
       const waynePosition = new google.maps.LatLng(50.850, -3.000);
       const animatedMarker = new AnimatedMarker(waynePosition, "Wayne", "https://robohash.org/wayne?set=set5");
