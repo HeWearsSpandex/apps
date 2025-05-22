@@ -22,7 +22,6 @@
       height: 64px;
       animation: bounce 1s infinite;
     }
-
     @keyframes bounce {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-10px); }
@@ -34,49 +33,59 @@
   <div id="map"></div>
 
   <script>
-window.initMap = function() {
-  class AnimatedMarker extends google.maps.OverlayView {
-    constructor(position, name = "", imageUrl = "") {
-      super();
-      this.position = position;
-      this.name = name;
-      this.imageUrl = imageUrl;
-      this.div = null;
-    }
+    window.initMap = function() {
+      const waynePosition = new google.maps.LatLng(50.850, -3.000);
+      const staticMarkers = [
+        { lat: 50.910, lng: -1.404, name: "Alex", img: "https://robohash.org/alex?set=set5" },
+        { lat: 50.900, lng: -3.400, name: "Lewis", img: "https://robohash.org/lewis?set=set5" },
+        { lat: 51.000, lng: -3.200, name: "James", img: "https://robohash.org/james?set=set5" },
+        { lat: 51.050, lng: -2.900, name: "Sophie", img: "https://robohash.org/sophie?set=set5" },
+        { lat: 51.200, lng: -2.600, name: "Daniel", img: "https://robohash.org/daniel?set=set5" },
+        { lat: 51.300, lng: -2.300, name: "Chloe", img: "https://robohash.org/chloe?set=set5" },
+        { lat: 51.400, lng: -2.000, name: "Ryan", img: "https://robohash.org/ryan?set=set5" },
+        { lat: 51.500, lng: -1.700, name: "Megan", img: "https://robohash.org/megan?set=set5" },
+        { lat: 51.550, lng: -1.600, name: "Cameron", img: "https://robohash.org/cameron?set=set5" }
+      ];
 
-    onAdd() {
-      this.div = document.createElement("div");
-      this.div.className = "animated-marker";
-      this.div.style.position = "absolute";
-      this.div.style.width = "64px";
-      this.div.style.height = "64px";
-      this.div.style.zIndex = "1000";
-      this.div.style.pointerEvents = "auto";
-      const img = document.createElement("img");
-      img.src = this.imageUrl || "https://i.imgur.com/8Km9tLL.png";
-      img.alt = this.name;
-      img.style.width = "100%";
-      img.style.height = "100%";
-      this.div.appendChild(img);
-      const panes = this.getPanes();
-      panes.overlayMouseTarget.appendChild(this.div);
-    }
-
-    draw() {
-      const projection = this.getProjection();
-      if (!projection || !this.div) return;
-      const point = projection.fromLatLngToDivPixel(this.position);
-      if (point) {
-        this.div.style.left = `${point.x - 32}px`;
-        this.div.style.top = `${point.y - 32}px`;
+      class AnimatedMarker extends google.maps.OverlayView {
+        constructor(position, name = "", imageUrl = "") {
+          super();
+          this.position = position;
+          this.name = name;
+          this.imageUrl = imageUrl;
+          this.div = null;
+        }
+        onAdd() {
+          this.div = document.createElement("div");
+          this.div.className = "animated-marker";
+          this.div.style.position = "absolute";
+          this.div.style.width = "64px";
+          this.div.style.height = "64px";
+          this.div.style.zIndex = "1000";
+          this.div.style.pointerEvents = "auto";
+          const img = document.createElement("img");
+          img.src = this.imageUrl || "https://i.imgur.com/8Km9tLL.png";
+          img.alt = this.name;
+          img.style.width = "100%";
+          img.style.height = "100%";
+          this.div.appendChild(img);
+          const panes = this.getPanes();
+          panes.overlayMouseTarget.appendChild(this.div);
+        }
+        draw() {
+          const projection = this.getProjection();
+          if (!projection || !this.div) return;
+          const point = projection.fromLatLngToDivPixel(this.position);
+          if (point) {
+            this.div.style.left = `${point.x - 32}px`;
+            this.div.style.top = `${point.y - 32}px`;
+          }
+        }
+        onRemove() {
+          if (this.div) this.div.remove();
+        }
       }
-    }
 
-    onRemove() {
-      if (this.div) this.div.remove();
-    }
-  }
-      // const waynePosition duplicated below — removing this one to avoid redeclaration error
       const map = new google.maps.Map(document.getElementById("map"), {});
       const bounds = new google.maps.LatLngBounds();
       bounds.extend(new google.maps.LatLng(50.410, -3.880)); // JHB HQ
@@ -84,18 +93,12 @@ window.initMap = function() {
       staticMarkers.forEach(pos => bounds.extend(new google.maps.LatLng(pos.lat, pos.lng)));
       map.fitBounds(bounds, 100);
 
-      // Moved above for correct initialization
-  const waynePosition = new google.maps.LatLng(50.850, -3.000);
-      
       const animatedMarker = new AnimatedMarker(waynePosition, "Wayne", "https://robohash.org/wayne?set=set5");
       animatedMarker.setMap(map);
 
       const wayneLabel = document.createElement("div");
       wayneLabel.className = "marker-label";
       wayneLabel.innerHTML = `<strong>Wayne</strong><br><small>${(Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000).toLocaleString()} bonus meters</small>`;
-      wayneLabel.style.position = "absolute";
-      wayneLabel.style.whiteSpace = "nowrap";
-      wayneLabel.style.zIndex = "1001";
       document.body.appendChild(wayneLabel);
 
       const updateWayneLabel = () => {
@@ -116,8 +119,6 @@ window.initMap = function() {
         }
       }, 200);
 
-      
-
       new google.maps.Marker({
         position: { lat: 50.410, lng: -3.880 },
         map: map,
@@ -128,20 +129,6 @@ window.initMap = function() {
         }
       });
 
-      const baseLat = 50.427;
-      const baseLng = -3.833;
-      const staticMarkers = [
-        { lat: 50.910, lng: -1.404, name: "Alex", img: "https://robohash.org/alex?set=set5" },
-        { lat: 50.900, lng: -3.400, name: "Lewis", img: "https://robohash.org/lewis?set=set5" },
-        { lat: 51.000, lng: -3.200, name: "James", img: "https://robohash.org/james?set=set5" },
-        { lat: 51.050, lng: -2.900, name: "Sophie", img: "https://robohash.org/sophie?set=set5" },
-        { lat: 51.200, lng: -2.600, name: "Daniel", img: "https://robohash.org/daniel?set=set5" },
-        { lat: 51.300, lng: -2.300, name: "Chloe", img: "https://robohash.org/chloe?set=set5" },
-        { lat: 51.400, lng: -2.000, name: "Ryan", img: "https://robohash.org/ryan?set=set5" },
-        { lat: 51.500, lng: -1.700, name: "Megan", img: "https://robohash.org/megan?set=set5" },
-        { lat: 51.550, lng: -1.600, name: "Cameron", img: "https://robohash.org/cameron?set=set5" }
-      ];
-
       staticMarkers.forEach(pos => {
         const bonus = Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000;
         const formattedBonus = bonus.toLocaleString();
@@ -149,35 +136,36 @@ window.initMap = function() {
         const listItem = document.createElement("li");
         listItem.textContent = `${pos.name}: ${formattedBonus} bonus meters`;
         leaderboardList.appendChild(listItem);
+
         const position = new google.maps.LatLng(pos.lat, pos.lng);
         const marker = new AnimatedMarker(position, pos.name, pos.img);
         marker.setMap(map);
 
         const markerInterval = setInterval(() => {
-  if (marker.div) {
-    const textLabel = document.createElement("div");
-    textLabel.className = "marker-label";
-    textLabel.innerHTML = `<strong>${pos.name}</strong><br><small>${formattedBonus} bonus meters</small>`;
-    textLabel.style.position = "absolute";
-    textLabel.style.whiteSpace = "nowrap";
-    textLabel.style.zIndex = "1001";
-    document.body.appendChild(textLabel);
+          if (marker.div) {
+            const textLabel = document.createElement("div");
+            textLabel.className = "marker-label";
+            textLabel.innerHTML = `<strong>${pos.name}</strong><br><small>${formattedBonus} bonus meters</small>`;
+            textLabel.style.position = "absolute";
+            textLabel.style.whiteSpace = "nowrap";
+            textLabel.style.zIndex = "1001";
+            document.body.appendChild(textLabel);
 
-    const updateLabelPosition = () => {
-      const projection = marker.getProjection();
-      const point = projection ? projection.fromLatLngToDivPixel(position) : null;
-      if (point) {
-        textLabel.style.left = `${point.x}px`;
-        textLabel.style.top = `${point.y + 64}px`;
-      }
-    };
+            const updateLabelPosition = () => {
+              const projection = marker.getProjection();
+              const point = projection ? projection.fromLatLngToDivPixel(position) : null;
+              if (point) {
+                textLabel.style.left = `${point.x}px`;
+                textLabel.style.top = `${point.y + 64}px`;
+              }
+            };
 
-    updateLabelPosition();
-    google.maps.event.addListener(map, "zoom_changed", updateLabelPosition);
-    google.maps.event.addListener(map, "center_changed", updateLabelPosition);
-    clearInterval(markerInterval);
-  }
-}, 200);
+            updateLabelPosition();
+            google.maps.event.addListener(map, "zoom_changed", updateLabelPosition);
+            google.maps.event.addListener(map, "center_changed", updateLabelPosition);
+            clearInterval(markerInterval);
+          }
+        }, 200);
       });
     }
   </script>
