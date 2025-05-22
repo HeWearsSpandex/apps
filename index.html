@@ -61,14 +61,11 @@
       const start = new google.maps.LatLng(50.410, -3.880); // JHB HQ
       const end = new google.maps.LatLng(45.8150, 15.9819); // Zagreb
 
-      const staticMarkers = people.map((name, index) => {
-        const cumulativeDistance = segmentDistance * index;
-        const fraction = cumulativeDistance / totalRouteDistance;
-
+      const staticMarkers = people.map((name) => {
+        const bonus = Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000;
+        const fraction = bonus / totalRouteDistance;
         const lat = start.lat() + (end.lat() - start.lat()) * fraction;
         const lng = start.lng() + (end.lng() - start.lng()) * fraction;
-        const bonus = Math.floor(fraction * totalRouteDistance);
-
         return {
           name,
           lat,
