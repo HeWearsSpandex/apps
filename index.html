@@ -52,9 +52,42 @@
     }
 
     function initMap() {
+      const centerPosition = new google.maps.LatLng(50.427, -3.833);
       const map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 6,
-        center: { lat: 50.427, lng: -3.833 },
+        zoom: 10,
+        center: centerPosition,
+      });
+
+      const animatedMarker = new AnimatedMarker(centerPosition);
+      animatedMarker.setMap(map);
+
+      const staticMarkers = [
+        { lat: 50.429, lng: -3.830, name: "Alex" },
+        { lat: 50.425, lng: -3.836, name: "Cameron" },
+        { lat: 50.430, lng: -3.840, name: "Lewis" },
+        { lat: 50.422, lng: -3.829, name: "James" },
+        { lat: 50.426, lng: -3.820, name: "Sophie" },
+        { lat: 50.428, lng: -3.845, name: "Daniel" },
+        { lat: 50.421, lng: -3.832, name: "Chloe" },
+        { lat: 50.432, lng: -3.838, name: "Ryan" },
+        { lat: 50.424, lng: -3.842, name: "Megan" }
+      ];
+
+      staticMarkers.forEach(pos => {
+        const marker = new AnimatedMarker(new google.maps.LatLng(pos.lat, pos.lng));
+        marker.setMap(map);
+
+        const label = new google.maps.InfoWindow({
+          content: `<strong>${pos.name}</strong>`
+        });
+
+        marker.div?.addEventListener("click", () => {
+          label.setPosition(new google.maps.LatLng(pos.lat, pos.lng));
+          label.open(map);
+        });
+      });
+      });
+    },
       });
 
       const animatedMarker = new AnimatedMarker(new google.maps.LatLng(50.427, -3.833));
