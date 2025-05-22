@@ -23,9 +23,11 @@
 
   <script>
     class AnimatedMarker extends google.maps.OverlayView {
-      constructor(position) {
+      constructor(position, name = "", imageUrl = "") {
         super();
         this.position = position;
+        this.name = name;
+        this.imageUrl = imageUrl;
         this.div = null;
       }
 
@@ -38,8 +40,8 @@
         this.div.style.zIndex = "1000";
         this.div.style.pointerEvents = "auto";
         const img = document.createElement("img");
-        img.src = "https://i.imgur.com/8Km9tLL.png";
-        img.alt = "Face Marker";
+        img.src = this.imageUrl || "https://i.imgur.com/8Km9tLL.png";
+        img.alt = this.name;
         img.style.width = "100%";
         img.style.height = "100%";
         this.div.appendChild(img);
@@ -85,26 +87,7 @@
       ];
 
       staticMarkers.forEach(pos => {
-        const marker = new AnimatedMarker(new google.maps.LatLng(pos.lat, pos.lng));
-        if (pos.img) {
-          marker.onAdd = function () {
-            this.div = document.createElement("div");
-            this.div.className = "animated-marker";
-            this.div.style.position = "absolute";
-            this.div.style.width = "40px";
-            this.div.style.height = "40px";
-            this.div.style.zIndex = "1000";
-            this.div.style.pointerEvents = "auto";
-            const img = document.createElement("img");
-            img.src = pos.img;
-            img.alt = pos.name;
-            img.style.width = "100%";
-            img.style.height = "100%";
-            this.div.appendChild(img);
-            const panes = this.getPanes();
-            panes.overlayMouseTarget.appendChild(this.div);
-          };
-        }
+        const marker = new AnimatedMarker(new google.maps.LatLng(pos.lat, pos.lng), pos.name, pos.img);
         marker.setMap(map);
 
         const label = new google.maps.InfoWindow({
