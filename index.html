@@ -78,8 +78,9 @@
           label.className = "marker-label";
           label.innerHTML = `<strong>${this.name}</strong><br><small>${this.bonus}</small>`;
           label.style.position = "absolute";
-          label.style.top = "64px";
-          label.style.left = "0";
+          label.style.top = "70px";
+          label.style.left = "50%";
+          label.style.transform = "translateX(-50%)";
           label.style.textAlign = "center";
           this.div.appendChild(label);
           const panes = this.getPanes();
