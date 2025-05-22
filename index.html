@@ -17,45 +17,41 @@
       50% { transform: translateY(-10px); }
     }
   </style>
-  <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI"
-    defer
-  ></script>
 </head>
 <body>
   <div id="map"></div>
 
   <script>
-    function initMap() {
-      class AnimatedMarker extends google.maps.OverlayView {
-        constructor(position) {
-          super();
-          this.position = position;
-          this.div = null;
-        }
-
-        onAdd() {
-          this.div = document.createElement("div");
-          this.div.className = "animated-marker";
-          this.div.innerHTML = `<img src="https://i.imgur.com/8Km9tLL.png" alt="Face Marker">`;
-          const panes = this.getPanes();
-          panes.overlayMouseTarget.appendChild(this.div);
-        }
-
-        draw() {
-          const projection = this.getProjection();
-          if (!projection || !this.div) return;
-          const point = projection.fromLatLngToDivPixel(this.position);
-          this.div.style.position = "absolute";
-          this.div.style.left = `${point.x}px`;
-          this.div.style.top = `${point.y}px`;
-        }
-
-        onRemove() {
-          if (this.div) this.div.remove();
-        }
+    class AnimatedMarker extends google.maps.OverlayView {
+      constructor(position) {
+        super();
+        this.position = position;
+        this.div = null;
       }
 
+      onAdd() {
+        this.div = document.createElement("div");
+        this.div.className = "animated-marker";
+        this.div.innerHTML = `<img src="https://i.imgur.com/8Km9tLL.png" alt="Face Marker">`;
+        const panes = this.getPanes();
+        panes.overlayMouseTarget.appendChild(this.div);
+      }
+
+      draw() {
+        const projection = this.getProjection();
+        if (!projection || !this.div) return;
+        const point = projection.fromLatLngToDivPixel(this.position);
+        this.div.style.position = "absolute";
+        this.div.style.left = `${point.x}px`;
+        this.div.style.top = `${point.y}px`;
+      }
+
+      onRemove() {
+        if (this.div) this.div.remove();
+      }
+    }
+
+    function initMap() {
       const map = new google.maps.Map(document.getElementById("map"), {
         zoom: 6,
         center: { lat: 50.427, lng: -3.833 },
@@ -64,20 +60,10 @@
       const animatedMarker = new AnimatedMarker(new google.maps.LatLng(50.427, -3.833));
       animatedMarker.setMap(map);
     }
+  </script>
 
-    // Wait for the Maps API to be defined, then init
-    window.addEventListener('load', () => {
-      if (window.google && google.maps) {
-        initMap();
-      } else {
-        const checkInterval = setInterval(() => {
-          if (window.google && google.maps) {
-            clearInterval(checkInterval);
-            initMap();
-          }
-        }, 100);
-      }
-    });
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&callback=initMap">
   </script>
 </body>
 </html>
