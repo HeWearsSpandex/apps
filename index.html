@@ -37,49 +37,40 @@
 
   <script>
     window.initMap = function() {
-      const start = new google.maps.LatLng(50.410, -3.880); // JHB HQ
-      const end = new google.maps.LatLng(45.8150, 15.9819); // Zagreb
-      const totalRouteDistance = 2000000; // in meters
-
-      const bonusWayne = Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000;
-      const fractionWayne = bonusWayne / totalRouteDistance;
-      const latWayne = start.lat() + (end.lat() - start.lat()) * fractionWayne;
-      const lngWayne = start.lng() + (end.lng() - start.lng()) * fractionWayne;
-      const waynePosition = new google.maps.LatLng(latWayne, lngWayne);
-      const people = [
-        "Harvey", "Isla", "Leo", "Freya", "Theo", "Grace", "Mason", "Evie"
+      const routePoints = [
+        new google.maps.LatLng(50.410, -3.880), // JHB HQ
+        new google.maps.LatLng(51.5074, -0.1278), // London
+        new google.maps.LatLng(48.8566, 2.3522), // Paris
+        new google.maps.LatLng(50.8503, 4.3517), // Brussels
+        new google.maps.LatLng(52.3676, 4.9041), // Amsterdam
+        new google.maps.LatLng(52.5200, 13.4050), // Berlin
+        new google.maps.LatLng(50.0755, 14.4378), // Prague
+        new google.maps.LatLng(48.2082, 16.3738), // Vienna
+        new google.maps.LatLng(48.1486, 17.1077), // Bratislava
+        new google.maps.LatLng(47.4979, 19.0402), // Budapest
+        new google.maps.LatLng(45.8150, 15.9819)  // Zagreb
       ];
 
-      const capitals = [
-        { name: "Paris", lat: 48.8566, lng: 2.3522 },
-        { name: "Brussels", lat: 50.8503, lng: 4.3517 },
-        { name: "Amsterdam", lat: 52.3676, lng: 4.9041 },
-        { name: "Berlin", lat: 52.5200, lng: 13.4050 },
-        { name: "Prague", lat: 50.0755, lng: 14.4378 },
-        { name: "Vienna", lat: 48.2082, lng: 16.3738 },
-        { name: "Bratislava", lat: 48.1486, lng: 17.1077 },
-        { name: "Budapest", lat: 47.4979, lng: 19.0402 },
-        { name: "Zagreb", lat: 45.8150, lng: 15.9819 }
-      ];
-
-      const totalRouteDistance = 2000000; // in meters
-      const routeSegments = people.length - 1;
-      const segmentDistance = totalRouteDistance / routeSegments;
-
-      const start = new google.maps.LatLng(50.410, -3.880); // JHB HQ
+      const totalRouteDistance = 2000000;
+      
       const end = new google.maps.LatLng(45.8150, 15.9819); // Zagreb
 
-      const staticMarkers = people.map((name) => {
+      const staticMarkers = people.map(name => {
         const bonus = Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000;
         const fraction = bonus / totalRouteDistance;
-        const lat = start.lat() + (end.lat() - start.lat()) * fraction;
-        const lng = start.lng() + (end.lng() - start.lng()) * fraction;
+        let remainingFraction = fraction * routePoints.length;
+        let segmentIndex = Math.min(Math.floor(remainingFraction), routePoints.length - 2);
+        remainingFraction -= segmentIndex;
+
+        const startSeg = routePoints[segmentIndex];
+        const endSeg = routePoints[segmentIndex + 1];
+
         return {
           name,
-          lat,
-          lng,
+          bonus,
           img: `https://robohash.org/${name.toLowerCase()}?set=set5`,
-          bonus
+          segmentIndex,
+          remainingFraction
         };
       });
 
@@ -165,9 +156,23 @@
           listItem.textContent = `${pos.name}: ${formattedBonus} bonus meters`;
           leaderboardList.appendChild(listItem);
 
-          const position = new google.maps.LatLng(pos.lat, pos.lng);
-          const marker = new AnimatedMarker(position, pos.name, pos.img, `${formattedBonus} bonus meters`);
+          const startSeg = routePoints[pos.segmentIndex];
+          const endSeg = routePoints[pos.segmentIndex + 1];
+
+          let step = 0;
+          const totalSteps = 100;
+          const marker = new AnimatedMarker(startSeg, pos.name, pos.img, `${formattedBonus} bonus meters`);
           marker.setMap(map);
+
+          const interval = setInterval(() => {
+            if (step >= totalSteps) return clearInterval(interval);
+            const lat = startSeg.lat() + (endSeg.lat() - startSeg.lat()) * (step / totalSteps) * pos.remainingFraction;
+            const lng = startSeg.lng() + (endSeg.lng() - startSeg.lng()) * (step / totalSteps) * pos.remainingFraction;
+            marker.position = new google.maps.LatLng(lat, lng);
+            marker.draw();
+            step++;
+          }, 30);
+        });
         });
     }
   </script>
