@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Animated Face Marker on Google Maps</title>
+  <style>
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+    .animated-marker img {
+      width: 40px;
+      height: 40px;
+      animation: bounce 1s infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script>
+    let map;
+
+    class AnimatedMarker extends google.maps.OverlayView {
+      constructor(position) {
+        super();
+        this.position = position;
+        this.div = null;
+      }
+
+      onAdd() {
+        this.div = document.createElement("div");
+        this.div.className = "animated-marker";
+        this.div.innerHTML = `<img src="https://i.imgur.com/8Km9tLL.png" alt="Face Marker">`;
+        const panes = this.getPanes();
+        panes.overlayMouseTarget.appendChild(this.div);
+      }
+
+      draw() {
+        const point = this.getProjection().fromLatLngToDivPixel(this.position);
+        if (point && this.div) {
+          this.div.style.position = "absolute";
+          this.div.style.left = `${point.x}px`;
+          this.div.style.top = `${point.y}px`;
+        }
+      }
+
+      onRemove() {
+        if (this.div) this.div.remove();
+      }
+    }
+
+    function initMap() {
+      map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 6,
+        center: { lat: 50.427, lng: -3.833 }, // TQ10 9JT
+      });
+
+      const animatedMarker = new AnimatedMarker(new google.maps.LatLng(50.427, -3.833));
+      animatedMarker.setMap(map);
+    }
+  </script>
+
+  <script async
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBxpiHdu5lofHmGfbjbPevgWg-FRyCayy4&callback=initMap">
+  </script>
+</body>
+</html>
