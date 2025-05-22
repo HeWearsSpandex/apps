@@ -7,6 +7,16 @@
       height: 100vh;
       width: 100%;
     }
+    .marker-label {
+      background: white;
+      padding: 4px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      position: absolute;
+      transform: translate(-50%, -100%);
+      pointer-events: none;
+    }
     .animated-marker img {
       width: 40px;
       height: 40px;
@@ -70,17 +80,19 @@ window.initMap = function() {
         center: centerPosition,
       });
 
-      const animatedMarker = new AnimatedMarker(centerPosition, "Wayne", "https://robohash.org/wayne?set=set5");
+      const waynePosition = new google.maps.LatLng(50.850, -3.000);
+      const animatedMarker = new AnimatedMarker(waynePosition, "Wayne", "https://robohash.org/wayne?set=set5");
       animatedMarker.setMap(map);
 
-      const label = new google.maps.InfoWindow({
-        content: `<strong>Wayne</strong><br><small>128 bonus meters</small>`
-      });
+      const label = document.createElement("div");
+label.className = "marker-label";
+label.innerHTML = `<strong>Wayne</strong><br><small>${(Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000).toLocaleString()} bonus meters</small>`;
+document.body.appendChild(label);
 
       const hqInterval = setInterval(() => {
         if (animatedMarker.div) {
           animatedMarker.div.addEventListener("click", () => {
-            label.setPosition(centerPosition);
+            label.setPosition(waynePosition);
             label.open(map);
           });
           clearInterval(hqInterval);
@@ -92,7 +104,7 @@ window.initMap = function() {
         map: map,
         title: "JHB HQ",
         icon: {
-          url: "https://upload.wikimedia.org/wikipedia/commons/e/ec/RedDot.svg",
+          url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
           scaledSize: new google.maps.Size(20, 20)
         }
       });
@@ -100,15 +112,15 @@ window.initMap = function() {
       const baseLat = 50.427;
       const baseLng = -3.833;
       const staticMarkers = [
-        { lat: 50.910, lng: -1.404, name: "Alex", img: "https://robohash.org/alex?set=set5", bonus: "63,289 bonus meters" },
-        { lat: 50.550, lng: -3.380, name: "Cameron", img: "https://robohash.org/cameron?set=set5", bonus: "34,782 bonus meters" },
-        { lat: 50.700, lng: -3.200, name: "Lewis", img: "https://robohash.org/lewis?set=set5", bonus: "58,371 bonus meters" },
-        { lat: 50.850, lng: -2.950, name: "James", img: "https://robohash.org/james?set=set5", bonus: "49,003 bonus meters" },
-        { lat: 51.000, lng: -2.700, name: "Sophie", img: "https://robohash.org/sophie?set=set5", bonus: "27,580 bonus meters" },
-        { lat: 51.150, lng: -2.450, name: "Daniel", img: "https://robohash.org/daniel?set=set5", bonus: "68,912 bonus meters" },
-        { lat: 51.300, lng: -2.200, name: "Chloe", img: "https://robohash.org/chloe?set=set5", bonus: "31,745 bonus meters" },
-        { lat: 51.450, lng: -1.950, name: "Ryan", img: "https://robohash.org/ryan?set=set5", bonus: "44,920 bonus meters" },
-        { lat: 51.600, lng: -1.700, name: "Megan", img: "https://robohash.org/megan?set=set5", bonus: "52,168 bonus meters" }
+        { lat: 50.910, lng: -1.404, name: "Alex", img: "https://robohash.org/alex?set=set5" },
+        { lat: 50.750, lng: -3.550, name: "Cameron", img: "https://robohash.org/cameron?set=set5" },
+        { lat: 50.900, lng: -3.400, name: "Lewis", img: "https://robohash.org/lewis?set=set5" },
+        { lat: 51.000, lng: -3.200, name: "James", img: "https://robohash.org/james?set=set5" },
+        { lat: 51.050, lng: -2.900, name: "Sophie", img: "https://robohash.org/sophie?set=set5" },
+        { lat: 51.200, lng: -2.600, name: "Daniel", img: "https://robohash.org/daniel?set=set5" },
+        { lat: 51.300, lng: -2.300, name: "Chloe", img: "https://robohash.org/chloe?set=set5" },
+        { lat: 51.400, lng: -2.000, name: "Ryan", img: "https://robohash.org/ryan?set=set5" },
+        { lat: 51.500, lng: -1.700, name: "Megan", img: "https://robohash.org/megan?set=set5" }
       ];
 
       staticMarkers.forEach(pos => {
@@ -117,18 +129,33 @@ window.initMap = function() {
         marker.setMap(map);
 
         const label = new google.maps.InfoWindow({
-          content: `<strong>${pos.name}</strong><br><small>${pos.bonus}</small>`
+          content: `<strong>${pos.name}</strong><br><small>${(Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000).toLocaleString()} bonus meters</small>`
         });
 
                 const markerInterval = setInterval(() => {
-          if (marker.div) {
-            marker.div.addEventListener("click", () => {
-              label.setPosition(position);
-              label.open(map);
-            });
-            clearInterval(markerInterval);
-          }
-        }, 200);
+  if (marker.div) {
+    const textLabel = document.createElement("div");
+    textLabel.className = "marker-label";
+    textLabel.innerHTML = `<strong>${pos.name}</strong><br><small>${(Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000).toLocaleString()} bonus meters</small>`;
+    textLabel.style.position = "absolute";
+    textLabel.style.whiteSpace = "nowrap";
+    textLabel.style.zIndex = "1001";
+    document.body.appendChild(textLabel);
+
+    const updateLabelPosition = () => {
+      const point = marker.getProjection().fromLatLngToDivPixel(position);
+      if (point) {
+        textLabel.style.left = `${point.x + 25}px`;
+        textLabel.style.top = `${point.y}px`;
+      }
+    };
+
+    updateLabelPosition();
+    google.maps.event.addListener(map, "zoom_changed", updateLabelPosition);
+    google.maps.event.addListener(map, "center_changed", updateLabelPosition);
+    clearInterval(markerInterval);
+  }
+}, 200);
       });
     }
   </script>
