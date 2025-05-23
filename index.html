@@ -80,7 +80,7 @@
         }
 
         const staticMarkers = people.map(name => {
-          const bonus = Math.min(Math.floor(Math.random() * totalRouteLength * 0.999), totalRouteLength);
+          const bonus = Math.floor(Math.random() * totalRouteLength);
           let travelled = 0, segmentIndex = 0, remainingFraction = 0;
           for (let i = 0; i < routePoints.length - 1; i++) {
             const segStart = routePoints[i];
@@ -108,7 +108,43 @@
           };
         });
 
-        // rest of the existing code remains unchanged...
+                const map = new google.maps.Map(document.getElementById("map"), {});
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend(new google.maps.LatLng(50.43135, -3.797092));
+        staticMarkers.forEach(pos => bounds.extend(new google.maps.LatLng(pos.lat, pos.lng)));
+        map.fitBounds(bounds);
+
+        const maxBonus = Math.max(...staticMarkers.map(p => p.bonus));
+        const sortedMarkers = [...staticMarkers].sort((a, b) => b.bonus - a.bonus);
+        const leaderboardList = document.getElementById("leaderboard-list");
+        leaderboardList.innerHTML = "";
+
+        sortedMarkers.forEach((pos, index) => {
+          const formattedBonus = pos.bonus.toLocaleString();
+          const listItem = document.createElement("li");
+          const crown = index === 0 ? "👑" : "";
+          listItem.textContent = `${crown} ${index + 1}. ${pos.name} ${crown}: ${formattedBonus} bonus meters`;
+          leaderboardList.appendChild(listItem);
+
+          const marker = new google.maps.Marker({
+            position: new google.maps.LatLng(pos.lat, pos.lng),
+            map: map,
+            title: `${pos.name}: ${formattedBonus} bonus meters`,
+            icon: {
+              url: pos.img,
+              scaledSize: new google.maps.Size(64, 64),
+              origin: new google.maps.Point(0, 0),
+              anchor: new google.maps.Point(32, 64)
+            },
+            label: {
+              text: `${pos.name}
+${formattedBonus}`,
+              fontSize: "12px",
+              fontWeight: "bold",
+              color: "#000"
+            }
+          });
+        });
       }
     };
   </script>
