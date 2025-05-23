@@ -114,14 +114,14 @@
         staticMarkers.forEach(pos => bounds.extend(new google.maps.LatLng(pos.lat, pos.lng)));
         map.fitBounds(bounds);
 
-        // Add JHB HQ marker with logo
+        // Add JHB HQ marker with logo (preserving aspect ratio by only setting height)
         new google.maps.Marker({
           position: { lat: 50.43135, lng: -3.797092 },
           map,
           title: "JHB UK Ltd",
           icon: {
             url: "https://hewearsspandex.github.io/animated-map/JHB%20Logo.png",
-            scaledSize: new google.maps.Size(64, 64),
+            scaledSize: new google.maps.Size(null, 64),
             anchor: new google.maps.Point(32, 64)
           }
         });
