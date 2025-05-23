@@ -22,8 +22,8 @@
       animation: bounce 1s infinite;
     }
     .animated-marker img {
-      width: 64px;
       height: 64px;
+      width: auto;
     }
     @keyframes bounce {
       0%, 100% { transform: translateY(0); }
@@ -37,7 +37,48 @@
 
   <script>
     window.initMap = function() {
-      const people = ["Harvey", "Isla", "Leo", "Freya", "Theo", "Grace", "Mason", "Evie", "Wayne"];
+      const people = [
+        { name: "Adrian Lutic", img: "img/Adrian Lutic.png", bonus: 1500 },
+        { name: "Alex Nita", img: "img/Alex Nita.png", bonus: 2000 },
+        { name: "Antun Vidakovic", img: "img/Antun Vidakovic.png", bonus: 2500 },
+        { name: "Bradley Turnstill", img: "img/Bradley Tunstill.png", bonus: 3000 },
+        { name: "Brendon Kilcullen", img: "img/Brendon Kilcullen.png", bonus: 3500 },
+        { name: "Byron Claridge", img: "img/Byron Claridge.png", bonus: 4000 },
+        { name: "Callum Evans", img: "img/Callum Evans.png", bonus: 4500 },
+        { name: "Cameron Gill", img: "img/Cameron Gill.png", bonus: 5000 },
+        { name: "Christopher Scourfield", img: "img/Christopher Scourfield.png", bonus: 5500 },
+        { name: "Craig Dolan", img: "img/Craig Dolan.png", bonus: 6000 },
+        { name: "Darren Hatfield", img: "img/Darren Hatfield.png", bonus: 6500 },
+        { name: "David Mahon", img: "img/David Mahon.png", bonus: 7000 },
+        { name: "Edward Shanley", img: "img/Edward Stanley.png", bonus: 7500 },
+        { name: "Gary Mounce", img: "img/Gary Mounce.png", bonus: 8000 },
+        { name: "George Norris", img: "img/George Norris.png", bonus: 8500 },
+        { name: "James Hickman", img: "img/James Hickman.png", bonus: 9000 },
+        { name: "James Hodge-Brooks", img: "img/James Hodge-Brooks.png", bonus: 9500 },
+        { name: "James Rundle-Jones", img: "img/James Rundle-Jones.png", bonus: 10000 },
+        { name: "Jay Dunn", img: "img/Jay Dunn.png", bonus: 10500 },
+        { name: "Joe Lambourne-Gillen", img: "img/Joe Lambourne-Gillen.png", bonus: 11000 },
+        { name: "John Peters", img: "img/John Peters.png", bonus: 11500 },
+        { name: "Jonathan Thompson", img: "img/Jonathan Thompson.png", bonus: 12000 },
+        { name: "Joseph Nixon", img: "img/Joseph Nixon.png", bonus: 12500 },
+        { name: "Joseph Young", img: "img/Joseph Young.png", bonus: 13000 },
+        { name: "Joshua Powell", img: "img/Joshua Powell.png", bonus: 13500 },
+        { name: "Joshua Rowberry", img: "img/Joshua Rowberry.png", bonus: 14000 },
+        { name: "Lewis Cannon", img: "img/Lewis Cannon.png", bonus: 14500 },
+        { name: "Liam Hammon", img: "img/Liam Hammon.png", bonus: 15000 },
+        { name: "Luke Piller", img: "img/Luke Piller.png", bonus: 15500 },
+        { name: "Mark Sneap", img: "img/Mark Sneap.png", bonus: 16000 },
+        { name: "Morgan Hemming", img: "img/Morgan Hemming.png", bonus: 16500 },
+        { name: "Nicholas Kingshott", img: "img/Nicholas Kingshott.png", bonus: 17000 },
+        { name: "Richard Clanford", img: "img/Richard Clanford.png", bonus: 17500 },
+        { name: "Richard Turvey", img: "img/JHB Logo.png", bonus: 18000 },
+        { name: "Robert Tamas", img: "img/Robert Tamas.png", bonus: 18500 },
+        { name: "Ross Watson", img: "img/Ross Watson.png", bonus: 19000 },
+        { name: "Ryan Breslan", img: "img/Ryan Breslan.png", bonus: 19500 },
+        { name: "Ryan Manners", img: "img/Ryan Manners.png", bonus: 20000 },
+        { name: "Tom Brooks", img: "img/Thomas Brooks.png", bonus: 20500 },
+        { name: "Tyler Webb", img: "img/Tyler Webb.png", bonus: 21000 }
+      ];
       const directionsService = new google.maps.DirectionsService();
       let routePoints = [];
 
