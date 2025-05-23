@@ -43,7 +43,7 @@
 
   <script>
     // Configuration
-    const API_KEY = 'AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI';
+    const API_KEY = 'YOUR_API_KEY';
     const HQ = { lat: 50.43135, lng: -3.797092, icon: 'img/JHB Logo.png' };
     const WAYPOINTS = ['London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands','Berlin, Germany','Prague, Czech Republic','Vienna, Austria','Bratislava, Slovakia','Budapest, Hungary'];
     const DESTINATION = 'Zagreb, Croatia';
@@ -57,8 +57,7 @@
         travelMode: 'DRIVING'
       }, (res, status) => {
         if (status !== 'OK') return console.error('Directions error', status);
-        const path = res.routes[0].overview_path;
-        initMap(path);
+        initMap(res.routes[0].overview_path);
       });
     }
 
@@ -67,39 +66,47 @@
       const bounds = new google.maps.LatLngBounds();
       const segmentLengths = computeSegments(path);
       const totalDist = segmentLengths.reduce((sum, d) => sum + d, 0);
-      // Precompute cumulative distances
       const cumDist = [0];
-      segmentLengths.forEach((d,i) => cumDist[i+1] = cumDist[i] + d);
+      segmentLengths.forEach((d, i) => cumDist[i+1] = cumDist[i] + d);
 
       // Place HQ marker
       placeMarker(map, HQ.lat, HQ.lng, HQ.icon, [115,64], [80,64], 'JHB UK Ltd', 999);
-      bounds.extend(HQ);
+      bounds.extend(new google.maps.LatLng(HQ.lat, HQ.lng));
 
-      // Generate participants with markers at start
-      const participants = PEOPLE.map((name, i) => {
-        const part = createParticipant(name, segmentLengths, cumDist, totalDist, path);
-        // Place at starting point
-        const marker = new google.maps.Marker({ map, position: path[0], icon: {
-          url: part.img, scaledSize: new google.maps.Size(64,64), anchor: new google.maps.Point(32,64)
-        }, title: `${part.name}: ${part.bonus}` });
-        part.marker = marker;
-        return part;
+      // Create participants and place all at HQ
+      const participants = PEOPLE.map(name => {
+        const bonus = Math.floor(Math.random() * totalDist);
+        return {
+          name,
+          bonus,
+          img: `img/${name}.png`,
+          marker: new google.maps.Marker({
+            map,
+            position: { lat: HQ.lat, lng: HQ.lng },
+            icon: {
+              url: `img/${name}.png`,
+              scaledSize: new google.maps.Size(64, 64),
+              anchor: new google.maps.Point(32, 64)
+            },
+            title: name
+          })
+        };
       });
 
-      // Prevent overlaps at final positions
+      // Compute final positions and resolve overlaps
       participants.forEach(p => p.finalPos = getPositionAtDistance(p.bonus, path, segmentLengths, cumDist));
       resolveOverlaps(participants, 0.0003);
 
-      // Fit map bounds to all final positions and HQ
-      participants.forEach(p => bounds.extend(p.finalPos));
+      // Fit bounds to include final positions
+      participants.forEach(p => bounds.extend(new google.maps.LatLng(p.finalPos.lat, p.finalPos.lng)));
       map.fitBounds(bounds);
 
-      // Sort & display leaderboard
+      // Update leaderboard
       participants.sort((a,b) => b.bonus - a.bonus);
       updateLeaderboard(participants);
 
-      // Animate each marker from start to its final position
-      participants.forEach(p => animateMarker(p.marker, path, segmentLengths, cumDist, totalDist, p.bonus));
+      // Animate movement to final positions
+      participants.forEach(p => animateMarker(p.marker, p.finalPos, totalDist, p.bonus));
     }
 
     function computeSegments(path) {
@@ -108,75 +115,73 @@
       );
     }
 
-    function createParticipant(name, segs, cumDist, totalDist, path) {
-      const bonus = Math.floor(Math.random() * 40000);
-      // Clamp bonus to totalDist
-      const dist = Math.min(bonus, totalDist);
-      return { name, bonus: dist, img: `img/${name}.png` };
-    }
-
     function getPositionAtDistance(dist, path, segs, cumDist) {
-      // Find segment index
-      let i = cumDist.findIndex((d, idx) => dist >= d && dist <= cumDist[idx+1]);
-      if (i < 0) i = segs.length - 1;
-      const start = path[i], end = path[i+1];
-      const frac = (dist - cumDist[i]) / segs[i];
-      return { lat: start.lat() + (end.lat()-start.lat())*frac, lng: start.lng() + (end.lng()-start.lng())*frac };
+      let idx = cumDist.findIndex((d, i) => dist >= d && dist <= cumDist[i+1]);
+      if (idx === -1) idx = cumDist.length - 2;
+      const start = path[idx], end = path[idx+1];
+      const frac = (dist - cumDist[idx]) / segs[idx];
+      return {
+        lat: start.lat() + (end.lat() - start.lat()) * frac,
+        lng: start.lng() + (end.lng() - start.lng()) * frac
+      };
     }
 
-    function animateMarker(marker, path, segs, cumDist, totalDist, dist) {
-      const duration = (dist / totalDist) * 5000; // 5s for furthest
-      const start = performance.now();
-      function step(time) {
-        const t = Math.min((time - start) / duration, 1);
-        const curDist = dist * t;
-        const pos = getPositionAtDistance(curDist, path, segs, cumDist);
-        marker.setPosition(pos);
+    function animateMarker(marker, finalPos, totalDist, dist) {
+      const duration = (dist / totalDist) * 5000;
+      const startTime = performance.now();
+      function step(now) {
+        const t = Math.min((now - startTime) / duration, 1);
+        const lat = HQ.lat + (finalPos.lat - HQ.lat) * t;
+        const lng = HQ.lng + (finalPos.lng - HQ.lng) * t;
+        marker.setPosition({ lat, lng });
         if (t < 1) requestAnimationFrame(step);
       }
       requestAnimationFrame(step);
     }
 
-    // Spread out overlapping final positions by spiraling outward
-function resolveOverlaps(list, minDist) {
-  for (let i = 0; i < list.length; i++) {
-    let angle = 0, radius = minDist;
-    for (let j = 0; j < i; j++) {
-      const a = list[i].finalPos, b = list[j].finalPos;
-      const dx = a.lng - b.lng, dy = a.lat - b.lat;
-      if (Math.hypot(dx, dy) < minDist) {
-        a.lng += Math.cos(angle) * radius;
-        a.lat += Math.sin(angle) * radius;
-        angle += Math.PI / 4;
-        radius += minDist / 2;
-        j = -1;
-      }
-    }
-    // final positions have been adjusted, markers will animate from HQ to adjusted positions
-  }
-}
-}
-        // Update marker's final anchor if needed
-        list[i].marker.setPosition(list[i].finalPos);
+    function resolveOverlaps(list, minDist) {
+      for (let i = 0; i < list.length; i++) {
+        let angle = 0, radius = minDist;
+        for (let j = 0; j < i; j++) {
+          const a = list[i].finalPos;
+          const b = list[j].finalPos;
+          const dx = a.lng - b.lng, dy = a.lat - b.lat;
+          if (Math.hypot(dx, dy) < minDist) {
+            a.lng += Math.cos(angle) * radius;
+            a.lat += Math.sin(angle) * radius;
+            angle += Math.PI / 4;
+            radius += minDist / 2;
+            j = -1;
+          }
+        }
       }
     }
 
     function placeMarker(map, lat, lng, url, size, anchor, title, zIndex=1000) {
-      new google.maps.Marker({ position: { lat, lng }, map, title, zIndex,
-        icon: { url, scaledSize: new google.maps.Size(size[0], size[1]), anchor: new google.maps.Point(anchor[0], anchor[1]) }
+      new google.maps.Marker({
+        position: { lat, lng },
+        map,
+        title,
+        zIndex,
+        icon: {
+          url,
+          scaledSize: new google.maps.Size(size[0], size[1]),
+          anchor: new google.maps.Point(anchor[0], anchor[1])
+        }
       });
     }
 
     function updateLeaderboard(list) {
-      const ul = document.getElementById('leaderboard-list'); ul.innerHTML='';
+      const ul = document.getElementById('leaderboard-list');
+      ul.innerHTML = '';
       list.forEach((p, i) => {
         const li = document.createElement('li');
-        li.textContent = `${i===0?'👑':''} ${i+1}. ${p.name}: ${p.bonus.toLocaleString()} bonus meters`;
+        li.textContent = `${i === 0 ? '👑' : ''} ${i+1}. ${p.name}: ${Math.round(p.bonus).toLocaleString()} meters`;
         ul.appendChild(li);
       });
     }
 
-    // Load Google Maps API dynamically
+    // Load Google Maps API
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&callback=loadMap&libraries=geometry`;
     script.async = true;
