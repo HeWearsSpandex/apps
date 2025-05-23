@@ -43,11 +43,11 @@
 
   <script>
     // Configuration
-    const API_KEY = 'AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI';
+    const API_KEY = 'YOUR_API_KEY';
     const HQ = { lat: 50.43135, lng: -3.797092, icon: 'img/JHB Logo.png' };
     const WAYPOINTS = ['London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands','Berlin, Germany','Prague, Czech Republic','Vienna, Austria','Bratislava, Slovakia','Budapest, Hungary'];
     const DESTINATION = 'Zagreb, Croatia';
-    const PEOPLE = ['Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Turnstill','Brendon Kilcullen','Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan','Darren Hatfield','David Mahon','Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks','James Rundle-Jones','Jay Dunn','Joe Lambourne-Gillen','John Peters','Jonathan Thompson','Joseph Nixon','Joseph Young','Joshua Powell','Joshua Rowberry','Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Morgan Hemming','Nicholas Kingshott','Richard Clanford','Richard Turvey','Robert Tamas','Ross Watson','Ryan Breslan','Ryan Manners','Tom Brooks','Tyler Webb'];
+    const PEOPLE = ['Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Tunstill','Brendon Kilcullen','Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan','Darren Hatfield','David Mahon','Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks','James Rundle-Jones','Jay Dunn','Joe Lambourne-Gillen','John Peters','Jonathan Thompson','Joseph Nixon','Joseph Young','Joshua Powell','Joshua Rowberry','Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Morgan Hemming','Nicholas Kingshott','Richard Clanford','Richard Turvey','Robert Tamas','Ross Watson','Ryan Breslan','Ryan Manners','Tom Brooks','Tyler Webb'];
 
     function loadMap() {
       new google.maps.DirectionsService().route({
@@ -138,20 +138,24 @@
     }
 
     // Spread out overlapping final positions by spiraling outward
-    function resolveOverlaps(list, minDist) {
-      for (let i = 0; i < list.length; i++) {
-        let angle = 0, radius = minDist;
-        for (let j = 0; j < i; j++) {
-          const a = list[i].finalPos, b = list[j].finalPos;
-          const dx = a.lng - b.lng, dy = a.lat - b.lat;
-          if (Math.hypot(dx, dy) < minDist) {
-            a.lng += Math.cos(angle) * radius;
-            a.lat += Math.sin(angle) * radius;
-            angle += Math.PI / 4;
-            radius += minDist / 2;
-            j = -1;
-          }
-        }
+function resolveOverlaps(list, minDist) {
+  for (let i = 0; i < list.length; i++) {
+    let angle = 0, radius = minDist;
+    for (let j = 0; j < i; j++) {
+      const a = list[i].finalPos, b = list[j].finalPos;
+      const dx = a.lng - b.lng, dy = a.lat - b.lat;
+      if (Math.hypot(dx, dy) < minDist) {
+        a.lng += Math.cos(angle) * radius;
+        a.lat += Math.sin(angle) * radius;
+        angle += Math.PI / 4;
+        radius += minDist / 2;
+        j = -1;
+      }
+    }
+    // final positions have been adjusted, markers will animate from HQ to adjusted positions
+  }
+}
+}
         // Update marker's final anchor if needed
         list[i].marker.setPosition(list[i].finalPos);
       }
