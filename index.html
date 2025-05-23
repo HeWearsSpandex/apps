@@ -196,11 +196,25 @@
           const totalSteps = 600;
           let currentStep = 0;
 
+          const segmentDistances = [];
+          let totalRouteLengthMeters = 0;
+          for (let i = 0; i < routePoints.length - 1; i++) {
+            const dist = google.maps.geometry.spherical.computeDistanceBetween(routePoints[i], routePoints[i + 1]);
+            segmentDistances.push(dist);
+            totalRouteLengthMeters += dist;
+          }
+
           const animate = () => {
-            const fraction = (totalDistance / maxDistance) * (currentStep / totalSteps);
-            const totalRouteLength = routePoints.length - 1;
-            let pathIndex = Math.min(Math.floor(fraction * totalRouteLength), totalRouteLength - 1);
-            let segFraction = (fraction * totalRouteLength) - pathIndex;
+            let remainingDistance = (totalDistance / maxDistance) * totalRouteLengthMeters * (currentStep / totalSteps);
+            let pathIndex = 0;
+
+            while (remainingDistance > segmentDistances[pathIndex] && pathIndex < segmentDistances.length - 1) {
+              remainingDistance -= segmentDistances[pathIndex];
+              pathIndex++;
+            }
+
+            const segDistance = segmentDistances[pathIndex];
+            const segFraction = remainingDistance / segDistance;
 
             const start = routePoints[pathIndex];
             const end = routePoints[pathIndex + 1];
