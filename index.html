@@ -143,9 +143,13 @@
       const bounds = new google.maps.LatLngBounds();
       bounds.extend(new google.maps.LatLng(50.410, -3.880)); // JHB HQ
       staticMarkers.forEach(pos => bounds.extend(new google.maps.LatLng(pos.lat, pos.lng)));
-      map.fitBounds(bounds, 100);
-      map.panTo(new google.maps.LatLng(50.410, -3.880));
-      map.setZoom(6);
+      const jhbLatLng = new google.maps.LatLng(50.410, -3.880);
+      const furthest = staticMarkers.reduce((a, b) => a.bonus > b.bonus ? a : b);
+      const furthestLatLng = new google.maps.LatLng(furthest.lat, furthest.lng);
+      const displayBounds = new google.maps.LatLngBounds();
+      displayBounds.extend(jhbLatLng);
+      displayBounds.extend(furthestLatLng);
+      map.fitBounds(displayBounds);
 
       new google.maps.Marker({
         position: { lat: 50.410, lng: -3.880 },
@@ -171,7 +175,7 @@
 
           const totalDistance = pos.bonus;
           const maxDistance = 2000000;
-          const totalSteps = 200;
+          const totalSteps = 600;
           let currentStep = 0;
 
           const animate = () => {
@@ -194,16 +198,7 @@
 
           animate();
 
-          const interval = setInterval(() => {
-            if (step >= totalSteps) return clearInterval(interval);
-            const lat = startSeg.lat() + (endSeg.lat() - startSeg.lat()) * (step / totalSteps) * pos.remainingFraction;
-            const lng = startSeg.lng() + (endSeg.lng() - startSeg.lng()) * (step / totalSteps) * pos.remainingFraction;
-            if (isFinite(lat) && isFinite(lng)) {
-              marker.position = new google.maps.LatLng(lat, lng);
-              marker.draw();
-            }
-            step++;
-          }, 30);
+          // Removed duplicate interval block
         });
     };
   </script>
