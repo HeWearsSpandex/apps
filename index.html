@@ -32,7 +32,7 @@
   </style>
 </head>
 <body>
-  <div id="leaderboard" style="position: absolute; top: 10px; right: 10px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); z-index: 1002; font-size: 14px; max-height: 90vh; overflow-y: auto;"><strong>Leaderboard</strong><ul id="leaderboard-list" style="padding-left: 18px; margin-top: 6px;"></ul></div>
+  <div id="leaderboard" style="position: absolute; top: 10px; right: 10px; background: white; padding: 16px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1002; font-size: 16px; max-height: 90vh; overflow-y: auto; line-height: 1.6; min-width: 220px;"><strong>Leaderboard</strong><ul id="leaderboard-list" style="padding-left: 18px; margin-top: 6px;"></ul></div>
   <div id="map"></div>
 
   <script>
@@ -56,18 +56,21 @@
 
       const staticMarkers = people.map(name => {
         const bonus = Math.floor(Math.random() * (40000 + 1));
-        const fraction = bonus / totalRouteDistance;
-        let remainingFraction = fraction * routePoints.length;
-        let segmentIndex = Math.min(Math.floor(remainingFraction), routePoints.length - 2);
-        remainingFraction -= segmentIndex;
+        let travelled = 0;
+        let segmentIndex = 0;
+        let remainingFraction = 0;
 
-        // If crossing water (e.g., from London to Paris), require minimum bonus
-        const waterCrossingSegments = [1]; // e.g., London to Paris
-        const requiresJump = waterCrossingSegments.includes(segmentIndex);
-        const bonusThreshold = 30000;
-        if (requiresJump && bonus < bonusThreshold) {
-          segmentIndex = 1; // Lock at London
-          remainingFraction = 0.0;
+        for (let i = 0; i < routePoints.length - 1; i++) {
+          const segStart = routePoints[i];
+          const segEnd = routePoints[i + 1];
+          const segmentDistance = google.maps.geometry.spherical.computeDistanceBetween(segStart, segEnd);
+
+          if (travelled + segmentDistance >= bonus) {
+            segmentIndex = i;
+            remainingFraction = (bonus - travelled) / segmentDistance;
+            break;
+          }
+          travelled += segmentDistance;
         }
 
         const startSeg = routePoints[segmentIndex];
@@ -161,13 +164,13 @@
         }
       });
 
-      staticMarkers
-        .sort((a, b) => b.bonus - a.bonus)
-        .forEach(pos => {
-          const formattedBonus = pos.bonus.toLocaleString();
+      const sortedMarkers = staticMarkers.sort((a, b) => b.bonus - a.bonus);
+      sortedMarkers.forEach((pos, index) => {
+        const formattedBonus = pos.bonus.toLocaleString();
           const leaderboardList = document.getElementById("leaderboard-list");
           const listItem = document.createElement("li");
-          listItem.textContent = `${pos.name}: ${formattedBonus} bonus meters`;
+        const crown = index === 0 ? "👑" : "";
+        listItem.textContent = `${crown} ${index + 1}. ${pos.name} ${crown}: ${formattedBonus} bonus meters`;
           leaderboardList.appendChild(listItem);
 
           const marker = new AnimatedMarker(routePoints[0], pos.name, pos.img, `${formattedBonus} bonus meters`);
@@ -204,7 +207,7 @@
   </script>
 
   <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&callback=initMap">
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&callback=initMap&libraries=geometry">
   </script>
   <p style="padding: 1em; font-size: 14px; color: red;">
     ⚠️ If you're seeing a Google Maps error: <strong>RefererNotAllowedMapError</strong>, you must authorise the following URL in your Google Cloud Console:<br>
