@@ -191,7 +191,29 @@ sortedMarkers.forEach((pos, index) => {
 
   
 
-          animate();
+          const marker = new AnimatedMarker(
+    new google.maps.LatLng(50.410, -3.880),
+    pos.name,
+    pos.img,
+    `${formattedBonus} bonus meters`
+  );
+  marker.setMap(map);
+
+  const targetLatLng = new google.maps.LatLng(pos.lat, pos.lng);
+  let step = 0;
+  const maxBonus = sortedMarkers[0].bonus;
+  const duration = 5000 * (pos.bonus / maxBonus); // scale to 5s max
+  const totalSteps = Math.max(1, Math.floor(duration / (1000 / 60)));
+
+  const animate = () => {
+    const lat = 50.410 + (pos.lat - 50.410) * (step / totalSteps);
+    const lng = -3.880 + (pos.lng - -3.880) * (step / totalSteps);
+    marker.position = new google.maps.LatLng(lat, lng);
+    marker.draw();
+    step++;
+    if (step <= totalSteps) requestAnimationFrame(animate);
+  };
+  animate();
 
           // Removed duplicate interval block
         });
