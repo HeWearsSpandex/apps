@@ -52,10 +52,10 @@
         new google.maps.LatLng(45.8150, 15.9819)  // Zagreb
       ];
 
-      const totalRouteDistance = 40000;
+      const totalRouteDistance = 2000000;
 
       const staticMarkers = people.map(name => {
-        const bonus = Math.floor(Math.random() * (40000 + 1));
+        const bonus = Math.floor(Math.random() * (2000000 + 1));
         let travelled = 0;
         let segmentIndex = 0;
         let remainingFraction = 0;
@@ -152,8 +152,18 @@
       const displayBounds = new google.maps.LatLngBounds();
       displayBounds.extend(jhbLatLng);
       displayBounds.extend(furthestLatLng);
-      map.fitBounds(displayBounds);
-
+      const padding = 0.1;
+      const southWest = new google.maps.LatLng(
+        Math.min(jhbLatLng.lat(), furthestLatLng.lat()),
+        Math.min(jhbLatLng.lng(), furthestLatLng.lng())
+      );
+      const northEast = new google.maps.LatLng(
+        Math.max(jhbLatLng.lat(), furthestLatLng.lat()),
+        Math.max(jhbLatLng.lng(), furthestLatLng.lng()) + padding
+      );
+      const paddedBounds = new google.maps.LatLngBounds(southWest, northEast);
+      map.fitBounds(paddedBounds);
+      
       new google.maps.Marker({
         position: { lat: 50.410, lng: -3.880 },
         map: map,
@@ -177,7 +187,7 @@
           marker.setMap(map);
 
           const totalDistance = pos.bonus;
-          const maxDistance = 40000;
+          const maxDistance = 2000000;
           const totalSteps = 600;
           let currentStep = 0;
 
