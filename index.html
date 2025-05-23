@@ -39,7 +39,7 @@
     window.initMap = function() {
       const people = ["Harvey", "Isla", "Leo", "Freya", "Theo", "Grace", "Mason", "Evie", "Wayne"];
       const routePoints = [
-        new google.maps.LatLng(50.410, -3.880), // JHB HQ
+        new google.maps.LatLng(50.43135, -3.797092), // JHB HQ
         new google.maps.LatLng(51.5074, -0.1278), // London
         new google.maps.LatLng(48.8566, 2.3522), // Paris
         new google.maps.LatLng(50.8503, 4.3517), // Brussels
@@ -144,9 +144,9 @@
 
       const map = new google.maps.Map(document.getElementById("map"), {});
       const bounds = new google.maps.LatLngBounds();
-      bounds.extend(new google.maps.LatLng(50.410, -3.880)); // JHB HQ
+      bounds.extend(new google.maps.LatLng(50.43135, -3.797092)); // JHB HQ
       staticMarkers.forEach(pos => bounds.extend(new google.maps.LatLng(pos.lat, pos.lng)));
-      const jhbLatLng = new google.maps.LatLng(50.410, -3.880);
+      const jhbLatLng = new google.maps.LatLng(50.43135, -3.797092);
       const furthest = staticMarkers.reduce((a, b) => a.bonus > b.bonus ? a : b);
       const furthestLatLng = new google.maps.LatLng(furthest.lat, furthest.lng);
       const displayBounds = new google.maps.LatLngBounds();
@@ -170,7 +170,7 @@
       map.setZoom(zoomByBonus);
       
       new google.maps.Marker({
-        position: { lat: 50.410, lng: -3.880 },
+        position: { lat: 50.43135, lng: -3.797092 },
         map: map,
         animation: null,
         icon: {
@@ -206,8 +206,8 @@ sortedMarkers.forEach((pos, index) => {
   const totalSteps = Math.max(1, Math.floor(duration / (1000 / 60)));
 
   const animate = () => {
-    const lat = 50.410 + (pos.lat - 50.410) * (step / totalSteps);
-    const lng = -3.880 + (pos.lng - -3.880) * (step / totalSteps);
+    const lat = 50.43135 + (pos.lat - 50.43135) * (step / totalSteps);
+    const lng = -3.797092 + (pos.lng - -3.797092) * (step / totalSteps);
     marker.position = new google.maps.LatLng(lat, lng);
     marker.draw();
     step++;
