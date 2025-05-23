@@ -38,194 +38,211 @@
   <script>
     window.initMap = function() {
       const people = ["Harvey", "Isla", "Leo", "Freya", "Theo", "Grace", "Mason", "Evie", "Wayne"];
-      const routePoints = [
-        new google.maps.LatLng(50.43135, -3.797092), // JHB HQ
-        new google.maps.LatLng(51.5074, -0.1278), // London
-        new google.maps.LatLng(48.8566, 2.3522), // Paris
-        new google.maps.LatLng(50.8503, 4.3517), // Brussels
-        new google.maps.LatLng(52.3676, 4.9041), // Amsterdam
-        new google.maps.LatLng(52.5200, 13.4050), // Berlin
-        new google.maps.LatLng(50.0755, 14.4378), // Prague
-        new google.maps.LatLng(48.2082, 16.3738), // Vienna
-        new google.maps.LatLng(48.1486, 17.1077), // Bratislava
-        new google.maps.LatLng(47.4979, 19.0402), // Budapest
-        new google.maps.LatLng(45.8150, 15.9819)  // Zagreb
+      const directionsService = new google.maps.DirectionsService();
+      let routePoints = [];
+
+      const waypoints = [
+        { location: "London, UK" },
+        { location: "Paris, France" },
+        { location: "Brussels, Belgium" },
+        { location: "Amsterdam, Netherlands" },
+        { location: "Berlin, Germany" },
+        { location: "Prague, Czech Republic" },
+        { location: "Vienna, Austria" },
+        { location: "Bratislava, Slovakia" },
+        { location: "Budapest, Hungary" }
       ];
 
-      const totalRouteDistance = 40000;
+      const origin = "50.43135,-3.797092";
+      const destination = "Zagreb, Croatia";
 
-      const staticMarkers = people.map(name => {
-        const bonus = Math.floor(Math.random() * (40000 + 1));
-        let travelled = 0;
-        let segmentIndex = 0;
-        let remainingFraction = 0;
+      directionsService.route({
+        origin,
+        destination,
+        waypoints,
+        travelMode: google.maps.TravelMode.DRIVING
+      }, (response, status) => {
+        if (status === google.maps.DirectionsStatus.OK) {
+          routePoints = response.routes[0].overview_path;
+          initMapWithRoute(routePoints);
+        } else {
+          console.error("Directions request failed: " + status);
+        }
+      });
 
+      function initMapWithRoute(routePoints) {
+        const segmentLengths = [];
+        let totalRouteLength = 0;
         for (let i = 0; i < routePoints.length - 1; i++) {
-          const segStart = routePoints[i];
-          const segEnd = routePoints[i + 1];
-          const segmentDistance = google.maps.geometry.spherical.computeDistanceBetween(segStart, segEnd);
+          const dist = google.maps.geometry.spherical.computeDistanceBetween(routePoints[i], routePoints[i + 1]);
+          segmentLengths.push(dist);
+          totalRouteLength += dist;
+        }
 
-          if (travelled + segmentDistance >= bonus) {
-            segmentIndex = i;
-            remainingFraction = (bonus - travelled) / segmentDistance;
-            break;
+        const staticMarkers = people.map(name => {
+          const bonus = Math.floor(Math.random() * 40001);
+          let travelled = 0, segmentIndex = 0, remainingFraction = 0;
+          for (let i = 0; i < routePoints.length - 1; i++) {
+            const segStart = routePoints[i];
+            const segEnd = routePoints[i + 1];
+            const segmentDistance = google.maps.geometry.spherical.computeDistanceBetween(segStart, segEnd);
+            if (travelled + segmentDistance >= bonus) {
+              segmentIndex = i;
+              remainingFraction = (bonus - travelled) / segmentDistance;
+              break;
+            }
+            travelled += segmentDistance;
           }
-          travelled += segmentDistance;
-        }
+          const startSeg = routePoints[segmentIndex];
+          const endSeg = routePoints[segmentIndex + 1];
+          const lat = startSeg.lat() + (endSeg.lat() - startSeg.lat()) * remainingFraction;
+          const lng = startSeg.lng() + (endSeg.lng() - startSeg.lng()) * remainingFraction;
+          return {
+            name,
+            bonus,
+            img: `https://robohash.org/${name.toLowerCase()}?set=set5`,
+            segmentIndex,
+            remainingFraction,
+            lat,
+            lng
+          };
+        });
 
-        const startSeg = routePoints[segmentIndex];
-        const endSeg = routePoints[segmentIndex + 1];
-
-        const lat = startSeg.lat() + (endSeg.lat() - startSeg.lat()) * remainingFraction;
-        const seaSafeLat = Math.max(Math.min(lat, Math.max(startSeg.lat(), endSeg.lat())), Math.min(startSeg.lat(), endSeg.lat()));
-        const lng = startSeg.lng() + (endSeg.lng() - startSeg.lng()) * remainingFraction;
-        const seaSafeLng = Math.max(Math.min(lng, Math.max(startSeg.lng(), endSeg.lng())), Math.min(startSeg.lng(), endSeg.lng()));
-
-        return {
-          name,
-          bonus,
-          img: `https://robohash.org/${name.toLowerCase()}?set=set5`,
-          segmentIndex,
-          remainingFraction,
-          lat: seaSafeLat,
-          lng: seaSafeLng
-        };
-      });
-
-      class AnimatedMarker extends google.maps.OverlayView {
-        constructor(position, name = "", imageUrl = "", bonus = "") {
-          super();
-          this.position = position;
-          this.name = name;
-          this.imageUrl = imageUrl;
-          this.bonus = bonus;
-          this.div = null;
-        }
-        onAdd() {
-          this.div = document.createElement("div");
-          this.div.className = "animated-marker";
-          this.div.style.position = "absolute";
-          this.div.style.width = "64px";
-          this.div.style.height = "64px";
-          this.div.style.zIndex = "1000";
-          this.div.style.pointerEvents = "auto";
-          const img = document.createElement("img");
-          img.src = this.imageUrl || "https://i.imgur.com/8Km9tLL.png";
-          img.alt = this.name;
-          img.style.width = "100%";
-          img.style.height = "100%";
-          this.div.appendChild(img);
-
-          const label = document.createElement("div");
-          label.className = "marker-label";
-          label.innerHTML = `<strong>${this.name}</strong><br><small>${this.bonus}</small>`;
-          label.style.position = "absolute";
-          label.style.top = "70px";
-          label.style.left = "50%";
-          label.style.transform = "translateX(-50%)";
-          label.style.textAlign = "center";
-          this.div.appendChild(label);
-          const panes = this.getPanes();
-          panes.overlayMouseTarget.appendChild(this.div);
-        }
-        draw() {
-          const projection = this.getProjection();
-          if (!projection || !this.div) return;
-          const point = projection.fromLatLngToDivPixel(this.position);
-          if (point) {
-            this.div.style.left = `${point.x - 32}px`;
-            this.div.style.top = `${point.y - 32}px`;
+        class AnimatedMarker extends google.maps.OverlayView {
+          constructor(position, name = "", imageUrl = "", bonus = "") {
+            super();
+            this.position = position;
+            this.name = name;
+            this.imageUrl = imageUrl;
+            this.bonus = bonus;
+            this.div = null;
+          }
+          onAdd() {
+            this.div = document.createElement("div");
+            this.div.className = "animated-marker";
+            this.div.style.position = "absolute";
+            this.div.style.width = "64px";
+            this.div.style.height = "64px";
+            this.div.style.zIndex = "1000";
+            const img = document.createElement("img");
+            img.src = this.imageUrl;
+            img.alt = this.name;
+            img.style.width = "100%";
+            img.style.height = "100%";
+            this.div.appendChild(img);
+            const label = document.createElement("div");
+            label.className = "marker-label";
+            label.innerHTML = `<strong>${this.name}</strong><br><small>${this.bonus}</small>`;
+            label.style.position = "absolute";
+            label.style.top = "70px";
+            label.style.left = "50%";
+            label.style.transform = "translateX(-50%)";
+            label.style.textAlign = "center";
+            this.div.appendChild(label);
+            const panes = this.getPanes();
+            panes.overlayMouseTarget.appendChild(this.div);
+          }
+          draw() {
+            const projection = this.getProjection();
+            if (!projection || !this.div) return;
+            const point = projection.fromLatLngToDivPixel(this.position);
+            if (point) {
+              this.div.style.left = `${point.x - 32}px`;
+              this.div.style.top = `${point.y - 32}px`;
+            }
+          }
+          onRemove() {
+            if (this.div) this.div.remove();
           }
         }
-        onRemove() {
-          if (this.div) this.div.remove();
-        }
-      }
 
-      const map = new google.maps.Map(document.getElementById("map"), {});
-      const bounds = new google.maps.LatLngBounds();
-      bounds.extend(new google.maps.LatLng(50.43135, -3.797092)); // JHB HQ
-      staticMarkers.forEach(pos => bounds.extend(new google.maps.LatLng(pos.lat, pos.lng)));
-      const jhbLatLng = new google.maps.LatLng(50.43135, -3.797092);
-      const furthest = staticMarkers.reduce((a, b) => a.bonus > b.bonus ? a : b);
-      const furthestLatLng = new google.maps.LatLng(furthest.lat, furthest.lng);
-      const displayBounds = new google.maps.LatLngBounds();
-      displayBounds.extend(jhbLatLng);
-      displayBounds.extend(furthestLatLng);
-      const padding = 0.1;
-      const southWest = new google.maps.LatLng(
-        Math.min(jhbLatLng.lat(), furthestLatLng.lat()),
-        Math.min(jhbLatLng.lng(), furthestLatLng.lng())
-      );
-      const northEast = new google.maps.LatLng(
-        Math.max(jhbLatLng.lat(), furthestLatLng.lat()),
-        Math.max(jhbLatLng.lng(), furthestLatLng.lng()) + padding
-      );
-      const paddedBounds = new google.maps.LatLngBounds(southWest, northEast);
-      map.fitBounds(paddedBounds);
-      // Adjust zoom based on furthest travel
-      const zoomByBonus = furthest.bonus < 10000 ? 8 :
-                          furthest.bonus < 20000 ? 7 :
-                          furthest.bonus < 30000 ? 6 : 5;
-      map.setZoom(zoomByBonus);
-      
-      new google.maps.Marker({
-        position: { lat: 50.43135, lng: -3.797092 },
-        map: map,
-        animation: null,
-        icon: {
-          url: "https://maps.google.com/mapfiles/kml/shapes/info-i_maps.png",
-          scaledSize: new google.maps.Size(64, 64)
-        }
-      });
+        const map = new google.maps.Map(document.getElementById("map"), {});
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend(new google.maps.LatLng(50.43135, -3.797092));
+        staticMarkers.forEach(pos => bounds.extend(new google.maps.LatLng(pos.lat, pos.lng)));
+        map.fitBounds(bounds);
 
-      const sortedMarkers = staticMarkers.sort((a, b) => b.bonus - a.bonus);
-const leaderboardList = document.getElementById("leaderboard-list");
-leaderboardList.innerHTML = "";
-sortedMarkers.forEach((pos, index) => {
-  const formattedBonus = pos.bonus.toLocaleString();
-  const listItem = document.createElement("li");
-  const crown = index === 0 ? "👑" : "";
-  listItem.textContent = `${crown} ${index + 1}. ${pos.name} ${crown}: ${formattedBonus} bonus meters`;
-  leaderboardList.appendChild(listItem);
+        const maxBonus = Math.max(...staticMarkers.map(p => p.bonus));
+        const sortedMarkers = [...staticMarkers].sort((a, b) => b.bonus - a.bonus);
+        const leaderboardList = document.getElementById("leaderboard-list");
+        leaderboardList.innerHTML = "";
 
-  
+        sortedMarkers.forEach((pos, index) => {
+          const formattedBonus = pos.bonus.toLocaleString();
+          const listItem = document.createElement("li");
+          const crown = index === 0 ? "👑" : "";
+          listItem.textContent = `${crown} ${index + 1}. ${pos.name} ${crown}: ${formattedBonus} bonus meters`;
+          leaderboardList.appendChild(listItem);
 
           const marker = new AnimatedMarker(
-    new google.maps.LatLng(50.410, -3.880),
-    pos.name,
-    pos.img,
-    `${formattedBonus} bonus meters`
-  );
-  marker.setMap(map);
+            new google.maps.LatLng(50.43135, -3.797092),
+            pos.name,
+            pos.img,
+            `${formattedBonus} bonus meters`
+          );
+          marker.setMap(map);
 
-  const targetLatLng = new google.maps.LatLng(pos.lat, pos.lng);
-  let step = 0;
-  const maxBonus = sortedMarkers[0].bonus;
-  const duration = 5000 * (pos.bonus / maxBonus); // scale to 5s max
-  const totalSteps = Math.max(1, Math.floor(duration / (1000 / 60)));
+          const targetLatLng = new google.maps.LatLng(pos.lat, pos.lng);
+          let step = 0;
+          const duration = 5000 * (pos.bonus / maxBonus);
+          const totalSteps = Math.max(1, Math.floor(duration / (1000 / 60)));
 
-  const animate = () => {
-    const lat = 50.43135 + (pos.lat - 50.43135) * (step / totalSteps);
-    const lng = -3.797092 + (pos.lng - -3.797092) * (step / totalSteps);
-    marker.position = new google.maps.LatLng(lat, lng);
-    marker.draw();
-    step++;
-    if (step <= totalSteps) requestAnimationFrame(animate);
-  };
-  animate();
+          const personRouteLength = totalRouteLength * (pos.bonus / maxBonus);
+          const segmentDistances = [];
+          const personRoutePoints = [];
+          let totalSoFar = 0;
+          for (let i = 0; i < routePoints.length - 1; i++) {
+            const dist = google.maps.geometry.spherical.computeDistanceBetween(routePoints[i], routePoints[i + 1]);
+            if (totalSoFar + dist < personRouteLength) {
+              personRoutePoints.push(routePoints[i]);
+              segmentDistances.push(dist);
+              totalSoFar += dist;
+            } else {
+              const remaining = personRouteLength - totalSoFar;
+              const fraction = remaining / dist;
+              const lat = routePoints[i].lat() + (routePoints[i + 1].lat() - routePoints[i].lat()) * fraction;
+              const lng = routePoints[i].lng() + (routePoints[i + 1].lng() - routePoints[i].lng()) * fraction;
+              personRoutePoints.push(routePoints[i]);
+              personRoutePoints.push(new google.maps.LatLng(lat, lng));
+              segmentDistances.push(remaining);
+              break;
+            }
+          }
 
-          // Removed duplicate interval block
+          const animate = () => {
+            const progress = step / totalSteps;
+            const personDistance = (pos.bonus / maxBonus) * totalRouteLength;
+            let travelled = personDistance * progress;
+
+            let i = 0;
+            while (i < segmentDistances.length && travelled > segmentDistances[i]) {
+              travelled -= segmentDistances[i];
+              i++;
+            }
+
+            if (i >= personRoutePoints.length - 1) {
+              marker.position = personRoutePoints[personRoutePoints.length - 1];
+              marker.draw();
+              return;
+            }
+
+            const start = personRoutePoints[i];
+            const end = personRoutePoints[i + 1];
+            const segmentLength = segmentDistances[i];
+            const fraction = travelled / segmentLength;
+            const lat = start.lat() + (end.lat() - start.lat()) * fraction;
+            const lng = start.lng() + (end.lng() - start.lng()) * fraction;
+
+            marker.position = new google.maps.LatLng(lat, lng);
+            marker.draw();
+            step++;
+            if (step <= totalSteps) requestAnimationFrame(animate);
+          };
+          animate();
         });
+      }
     };
   </script>
-
-  <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&callback=initMap&libraries=geometry">
-  </script>
-  <p style="padding: 1em; font-size: 14px; color: red;">
-    ⚠️ If you're seeing a Google Maps error: <strong>RefererNotAllowedMapError</strong>, you must authorise the following URL in your Google Cloud Console:<br>
-    <code>https://web-sandbox.oaiusercontent.com/index.html</code>
-  </p>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&callback=initMap&libraries=geometry"></script>
 </body>
 </html>
