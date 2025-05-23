@@ -52,10 +52,10 @@
         new google.maps.LatLng(45.8150, 15.9819)  // Zagreb
       ];
 
-      const totalRouteDistance = 2000000;
+      const totalRouteDistance = 40000;
 
       const staticMarkers = people.map(name => {
-        const bonus = Math.floor(Math.random() * (2000000 - 10000 + 1)) + 10000;
+        const bonus = Math.floor(Math.random() * (40000 + 1));
         const fraction = bonus / totalRouteDistance;
         let remainingFraction = fraction * routePoints.length;
         let segmentIndex = Math.min(Math.floor(remainingFraction), routePoints.length - 2);
@@ -64,7 +64,7 @@
         // If crossing water (e.g., from London to Paris), require minimum bonus
         const waterCrossingSegments = [1]; // e.g., London to Paris
         const requiresJump = waterCrossingSegments.includes(segmentIndex);
-        const bonusThreshold = 250000;
+        const bonusThreshold = 30000;
         if (requiresJump && bonus < bonusThreshold) {
           segmentIndex = 1; // Lock at London
           remainingFraction = 0.0;
@@ -174,7 +174,7 @@
           marker.setMap(map);
 
           const totalDistance = pos.bonus;
-          const maxDistance = 2000000;
+          const maxDistance = 40000;
           const totalSteps = 600;
           let currentStep = 0;
 
@@ -187,7 +187,7 @@
             const start = routePoints[pathIndex];
             const end = routePoints[pathIndex + 1];
             const lat = start.lat() + (end.lat() - start.lat()) * segFraction;
-            const lng = start.lng() + (end.lng() - start.lng()) * segFraction;
+            const lng = start.lng() + (end.lng() - start.lng()) * segFraction + (Math.random() - 0.5) * 0.01;
 
             marker.position = new google.maps.LatLng(lat, lng);
             marker.draw();
