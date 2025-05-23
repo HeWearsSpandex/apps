@@ -114,16 +114,32 @@
       return { name, bonus, img: `img/${name}.png`, position:{ lat, lng } };
     }
 
-    // Shift overlapping markers by minOffset in lat/lng
-    function preventOverlap(list, minOffset) {
-      for (let i=0;i<list.length;i++){
-        for (let j=i+1;j<list.length;j++){
-          const a=list[i].position, b=list[j].position;
-          const dx=b.lng-a.lng, dy=b.lat-a.lat;
-          if (Math.hypot(dx,dy) < minOffset) {
-            b.lat += minOffset;
-            b.lng += minOffset;
-          }
+    // Shift overlapping markers by at least minOffset in lat/lng
+target.preventOverlap = function(list, minOffset) {
+  let moved;
+  do {
+    moved = false;
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        const a = list[i].position;
+        const b = list[j].position;
+        const dx = b.lng - a.lng, dy = b.lat - a.lat;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < minOffset) {
+          const angle = Math.random() * 2 * Math.PI;
+          const shift = (minOffset - dist) / 2;
+          // Move both points away from each other
+          a.lat -= Math.cos(angle) * shift;
+          a.lng -= Math.sin(angle) * shift;
+          b.lat += Math.cos(angle) * shift;
+          b.lng += Math.sin(angle) * shift;
+          moved = true;
+        }
+      }
+    }
+  } while (moved);
+};
+
         }
       }
     }
