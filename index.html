@@ -43,8 +43,7 @@
 
   <script>
     // Configuration
-    const API_KEY = 'AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI';
-    // Use local project assets for HQ logo
+    const API_KEY = 'YOUR_API_KEY';
     const HQ = { lat: 50.43135, lng: -3.797092, icon: 'img/JHB Logo.png' };
     const WAYPOINTS = [
       'London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands',
@@ -64,8 +63,7 @@
     ];
 
     function loadMap() {
-      const directions = new google.maps.DirectionsService();
-      directions.route({
+      new google.maps.DirectionsService().route({
         origin: HQ,
         destination: DESTINATION,
         waypoints: WAYPOINTS.map(loc => ({ location: loc })),
@@ -81,25 +79,26 @@
       const bounds = new google.maps.LatLngBounds();
       const distances = computeSegments(path);
 
-      // Place HQ marker with local logo
-      placeMarker(map, HQ, { url: HQ.icon, size: [115,64], anchor: [80,64], title: 'JHB UK Ltd' }, true);
+      // Place HQ marker
+      placeMarker(map, HQ, { url: HQ.icon, size: [115,64], anchor: [80,64], title: 'JHB UK Ltd' });
       bounds.extend(HQ);
 
-      // Generate and place people markers
+      // Generate participants
       const participants = PEOPLE.map((name,i) => createParticipant(name, path, distances, i));
+      preventOverlap(participants, 0.0003);
       participants.forEach(p => bounds.extend(p.position));
       map.fitBounds(bounds);
 
-      // Sort for leaderboard
+      // Sort & display leaderboard
       participants.sort((a,b) => b.bonus - a.bonus);
       updateLeaderboard(participants);
 
-      // Place map markers with local images
+      // Place participant markers
       participants.forEach(p => placeMarker(map, p.position, { url: p.img, size: [64,64], anchor: [32,64], title: `${p.name}: ${p.bonus}` }));
     }
 
     function computeSegments(path) {
-      return path.slice(0, -1).map((_, i) =>
+      return path.slice(0,-1).map((_,i) =>
         google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
       );
     }
@@ -110,42 +109,47 @@
       while(idx<segs.length && dist+segs[idx]<bonus) dist+=segs[idx++];
       const frac = (bonus-dist)/segs[idx];
       const start = path[idx], end = path[idx+1];
-      const offset = 0.001*(index+1);
-      const lat = start.lat() + (end.lat()-start.lat())*frac + offset;
+      const lat = start.lat() + (end.lat()-start.lat())*frac;
       const lng = start.lng() + (end.lng()-start.lng())*frac;
-      // Use local project images
-      return { name, bonus, img: `img/${name}.png`, position: { lat, lng } };
+      return { name, bonus, img: `img/${name}.png`, position:{ lat, lng } };
     }
 
-    function placeMarker(map, pos, {url, size, anchor, title}, isHQ=false) {
+    // Shift overlapping markers by minOffset in lat/lng
+    function preventOverlap(list, minOffset) {
+      for (let i=0;i<list.length;i++){
+        for (let j=i+1;j<list.length;j++){
+          const a=list[i].position, b=list[j].position;
+          const dx=b.lng-a.lng, dy=b.lat-a.lat;
+          if (Math.hypot(dx,dy) < minOffset) {
+            b.lat += minOffset;
+            b.lng += minOffset;
+          }
+        }
+      }
+    }
+
+    function placeMarker(map, pos, {url, size, anchor, title}) {
       new google.maps.Marker({
         position: pos,
         map,
         title,
-        icon: url && {
-          url,
-          scaledSize: new google.maps.Size(...size),
-          anchor: new google.maps.Point(...anchor)
-        },
-        zIndex: isHQ ? 999 : 1000
+        icon: url && { url, scaledSize: new google.maps.Size(...size), anchor: new google.maps.Point(...anchor) }
       });
     }
 
     function updateLeaderboard(list) {
-      const container = document.getElementById('leaderboard-list');
-      container.innerHTML = '';
-      list.forEach((p,i) => {
-        const li = document.createElement('li');
-        li.textContent = `${i===0?'👑':''} ${i+1}. ${p.name}: ${p.bonus.toLocaleString()} bonus meters`;
-        container.appendChild(li);
+      const ul = document.getElementById('leaderboard-list'); ul.innerHTML='';
+      list.forEach((p,i)=>{
+        const li=document.createElement('li');
+        li.textContent=`${i===0?'👑':''} ${i+1}. ${p.name}: ${p.bonus.toLocaleString()} bonus meters`;
+        ul.appendChild(li);
       });
     }
 
-    // Load API dynamically
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&callback=loadMap&libraries=geometry`;
-    script.async = true;
-    document.head.appendChild(script);
+    // Load Google Maps API
+    const script=document.createElement('script');
+    script.src=`https://maps.googleapis.com/maps/api/js?key=${API_KEY}&callback=loadMap&libraries=geometry`;
+    script.async=true;document.head.appendChild(script);
   </script>
 </body>
 </html>
