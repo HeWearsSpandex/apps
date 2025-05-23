@@ -1,220 +1,150 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Animated Face Marker on Google Maps</title>
   <style>
-    #map {
-      height: 100vh;
-      width: 100%;
+    /* Map and leaderboard styling */
+    #map { height: 100vh; width: 100%; }
+    #leaderboard {
+      position: absolute;
+      top: 10px; right: 10px;
+      background: #fff;
+      padding: 16px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      z-index: 1002;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      max-height: 90vh;
+      overflow-y: auto;
+      line-height: 1.6;
+      min-width: 220px;
     }
     .marker-label {
-      font-family: 'Arial', sans-serif;
-      background: white;
-      padding: 4px 6px;
-      border-radius: 4px;
-      font-size: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
       position: absolute;
       transform: translate(-50%, -100%);
       pointer-events: none;
-    }
-    .animated-marker {
-      animation: bounce 1s infinite;
-    }
-    .animated-marker img {
-      height: 64px;
-      width: auto;
-    }
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
+      padding: 4px 6px;
+      font-size: 12px;
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
   </style>
 </head>
 <body>
-  <div id="leaderboard" style="position: absolute; top: 10px; right: 10px; background: white; padding: 16px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1002; font-size: 16px; max-height: 90vh; overflow-y: auto; line-height: 1.6; min-width: 220px;"><strong>Leaderboard</strong><ul id="leaderboard-list" style="padding-left: 18px; margin-top: 6px;"></ul></div>
+  <div id="leaderboard">
+    <strong>Leaderboard</strong>
+    <ul id="leaderboard-list"></ul>
+  </div>
   <div id="map"></div>
 
   <script>
-    window.initMap = function() {
-      const people = [
-        { name: "Adrian Lutic", img: "img/Adrian Lutic.png", bonus: 1500 },
-        { name: "Alex Nita", img: "img/Alex Nita.png", bonus: 2000 },
-        { name: "Antun Vidakovic", img: "img/Antun Vidakovic.png", bonus: 2500 },
-        { name: "Bradley Turnstill", img: "img/Bradley Tunstill.png", bonus: 3000 },
-        { name: "Brendon Kilcullen", img: "img/Brendon Kilcullen.png", bonus: 3500 },
-        { name: "Byron Claridge", img: "img/Byron Claridge.png", bonus: 4000 },
-        { name: "Callum Evans", img: "img/Callum Evans.png", bonus: 4500 },
-        { name: "Cameron Gill", img: "img/Cameron Gill.png", bonus: 5000 },
-        { name: "Christopher Scourfield", img: "img/Christopher Scourfield.png", bonus: 5500 },
-        { name: "Craig Dolan", img: "img/Craig Dolan.png", bonus: 6000 },
-        { name: "Darren Hatfield", img: "img/Darren Hatfield.png", bonus: 6500 },
-        { name: "David Mahon", img: "img/David Mahon.png", bonus: 7000 },
-        { name: "Edward Shanley", img: "img/Edward Stanley.png", bonus: 7500 },
-        { name: "Gary Mounce", img: "img/Gary Mounce.png", bonus: 8000 },
-        { name: "George Norris", img: "img/George Norris.png", bonus: 8500 },
-        { name: "James Hickman", img: "img/James Hickman.png", bonus: 9000 },
-        { name: "James Hodge-Brooks", img: "img/James Hodge-Brooks.png", bonus: 9500 },
-        { name: "James Rundle-Jones", img: "img/James Rundle-Jones.png", bonus: 10000 },
-        { name: "Jay Dunn", img: "img/Jay Dunn.png", bonus: 10500 },
-        { name: "Joe Lambourne-Gillen", img: "img/Joe Lambourne-Gillen.png", bonus: 11000 },
-        { name: "John Peters", img: "img/John Peters.png", bonus: 11500 },
-        { name: "Jonathan Thompson", img: "img/Jonathan Thompson.png", bonus: 12000 },
-        { name: "Joseph Nixon", img: "img/Joseph Nixon.png", bonus: 12500 },
-        { name: "Joseph Young", img: "img/Joseph Young.png", bonus: 13000 },
-        { name: "Joshua Powell", img: "img/Joshua Powell.png", bonus: 13500 },
-        { name: "Joshua Rowberry", img: "img/Joshua Rowberry.png", bonus: 14000 },
-        { name: "Lewis Cannon", img: "img/Lewis Cannon.png", bonus: 14500 },
-        { name: "Liam Hammon", img: "img/Liam Hammon.png", bonus: 15000 },
-        { name: "Luke Piller", img: "img/Luke Piller.png", bonus: 15500 },
-        { name: "Mark Sneap", img: "img/Mark Sneap.png", bonus: 16000 },
-        { name: "Morgan Hemming", img: "img/Morgan Hemming.png", bonus: 16500 },
-        { name: "Nicholas Kingshott", img: "img/Nicholas Kingshott.png", bonus: 17000 },
-        { name: "Richard Clanford", img: "img/Richard Clanford.png", bonus: 17500 },
-        { name: "Richard Turvey", img: "img/JHB Logo.png", bonus: 18000 },
-        { name: "Robert Tamas", img: "img/Robert Tamas.png", bonus: 18500 },
-        { name: "Ross Watson", img: "img/Ross Watson.png", bonus: 19000 },
-        { name: "Ryan Breslan", img: "img/Ryan Breslan.png", bonus: 19500 },
-        { name: "Ryan Manners", img: "img/Ryan Manners.png", bonus: 20000 },
-        { name: "Tom Brooks", img: "img/Thomas Brooks.png", bonus: 20500 },
-        { name: "Tyler Webb", img: "img/Tyler Webb.png", bonus: 21000 }
-      ];      const directionsService = new google.maps.DirectionsService();
-      let routePoints = [];
+    // Configuration
+    const API_KEY = 'YOUR_API_KEY';
+    const HQ = { lat: 50.43135, lng: -3.797092, icon: 'https://hewearsspandex.github.io/animated-map/img/JHB%20Logo.png' };
+    const WAYPOINTS = [
+      'London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands',
+      'Berlin, Germany','Prague, Czech Republic','Vienna, Austria',
+      'Bratislava, Slovakia','Budapest, Hungary'
+    ];
+    const DESTINATION = 'Zagreb, Croatia';
+    const PEOPLE = [
+      'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Turnstill','Brendon Kilcullen',
+      'Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan',
+      'Darren Hatfield','David Mahon','Edward Shanley','Gary Mounce','George Norris',
+      'James Hickman','James Hodge-Brooks','James Rundle-Jones','Jay Dunn','Joe Lambourne-Gillen',
+      'John Peters','Jonathan Thompson','Joseph Nixon','Joseph Young','Joshua Powell',
+      'Joshua Rowberry','Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap',
+      'Morgan Hemming','Nicholas Kingshott','Richard Clanford','Richard Turvey',
+      'Robert Tamas','Ross Watson','Ryan Breslan','Ryan Manners','Tom Brooks','Tyler Webb'
+    ];
 
-      const waypoints = [
-        { location: "London, UK" },
-        { location: "Paris, France" },
-        { location: "Brussels, Belgium" },
-        { location: "Amsterdam, Netherlands" },
-        { location: "Berlin, Germany" },
-        { location: "Prague, Czech Republic" },
-        { location: "Vienna, Austria" },
-        { location: "Bratislava, Slovakia" },
-        { location: "Budapest, Hungary" }
-      ];
-
-      const origin = "50.43135,-3.797092";
-      const destination = "Zagreb, Croatia";
-
-      directionsService.route({
-        origin,
-        destination,
-        waypoints,
-        travelMode: google.maps.TravelMode.DRIVING
-      }, (response, status) => {
-        if (status === google.maps.DirectionsStatus.OK) {
-          routePoints = response.routes[0].overview_path;
-          initMapWithRoute(routePoints);
-        } else {
-          console.error("Directions request failed: " + status);
-        }
+    function loadMap() {
+      const directions = new google.maps.DirectionsService();
+      directions.route({
+        origin: HQ,
+        destination: DESTINATION,
+        waypoints: WAYPOINTS.map(loc => ({ location: loc })),
+        travelMode: 'DRIVING'
+      }, (res, status) => {
+        if (status !== 'OK') return console.error('Directions error', status);
+        initMap(res.routes[0].overview_path);
       });
+    }
 
-      function initMapWithRoute(routePoints) {
-        const segmentLengths = [];
-        let totalRouteLength = 0;
-        for (let i = 0; i < routePoints.length - 1; i++) {
-          const dist = google.maps.geometry.spherical.computeDistanceBetween(routePoints[i], routePoints[i + 1]);
-          segmentLengths.push(dist);
-          totalRouteLength += dist;
-        }
+    function initMap(path) {
+      const map = new google.maps.Map(document.getElementById('map'));
+      const bounds = new google.maps.LatLngBounds();
+      const distances = computeSegments(path);
 
-        const staticMarkers = people.map((name, index) => {
-          const bonus = Math.floor(Math.random() * 40000);
-          let travelled = 0, segmentIndex = 0, remainingFraction = 0;
-          for (let i = 0; i < routePoints.length - 1; i++) {
-            const segStart = routePoints[i];
-            const segEnd = routePoints[i + 1];
-            const segmentDistance = google.maps.geometry.spherical.computeDistanceBetween(segStart, segEnd);
-            if (travelled + segmentDistance >= bonus) {
-              segmentIndex = i;
-              remainingFraction = (bonus - travelled) / segmentDistance;
-              break;
-            }
-            travelled += segmentDistance;
-          }
-          const startSeg = routePoints[segmentIndex];
-          const endSeg = routePoints[segmentIndex + 1];
-          const offset = 0.001 * (index + 1); // Slight vertical offset to prevent overlap
-          const lat = startSeg.lat() + (endSeg.lat() - startSeg.lat()) * remainingFraction + offset;
-          const lng = startSeg.lng() + (endSeg.lng() - startSeg.lng()) * remainingFraction;
-          return {
-            name,
-            bonus,
-            img: `https://robohash.org/${name.toLowerCase()}?set=set5`,
-            lat,
-            lng
-          };
-        });
+      // Place HQ marker
+      placeMarker(map, HQ, { size: [115,64], anchor: [80,64], title: 'JHB UK Ltd' }, true);
+      bounds.extend(HQ);
 
-        const map = new google.maps.Map(document.getElementById("map"), {});
-        const bounds = new google.maps.LatLngBounds();
-        bounds.extend(new google.maps.LatLng(50.43135, -3.797092));
-        staticMarkers.forEach(pos => bounds.extend(new google.maps.LatLng(pos.lat, pos.lng)));
-        map.fitBounds(bounds);
+      // Generate and place people markers
+      const participants = PEOPLE.map((name,i) => createParticipant(name, path, distances, i));
+      participants.forEach(p => bounds.extend(p.position));
+      map.fitBounds(bounds);
 
-        // Add JHB HQ marker with logo, scaled by height and preserving aspect ratio
-        new google.maps.Marker({
-          position: { lat: 50.43135, lng: -3.797092 },
-          map,
-          title: "JHB UK Ltd",
-          icon: {
-            url: "https://hewearsspandex.github.io/animated-map/img/JHB%20Logo.png",
-            scaledSize: new google.maps.Size(115, 64),
-            anchor: new google.maps.Point(80, 64)
-          },
-          zIndex: 999
-        });
+      // Sort for leaderboard
+      participants.sort((a,b) => b.bonus - a.bonus);
+      updateLeaderboard(participants);
 
-        const maxBonus = Math.max(...staticMarkers.map(p => p.bonus));
-        const sortedMarkers = [...staticMarkers].sort((a, b) => b.bonus - a.bonus);
-        const leaderboardList = document.getElementById("leaderboard-list");
-        leaderboardList.innerHTML = "";
+      // Place map markers
+      participants.forEach((p,i) => placeMarker(map, p.position, { url: p.img, size: [64,64], anchor: [32,64], title: `${p.name}: ${p.bonus}` }));
+    }
 
-        sortedMarkers.forEach((pos, index) => {
-          const formattedBonus = pos.bonus.toLocaleString();
-          const listItem = document.createElement("li");
-          const crown = index === 0 ? "👑" : "";
-          listItem.textContent = `${crown} ${index + 1}. ${pos.name} ${crown}: ${formattedBonus} bonus meters`;
-          leaderboardList.appendChild(listItem);
-
-          const marker = new google.maps.Marker({
-            position: new google.maps.LatLng(pos.lat, pos.lng),
-            map: map,
-            title: `${pos.name}: ${formattedBonus} bonus meters`,
-            icon: {
-              url: pos.img,
-              scaledSize: new google.maps.Size(64, 64),
-              anchor: new google.maps.Point(32, 64)
-            },
-            zIndex: 1000
-          });
-
-          const labelDiv = document.createElement("div");
-          labelDiv.className = "marker-label";
-          labelDiv.style.position = "absolute";
-          labelDiv.style.zIndex = "1001";
-          labelDiv.innerHTML = `<strong>${pos.name}</strong><br>${formattedBonus}`;
-
-          const overlay = new google.maps.OverlayView();
-          overlay.onAdd = function () {
-            const panes = this.getPanes();
-            panes.overlayMouseTarget.appendChild(labelDiv);
-          };
-          overlay.draw = function () {
-            const projection = this.getProjection();
-            const position = projection.fromLatLngToDivPixel(marker.getPosition());
-            labelDiv.style.left = position.x + 'px';
-            labelDiv.style.top = (position.y + 64) + 'px';
-          };
-          overlay.onRemove = function () {
-            labelDiv.remove();
-          };
-          overlay.setMap(map);
-        });
+    function computeSegments(path) {
+      const segs = [];
+      for (let i=0; i<path.length-1; i++) {
+        segs.push(google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1]));
       }
-    };
+      return segs;
+    }
+
+    function createParticipant(name, path, segs, index) {
+      const bonus = Math.floor(Math.random()*40000);
+      let dist=0, idx=0;
+      while(idx<segs.length && dist+segs[idx]<bonus) dist+=segs[idx++];
+      const frac = (bonus-dist)/segs[idx];
+      const start = path[idx], end = path[idx+1];
+      const offset = 0.001*(index+1);
+      const lat = start.lat() + (end.lat()-start.lat())*frac + offset;
+      const lng = start.lng() + (end.lng()-start.lng())*frac;
+      return { name, bonus, img: `https://robohash.org/${encodeURIComponent(name.toLowerCase())}?set=set5`, position:{lat,lng} };
+    }
+
+    function placeMarker(map, pos, {url, size, anchor, title}, isHQ=false) {
+      new google.maps.Marker({
+        position: pos,
+        map,
+        title,
+        icon: url ? {
+          url, scaledSize: new google.maps.Size(...size),
+          anchor: new google.maps.Point(...anchor)
+        } : undefined,
+        zIndex: isHQ ? 999 : 1000
+      });
+    }
+
+    function updateLeaderboard(list) {
+      const container = document.getElementById('leaderboard-list');
+      container.innerHTML = '';
+      list.forEach((p,i) => {
+        const li = document.createElement('li');
+        li.textContent = `${i===0?'👑':''} ${i+1}. ${p.name}: ${p.bonus.toLocaleString()} bonus meters`;
+        container.appendChild(li);
+      });
+    }
+
+    // Load API
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&callback=loadMap&libraries=geometry`;
+    script.async = true;
+    document.head.appendChild(script);
   </script>
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&callback=initMap&libraries=geometry"></script>
 </body>
 </html>
