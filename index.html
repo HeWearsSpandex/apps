@@ -79,7 +79,7 @@
           totalRouteLength += dist;
         }
 
-        const staticMarkers = people.map(name => {
+        const staticMarkers = people.map((name, index) => {
           const bonus = Math.floor(Math.random() * 40000);
           let travelled = 0, segmentIndex = 0, remainingFraction = 0;
           for (let i = 0; i < routePoints.length - 1; i++) {
@@ -95,14 +95,13 @@
           }
           const startSeg = routePoints[segmentIndex];
           const endSeg = routePoints[segmentIndex + 1];
-          const lat = startSeg.lat() + (endSeg.lat() - startSeg.lat()) * remainingFraction;
+          const offset = 0.001 * (index + 1); // Slight vertical offset to prevent overlap
+          const lat = startSeg.lat() + (endSeg.lat() - startSeg.lat()) * remainingFraction + offset;
           const lng = startSeg.lng() + (endSeg.lng() - startSeg.lng()) * remainingFraction;
           return {
             name,
             bonus,
             img: `https://robohash.org/${name.toLowerCase()}?set=set5`,
-            segmentIndex,
-            remainingFraction,
             lat,
             lng
           };
@@ -123,7 +122,8 @@
             url: "https://hewearsspandex.github.io/animated-map/JHB%20Logo.png",
             scaledSize: new google.maps.Size(160, 64),
             anchor: new google.maps.Point(80, 64)
-          }
+          },
+          zIndex: 999
         });
 
         const maxBonus = Math.max(...staticMarkers.map(p => p.bonus));
@@ -138,23 +138,39 @@
           listItem.textContent = `${crown} ${index + 1}. ${pos.name} ${crown}: ${formattedBonus} bonus meters`;
           leaderboardList.appendChild(listItem);
 
-          new google.maps.Marker({
+          const marker = new google.maps.Marker({
             position: new google.maps.LatLng(pos.lat, pos.lng),
             map: map,
             title: `${pos.name}: ${formattedBonus} bonus meters`,
             icon: {
               url: pos.img,
               scaledSize: new google.maps.Size(64, 64),
-              origin: new google.maps.Point(0, 0),
               anchor: new google.maps.Point(32, 64)
             },
-            label: {
-              text: `${pos.name}\n${formattedBonus}`,
-              fontSize: "12px",
-              fontWeight: "bold",
-              color: "#000"
-            }
+            zIndex: 1000
           });
+
+          const labelDiv = document.createElement("div");
+          labelDiv.className = "marker-label";
+          labelDiv.style.position = "absolute";
+          labelDiv.style.zIndex = "1001";
+          labelDiv.innerHTML = `<strong>${pos.name}</strong><br>${formattedBonus}`;
+
+          const overlay = new google.maps.OverlayView();
+          overlay.onAdd = function () {
+            const panes = this.getPanes();
+            panes.overlayMouseTarget.appendChild(labelDiv);
+          };
+          overlay.draw = function () {
+            const projection = this.getProjection();
+            const position = projection.fromLatLngToDivPixel(marker.getPosition());
+            labelDiv.style.left = position.x + 'px';
+            labelDiv.style.top = (position.y + 64) + 'px';
+          };
+          overlay.onRemove = function () {
+            labelDiv.remove();
+          };
+          overlay.setMap(map);
         });
       }
     };
