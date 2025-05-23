@@ -180,53 +180,16 @@
       });
 
       const sortedMarkers = staticMarkers.sort((a, b) => b.bonus - a.bonus);
-      sortedMarkers.forEach((pos, index) => {
-        const formattedBonus = pos.bonus.toLocaleString();
-          const leaderboardList = document.getElementById("leaderboard-list");
-          const listItem = document.createElement("li");
-        const crown = index === 0 ? "👑" : "";
-        listItem.textContent = `${crown} ${index + 1}. ${pos.name} ${crown}: ${formattedBonus} bonus meters`;
-          leaderboardList.appendChild(listItem);
+const leaderboardList = document.getElementById("leaderboard-list");
+leaderboardList.innerHTML = "";
+sortedMarkers.forEach((pos, index) => {
+  const formattedBonus = pos.bonus.toLocaleString();
+  const listItem = document.createElement("li");
+  const crown = index === 0 ? "👑" : "";
+  listItem.textContent = `${crown} ${index + 1}. ${pos.name} ${crown}: ${formattedBonus} bonus meters`;
+  leaderboardList.appendChild(listItem);
 
-          const marker = new AnimatedMarker(routePoints[0], pos.name, pos.img, `${formattedBonus} bonus meters`);
-          marker.setMap(map);
-
-          const totalDistance = pos.bonus;
-          const maxDistance = 40000;
-          const totalSteps = 600;
-          let currentStep = 0;
-
-          const segmentDistances = [];
-          let totalRouteLengthMeters = 0;
-          for (let i = 0; i < routePoints.length - 1; i++) {
-            const dist = google.maps.geometry.spherical.computeDistanceBetween(routePoints[i], routePoints[i + 1]);
-            segmentDistances.push(dist);
-            totalRouteLengthMeters += dist;
-          }
-
-          const animate = () => {
-            let remainingDistance = (totalDistance / maxDistance) * totalRouteLengthMeters * (currentStep / totalSteps);
-            let pathIndex = 0;
-
-            while (remainingDistance > segmentDistances[pathIndex] && pathIndex < segmentDistances.length - 1) {
-              remainingDistance -= segmentDistances[pathIndex];
-              pathIndex++;
-            }
-
-            const segDistance = segmentDistances[pathIndex];
-            const segFraction = remainingDistance / segDistance;
-
-            const start = routePoints[pathIndex];
-            const end = routePoints[pathIndex + 1];
-            const lat = start.lat() + (end.lat() - start.lat()) * segFraction;
-            const lng = start.lng() + (end.lng() - start.lng()) * segFraction + (Math.random() - 0.5) * 0.01;
-
-            marker.position = new google.maps.LatLng(lat, lng);
-            marker.draw();
-
-            currentStep++;
-            if (currentStep <= totalSteps) requestAnimationFrame(animate);
-          };
+  
 
           animate();
 
