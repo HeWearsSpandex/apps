@@ -80,7 +80,7 @@
         }
 
         const staticMarkers = people.map(name => {
-          const bonus = Math.floor(Math.random() * totalRouteLength);
+          const bonus = Math.floor(Math.random() * 40000);
           let travelled = 0, segmentIndex = 0, remainingFraction = 0;
           for (let i = 0; i < routePoints.length - 1; i++) {
             const segStart = routePoints[i];
@@ -108,11 +108,23 @@
           };
         });
 
-                const map = new google.maps.Map(document.getElementById("map"), {});
+        const map = new google.maps.Map(document.getElementById("map"), {});
         const bounds = new google.maps.LatLngBounds();
         bounds.extend(new google.maps.LatLng(50.43135, -3.797092));
         staticMarkers.forEach(pos => bounds.extend(new google.maps.LatLng(pos.lat, pos.lng)));
         map.fitBounds(bounds);
+
+        // Add JHB HQ marker with logo
+        new google.maps.Marker({
+          position: { lat: 50.43135, lng: -3.797092 },
+          map,
+          title: "JHB UK Ltd",
+          icon: {
+            url: "https://hewearsspandex.github.io/animated-map/assets/JHB%20Logo.png",
+            scaledSize: new google.maps.Size(64, 64),
+            anchor: new google.maps.Point(32, 64)
+          }
+        });
 
         const maxBonus = Math.max(...staticMarkers.map(p => p.bonus));
         const sortedMarkers = [...staticMarkers].sort((a, b) => b.bonus - a.bonus);
@@ -126,7 +138,7 @@
           listItem.textContent = `${crown} ${index + 1}. ${pos.name} ${crown}: ${formattedBonus} bonus meters`;
           leaderboardList.appendChild(listItem);
 
-          const marker = new google.maps.Marker({
+          new google.maps.Marker({
             position: new google.maps.LatLng(pos.lat, pos.lng),
             map: map,
             title: `${pos.name}: ${formattedBonus} bonus meters`,
@@ -137,8 +149,7 @@
               anchor: new google.maps.Point(32, 64)
             },
             label: {
-              text: `${pos.name}
-${formattedBonus}`,
+              text: `${pos.name}\n${formattedBonus}`,
               fontSize: "12px",
               fontWeight: "bold",
               color: "#000"
