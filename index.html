@@ -29,8 +29,8 @@
 
   <script>
     // Configuration
-    const API_KEY = 'AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI';
-    const HQ = { lat: 50.43135, lng: -3.797092, icon: 'img/JHB Logo.png' };
+    const API_KEY = 'YOUR_API_KEY';
+    const HQ = { lat: 50.43135, lng: -3.797092, icon: 'dist/img/' + encodeURIComponent('JHB Logo') + '.webp' }; // encode space in filename
     const WAYPOINTS = ['London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands','Berlin, Germany','Prague, Czech Republic','Vienna, Austria','Bratislava, Slovakia','Budapest, Hungary'];
     const DESTINATION = 'Zagreb, Croatia';
     const PEOPLE = ['Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Tunstill','Brendon Kilcullen','Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan','Darren Hatfield','David Mahon','Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks','James Rundle-Jones','Jay Dunn','Joe Lambourne-Gillen','John Peters','Jonathan Thompson','Joseph Nixon','Joseph Young','Joshua Powell','Joshua Rowberry','Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Morgan Hemming','Nicholas Kingshott','Richard Clanford','Richard Turvey','Robert Tamas','Ross Watson','Ryan Breslan','Ryan Manners','Tom Brooks','Tyler Webb'];
@@ -50,50 +50,74 @@
     function initMap(path) {
       const map = new google.maps.Map(document.getElementById('map'));
       const bounds = new google.maps.LatLngBounds();
-      // compute segments
       const segmentLengths = path.slice(0,-1).map((pt, i) =>
         google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
       );
       const totalRoute = segmentLengths.reduce((sum,d) => sum + d, 0);
 
-      // place HQ marker
+      // Place HQ marker (optimized WebP)
       new google.maps.Marker({
-        map, position: HQ,
-        icon: { url: HQ.icon, scaledSize: new google.maps.Size(115,64), anchor: new google.maps.Point(80,64) },
-        title: 'JHB UK Ltd', zIndex: 999
+        map,
+        position: HQ,
+        icon: {
+          url: HQ.icon,
+          scaledSize: new google.maps.Size(32, 32),
+          anchor: new google.maps.Point(16, 32)
+        },
+        title: 'JHB UK Ltd',
+        zIndex: 999
       });
       bounds.extend(new google.maps.LatLng(HQ.lat, HQ.lng));
 
-      // prepare participants
+      // Create participants at HQ, using optimized WebP avatars
       const participants = PEOPLE.map(name => {
-        // cap bonus at 40000
-        const bonus = Math.min(Math.floor(Math.random()*40000), totalRoute);
+        const bonus = Math.min(Math.floor(Math.random() * 40000), totalRoute);
         const marker = new google.maps.Marker({
-          map, position: HQ,
-          icon: { url: `img/${name}.png`, scaledSize: new google.maps.Size(64,64), anchor: new google.maps.Point(32,64) },
+          map,
+          position: { lat: HQ.lat, lng: HQ.lng },
+          icon: {
+            url: `dist/img/${encodeURIComponent(name)}.webp`,
+            scaledSize: new google.maps.Size(32, 32),
+            anchor: new google.maps.Point(16, 32)
+          },
           title: name
         });
         return { name, bonus, marker };
       });
+        return { name, bonus, marker };
+      });
 
-      // compute final positions
-      participants.forEach(p => p.finalPos = computePosition(path, segmentLengths, p.bonus));
-      // resolve static overlaps
+      // Compute final positions and adjust overlaps
+      const cumDist = [0];
+      segmentLengths.forEach((d,i) => cumDist[i+1] = cumDist[i] + d);
+      participants.forEach(p => {
+        const dist = p.bonus;
+        let idx = cumDist.findIndex((d, i) => dist >= d && dist <= cumDist[i+1]);
+        if (idx === -1) idx = cumDist.length - 2;
+        const start = path[idx], end = path[idx+1];
+        const frac = (dist - cumDist[idx]) / segmentLengths[idx];
+        p.finalPos = {
+          lat: start.lat() + (end.lat() - start.lat()) * frac,
+          lng: start.lng() + (end.lng() - start.lng()) * frac
+        };
+      });
+      // Simple offset for overlaps
       participants.forEach((p,i) => {
-        for (let j=0;j<i;j++) {
-          const a=p.finalPos, b=participants[j].finalPos;
-          const dx=a.lng-b.lng, dy=a.lat-b.lat;
-          if (Math.hypot(dx,dy) < 0.0003) {
-            a.lng += 0.0003; a.lat += 0.0003;
+        for (let j = 0; j < i; j++) {
+          const a = p.finalPos, b = participants[j].finalPos;
+          const dx = a.lng - b.lng, dy = a.lat - b.lat;
+          if (Math.hypot(dx, dy) < 0.0003) {
+            a.lng += 0.0003;
+            a.lat += 0.0003;
           }
         }
       });
 
-      // fit map
+      // Fit map to include final positions
       participants.forEach(p => bounds.extend(new google.maps.LatLng(p.finalPos.lat, p.finalPos.lng)));
       map.fitBounds(bounds);
 
-      // update leaderboard
+      // Update leaderboard
       participants.sort((a,b) => b.bonus - a.bonus);
       const lb = document.getElementById('leaderboard-list'); lb.innerHTML = '';
       participants.forEach((p,i) => {
@@ -102,34 +126,30 @@
         lb.appendChild(li);
       });
 
-      // animate markers
-      participants.forEach(p => animate(p.marker, HQ, p.finalPos, p.bonus/totalRoute * 5000));
+            // Animate each marker from HQ to final position with duration based on bonus (max 5s for 40000m)
+      participants.forEach(p => {
+        const duration = (p.bonus / 40000) * 5000; // based on 40000m cap
+        const startTime = performance.now();
+        function animateStep(now) {
+          const t = Math.min((now - startTime) / duration, 1);
+          const lat = HQ.lat + (p.finalPos.lat - HQ.lat) * t;
+          const lng = HQ.lng + (p.finalPos.lng - HQ.lng) * t;
+          p.marker.setPosition({ lat, lng });
+          if (t < 1) requestAnimationFrame(animateStep);
+        }
+        requestAnimationFrame(animateStep);
+      });
+          if (t < 1) requestAnimationFrame(animateStep);
+        }
+        requestAnimationFrame(animateStep);
+      });
     }
 
-    function computePosition(path, segs, dist) {
-      let traveled=0, idx=0;
-      while(idx<segs.length && traveled+segs[idx]<dist) traveled+=segs[idx++];
-      const frac=(dist-traveled)/segs[idx];
-      const s=path[idx], e=path[idx+1];
-      return { lat: s.lat() + (e.lat()-s.lat())*frac, lng: s.lng() + (e.lng()-s.lng())*frac };
-    }
-
-    function animate(marker, startPos, endPos, duration) {
-      const startTime = performance.now();
-      function step(now) {
-        const t = Math.min((now-startTime)/duration,1);
-        const lat = startPos.lat + (endPos.lat-startPos.lat)*t;
-        const lng = startPos.lng + (endPos.lng-startPos.lng)*t;
-        marker.setPosition({lat,lng});
-        if (t<1) requestAnimationFrame(step);
-      }
-      requestAnimationFrame(step);
-    }
-
-    // load API
+    // Load Google Maps API
     const script = document.createElement('script');
-    script.src=`https://maps.googleapis.com/maps/api/js?key=${API_KEY}&callback=loadMap&libraries=geometry`;
-    script.async=true; document.head.appendChild(script);
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&callback=loadMap&libraries=geometry`;
+    script.async = true;
+    document.head.appendChild(script);
   </script>
 </body>
 </html>
