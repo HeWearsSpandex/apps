@@ -41,8 +41,7 @@
   <div id="map"></div>
 
   <script>
-    // Your Google Maps API key
-    const API_KEY = 'AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI';
+    // Google Maps API key
     const IMG_PATH = 'img/';
     const CIRCLE_SRC = IMG_PATH + 'golden_circle.png';
     const HQ = { lat: 50.43135, lng: -3.797092 };
@@ -63,7 +62,6 @@
       'Bratislava, Slovakia', 'Budapest, Hungary'
     ];
 
-    // Load an image and return an HTMLImageElement
     function loadImage(src) {
       return new Promise((resolve, reject) => {
         const img = new Image();
@@ -74,10 +72,8 @@
       });
     }
 
-    // Draw face and optional circle onto canvas, return data URL
-    async function drawIcon(name, useCircle) {
+    async function drawIcon(name, useCircle, size = 64) {
       const face = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
-      const size = 64;
       const canvas = document.createElement('canvas');
       canvas.width = canvas.height = size;
       const ctx = canvas.getContext('2d');
@@ -89,7 +85,6 @@
       return canvas.toDataURL('image/png');
     }
 
-    // Initialize map and request route
     function initMap() {
       window.map = new google.maps.Map(document.getElementById('map'));
       const ds = new google.maps.DirectionsService();
@@ -98,84 +93,72 @@
         destination: DESTINATION,
         waypoints: WAYPOINTS.map(loc => ({ location: loc })),
         travelMode: google.maps.TravelMode.DRIVING
-      }, (result, status) => {
-        if (status === 'OK') animateRoute(result.routes[0].overview_path);
+      }, (res, status) => {
+        if (status === 'OK') animateRoute(res.routes[0].overview_path);
         else console.error('Directions error:', status);
       });
     }
 
-    // Animate markers along the path and update leaderboard
     async function animateRoute(path) {
       const map = window.map;
-      // Add HQ marker
       new google.maps.Marker({
         map,
         position: HQ,
-        icon: { url: `${IMG_PATH}JHB Logo.png`, scaledSize: new google.maps.Size(32,32) },
-        title: 'JHB UK Ltd'
+        icon: { url: `${IMG_PATH}JHB Logo.png`, scaledSize: new google.maps.Size(32,32), anchor: new google.maps.Point(16,16) }
       });
 
-      // Compute segment distances and cumulative sums
-      const distances = path.slice(0,-1).map((_,i) =>
+      const segs = path.slice(0, -1).map((_, i) =>
         google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
       );
-      const cumulative = distances.reduce((arr, d) => { arr.push((arr.slice(-1)[0]||0) + d); return arr; }, []);
+      const cum = segs.reduce((arr, d) => (arr.push((arr.slice(-1)[0]||0)+d), arr), []);
 
-      // Create participants with random bonus distance
       const participants = await Promise.all(PEOPLE.map(async name => {
-        const bonus = Math.random() * cumulative[cumulative.length-1];
-        let idx = cumulative.findIndex(d => bonus <= d);
-        if (idx < 0) idx = cumulative.length - 1;
-        const prev = cumulative[idx-1]||0;
-        const frac = (bonus - prev) / distances[idx];
-        const p0 = path[idx], p1 = path[idx+1];
-        const target = {
-          lat: p0.lat() + (p1.lat() - p0.lat()) * frac,
-          lng: p0.lng() + (p1.lng() - p0.lng()) * frac
-        };
-        const iconUrl = await drawIcon(name, false);
+        const bonus = Math.random() * (cum[cum.length-1]||0);
+        let idx = cum.findIndex(d => bonus <= d);
+        if (idx < 0) idx = cum.length - 1;
+        const prev = cum[idx-1]||0;
+        const frac = (bonus - prev) / segs[idx] || 0;
+        const p0 = path[idx], p1 = path[idx+1] || p0;
+        const target = { lat: p0.lat() + (p1.lat()-p0.lat())*frac, lng: p0.lng() + (p1.lng()-p0.lng())*frac };
+        const iconUrl = await drawIcon(name, false, 64);
         const marker = new google.maps.Marker({
           map,
           position: HQ,
-          icon: { url: iconUrl, scaledSize: new google.maps.Size(64,64) },
+          icon: { url: iconUrl, scaledSize: new google.maps.Size(64,64), anchor: new google.maps.Point(32,32) },
           title: name
         });
         return { name, bonus, marker, target };
       }));
 
-      // Fit map to show all endpoints
       const bounds = new google.maps.LatLngBounds();
       participants.forEach(p => bounds.extend(p.target));
       bounds.extend(HQ);
       map.fitBounds(bounds);
 
-      // Animate each marker from HQ to its target
       participants.forEach(p => {
         const start = performance.now();
         const duration = 5000;
-        (function move(now) {
-          const t = Math.min((now - start) / duration, 1);
-          p.marker.setPosition({
-            lat: HQ.lat + (p.target.lat - HQ.lat) * t,
-            lng: HQ.lng + (p.target.lng - HQ.lng) * t
-          });
-          if (t < 1) requestAnimationFrame(move);
-        })(start);
+        const move = now => {
+          const t = Math.min((now - start)/duration,1);
+          p.marker.setPosition({ lat: HQ.lat+(p.target.lat-HQ.lat)*t, lng: HQ.lng+(p.target.lng-HQ.lng)*t });
+          if (t<1) requestAnimationFrame(move);
+        };
+        requestAnimationFrame(move);
       });
 
-      // Determine leader and circle their icon
+      // Highlight leader
       participants.sort((a,b) => b.bonus - a.bonus);
       const leader = participants[0];
-      const circled = await drawIcon(leader.name, true);
-      leader.marker.setIcon({ url: circled, scaledSize: new google.maps.Size(80,80), anchor: new google.maps.Point(40,40) });
+      const circledUrl = await drawIcon(leader.name, true, 80);
+      leader.marker.setIcon({ url: circledUrl, scaledSize: new google.maps.Size(80,80), anchor: new google.maps.Point(40,40) });
 
-      // Build leaderboard list
+      // Render leaderboard
       const lb = document.getElementById('leaderboard-list');
       lb.innerHTML = '';
       participants.forEach((p,i) => {
         const li = document.createElement('li');
         const img = document.createElement('img');
-        img.src = i === 0 ? circled : p.marker.getIcon().url;
+        img.src = i===0 ? circledUrl : p.marker.getIcon().url;
         li.appendChild(img);
         li.appendChild(document.createTextNode(`${i+1}. ${p.name}: ${Math.round(p.bonus)} m`));
         lb.appendChild(li);
