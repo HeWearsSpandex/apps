@@ -41,28 +41,29 @@
   <div id="map"></div>
 
   <script>
-    // Replace with your actual key
+    // Your Google Maps API key
     const API_KEY = 'AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI';
     const IMG_PATH = 'img/';
     const CIRCLE_SRC = IMG_PATH + 'golden_circle.png';
     const HQ = { lat: 50.43135, lng: -3.797092 };
     const PEOPLE = [
-      'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Tunstill','Brendon Kilcullen',
-      'Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan',
-      'Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks',
-      'James Rundle-Jones','James Whiteoak','Jay Dunn','Joe Lambourne-Gillen','John Peters',
-      'Jonathan Thompson','Joseph Nixon','Joseph Young','Joshua Powell','Joshua Rowberry',
-      'Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Mark Stafford',
-      'Morgan Hemming','Nicholas Kingshott','Richard Clanford','Robert Tamas','Ross Watson',
-      'Ryan Breslan','Ryan Manners','Tom Brooks','Tristan Allen','Tyler Webb'
+      'Adrian Lutic', 'Alex Nita', 'Antun Vidakovic', 'Bradley Tunstill', 'Brendon Kilcullen',
+      'Byron Claridge', 'Callum Evans', 'Cameron Gill', 'Christopher Scourfield', 'Craig Dolan',
+      'Edward Shanley', 'Gary Mounce', 'George Norris', 'James Hickman', 'James Hodge-Brooks',
+      'James Rundle-Jones', 'James Whiteoak', 'Jay Dunn', 'Joe Lambourne-Gillen', 'John Peters',
+      'Jonathan Thompson', 'Joseph Nixon', 'Joseph Young', 'Joshua Powell', 'Joshua Rowberry',
+      'Lewis Cannon', 'Liam Hammon', 'Luke Piller', 'Mark Sneap', 'Mark Stafford',
+      'Morgan Hemming', 'Nicholas Kingshott', 'Richard Clanford', 'Robert Tamas', 'Ross Watson',
+      'Ryan Breslan', 'Ryan Manners', 'Tom Brooks', 'Tristan Allen', 'Tyler Webb'
     ];
     const DESTINATION = 'Zagreb, Croatia';
     const WAYPOINTS = [
-      'London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands',
-      'Berlin, Germany','Prague, Czech Republic','Vienna, Austria',
-      'Bratislava, Slovakia','Budapest, Hungary'
+      'London, UK', 'Paris, France', 'Brussels, Belgium', 'Amsterdam, Netherlands',
+      'Berlin, Germany', 'Prague, Czech Republic', 'Vienna, Austria',
+      'Bratislava, Slovakia', 'Budapest, Hungary'
     ];
 
+    // Load an image and return an HTMLImageElement
     function loadImage(src) {
       return new Promise((resolve, reject) => {
         const img = new Image();
@@ -73,21 +74,22 @@
       });
     }
 
-    async function makeIcon(name) {
-      const [circle, face] = await Promise.all([
-        loadImage(CIRCLE_SRC),
-        loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`)
-      ]);
+    // Draw face and optional circle onto canvas, return data URL
+    async function drawIcon(name, useCircle) {
+      const face = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
       const size = 64;
       const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
+      canvas.width = canvas.height = size;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(circle, 0, 0, size, size);
+      if (useCircle) {
+        const circle = await loadImage(CIRCLE_SRC);
+        ctx.drawImage(circle, 0, 0, size, size);
+      }
       ctx.drawImage(face, 0, 0, size, size);
       return canvas.toDataURL('image/png');
     }
 
+    // Initialize map and request route
     function initMap() {
       window.map = new google.maps.Map(document.getElementById('map'));
       const ds = new google.maps.DirectionsService();
@@ -96,58 +98,92 @@
         destination: DESTINATION,
         waypoints: WAYPOINTS.map(loc => ({ location: loc })),
         travelMode: google.maps.TravelMode.DRIVING
-      }, async (result, status) => {
-        if (status !== 'OK') return console.error('Directions error:', status);
-        const path = result.routes[0].overview_path;
-        animateRoute(window.map, path);
+      }, (result, status) => {
+        if (status === 'OK') animateRoute(result.routes[0].overview_path);
+        else console.error('Directions error:', status);
       });
     }
 
-    async function animateRoute(map, path) {
-      const bounds = new google.maps.LatLngBounds();
-      bounds.extend(HQ);
+    // Animate markers along the path and update leaderboard
+    async function animateRoute(path) {
+      const map = window.map;
+      // Add HQ marker
       new google.maps.Marker({
         map,
         position: HQ,
-        icon: { url: `${IMG_PATH}JHB Logo.png`, scaledSize: new google.maps.Size(32, 32) },
+        icon: { url: `${IMG_PATH}JHB Logo.png`, scaledSize: new google.maps.Size(32,32) },
         title: 'JHB UK Ltd'
       });
-      const distances = path.slice(0, -1).map((_, i) =>
+
+      // Compute segment distances and cumulative sums
+      const distances = path.slice(0,-1).map((_,i) =>
         google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
       );
-      const cumulative = distances.reduce((arr, d) => { arr.push((arr.slice(-1)[0]||0)+d); return arr; }, []);
-      const participants = await Promise.all(
-        PEOPLE.map(async name => {
-          const bonus = Math.random() * (cumulative[cumulative.length-1] || 0);
-          let idx = cumulative.findIndex(d => bonus <= d);
-          if (idx < 0) idx = cumulative.length - 1;
-          const prev = cumulative[idx-1]||0;
-          const frac = (bonus - prev) / distances[idx];
-          const p0 = path[idx], p1 = path[idx+1];
-          const target = { lat: p0.lat() + (p1.lat()-p0.lat())*frac, lng: p0.lng() + (p1.lng()-p0.lng())*frac };
-          const iconUrl = await makeIcon(name);
-          const marker = new google.maps.Marker({ map, position: HQ, icon: { url: iconUrl, scaledSize: new google.maps.Size(64,64)}, title: name });
-          return { name, bonus, marker, target };
-        })
-      );
+      const cumulative = distances.reduce((arr, d) => { arr.push((arr.slice(-1)[0]||0) + d); return arr; }, []);
+
+      // Create participants with random bonus distance
+      const participants = await Promise.all(PEOPLE.map(async name => {
+        const bonus = Math.random() * cumulative[cumulative.length-1];
+        let idx = cumulative.findIndex(d => bonus <= d);
+        if (idx < 0) idx = cumulative.length - 1;
+        const prev = cumulative[idx-1]||0;
+        const frac = (bonus - prev) / distances[idx];
+        const p0 = path[idx], p1 = path[idx+1];
+        const target = {
+          lat: p0.lat() + (p1.lat() - p0.lat()) * frac,
+          lng: p0.lng() + (p1.lng() - p0.lng()) * frac
+        };
+        const iconUrl = await drawIcon(name, false);
+        const marker = new google.maps.Marker({
+          map,
+          position: HQ,
+          icon: { url: iconUrl, scaledSize: new google.maps.Size(64,64) },
+          title: name
+        });
+        return { name, bonus, marker, target };
+      }));
+
+      // Fit map to show all endpoints
+      const bounds = new google.maps.LatLngBounds();
       participants.forEach(p => bounds.extend(p.target));
+      bounds.extend(HQ);
       map.fitBounds(bounds);
+
+      // Animate each marker from HQ to its target
       participants.forEach(p => {
         const start = performance.now();
         const duration = 5000;
-        const animate = now => {
-          const t = Math.min((now-start)/duration,1);
-          p.marker.setPosition({ lat: HQ.lat + (p.target.lat-HQ.lat)*t, lng: HQ.lng + (p.target.lng-HQ.lng)*t });
-          if (t<1) requestAnimationFrame(animate);
-        };
-        requestAnimationFrame(animate);
+        (function move(now) {
+          const t = Math.min((now - start) / duration, 1);
+          p.marker.setPosition({
+            lat: HQ.lat + (p.target.lat - HQ.lat) * t,
+            lng: HQ.lng + (p.target.lng - HQ.lng) * t
+          });
+          if (t < 1) requestAnimationFrame(move);
+        })(start);
       });
+
+      // Determine leader and circle their icon
+      participants.sort((a,b) => b.bonus - a.bonus);
+      const leader = participants[0];
+      const circled = await drawIcon(leader.name, true);
+      leader.marker.setIcon({ url: circled, scaledSize: new google.maps.Size(80,80), anchor: new google.maps.Point(40,40) });
+
+      // Build leaderboard list
       const lb = document.getElementById('leaderboard-list');
-      participants.sort((a,b)=>b.bonus-a.bonus).forEach((p,i)=>{
-        const li=document.createElement('li'); const img=document.createElement('img'); img.src=p.marker.getIcon().url; li.append(img, document.createTextNode(`${i+1}. ${p.name}: ${Math.round(p.bonus)} m`)); lb.append(li);
+      lb.innerHTML = '';
+      participants.forEach((p,i) => {
+        const li = document.createElement('li');
+        const img = document.createElement('img');
+        img.src = i === 0 ? circled : p.marker.getIcon().url;
+        li.appendChild(img);
+        li.appendChild(document.createTextNode(`${i+1}. ${p.name}: ${Math.round(p.bonus)} m`));
+        lb.appendChild(li);
       });
     }
   </script>
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap"></script>
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap">
+  </script>
 </body>
 </html>
