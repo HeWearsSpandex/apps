@@ -13,32 +13,35 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       z-index: 1002; font-family: Arial, sans-serif;
       font-size: 16px; max-height: 90vh; overflow-y: auto;
-      line-height: 1.6; min-width: 220px;
+      line-height: 1.6; min-width: 240px;
+    }
+    #leaderboard-list li {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    #leaderboard-list img {
+      width: 24px; /* match text size */
+      height: 24px;
+      margin-right: 8px;
+      border-radius: 50%;
     }
   </style>
-  <script>
-    // === CONFIGURATION ===
-    // Replace 'YOUR_API_KEY' with a valid Google Maps JavaScript API key.
-    const API_KEY = 'AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI';
-
-    // Error handling for missing or invalid API key
-    window.gm_authFailure = function() {
-      console.error('Google Maps API authentication failed. Please check your API key and its referrer restrictions.');
-      alert('Error: Invalid Google Maps API key. Please update the API_KEY in your code.');
-    };
-
-    if (API_KEY === 'YOUR_API_KEY') {
-      console.warn('Google Maps API key is not set. Replace \"YOUR_API_KEY\" with a valid key to load the map.');
-    }
-  </script>
 </head>
 <body>
-  <div id="leaderboard"><strong>Leaderboard</strong><ul id="leaderboard-list"></ul></div>
+  <div id="leaderboard">
+    <strong>Leaderboard</strong>
+    <ul id="leaderboard-list"></ul>
+  </div>
   <div id="map"></div>
 
   <script>
-    // Constants
-    const HQ = { lat: 50.43135, lng: -3.797092, icon: 'img/JHB Logo.png' };
+    const API_KEY = 'AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI';
+    const HQ = { lat: 50.43135, lng: -3.797092 };
+
+    // Use the original PNG for the HQ icon
+    const HQ_ICON = 'img/JHB%20Logo.png';
+
     const WAYPOINTS = [
       'London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands',
       'Berlin, Germany','Prague, Czech Republic','Vienna, Austria',
@@ -46,29 +49,29 @@
     ];
     const DESTINATION = 'Zagreb, Croatia';
     const PEOPLE = [
-      'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Tunstill','Brendon Kilcullen',
-      'Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan',
-      'Darren Hatfield','David Mahon','Edward Shanley','Gary Mounce','George Norris',
-      'James Hickman','James Hodge-Brooks','James Rundle-Jones','Jay Dunn','Joe Lambourne-Gillen',
-      'John Peters','Jonathan Thompson','Joseph Nixon','Joseph Young','Joshua Powell',
-      'Joshua Rowberry','Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap',
-      'Morgan Hemming','Nicholas Kingshott','Richard Clanford','Richard Turvey',
-      'Robert Tamas','Ross Watson','Ryan Breslan','Ryan Manners','Tom Brooks','Tyler Webb'
+      'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Tunstill',
+      'Brendon Kilcullen','Byron Claridge','Callum Evans','Cameron Gill',
+      'Christopher Scourfield','Craig Dolan','Darren Hatfield','David Mahon',
+      'Edward Shanley','Gary Mounce','George Norris','James Hickman',
+      'James Hodge-Brooks','James Rundle-Jones','Jay Dunn',
+      'Joe Lambourne-Gillen','John Peters','Jonathan Thompson','Joseph Nixon',
+      'Joseph Young','Joshua Powell','Joshua Rowberry','Lewis Cannon',
+      'Liam Hammon','Luke Piller','Mark Sneap','Morgan Hemming',
+      'Nicholas Kingshott','Richard Clanford','Richard Turvey',
+      'Robert Tamas','Ross Watson','Ryan Breslan','Ryan Manners',
+      'Tom Brooks','Tyler Webb'
     ];
 
     function loadMap() {
-      if (API_KEY === 'YOUR_API_KEY') return;
-      new google.maps.DirectionsService().route({
+      const service = new google.maps.DirectionsService();
+      service.route({
         origin: HQ,
         destination: DESTINATION,
         waypoints: WAYPOINTS.map(loc => ({ location: loc })),
         travelMode: 'DRIVING'
       }, (res, status) => {
-        if (status !== 'OK') {
-          console.error('Directions error:', status);
-          return;
-        }
-        initMap(res.routes[0].overview_path);
+        if (status === 'OK') initMap(res.routes[0].overview_path);
+        else console.error('Directions error:', status);
       });
     }
 
@@ -76,36 +79,40 @@
       const map = new google.maps.Map(document.getElementById('map'));
       const bounds = new google.maps.LatLngBounds();
 
-      // Compute segment lengths
-      const segmentLengths = path.slice(0, -1).map((pt, i) =>
+      // Compute segment lengths and cumulative distances
+      const segments = path.slice(0, -1).map((pt, i) =>
         google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
       );
-      const totalRoute = segmentLengths.reduce((sum, d) => sum + d, 0);
+      const cumDist = [0];
+      segments.forEach((d, i) => cumDist[i+1] = cumDist[i] + d);
 
       // Place HQ marker
       new google.maps.Marker({
         map,
         position: HQ,
         icon: {
-          url: HQ.icon,
-          scaledSize: new google.maps.Size(115, 64),
-          anchor: new google.maps.Point(80, 64)
+          url: HQ_ICON,
+          scaledSize: new google.maps.Size(48, 48),
+          anchor: new google.maps.Point(24, 48)
         },
         title: 'JHB UK Ltd',
         zIndex: 999
       });
-      bounds.extend(new google.maps.LatLng(HQ.lat, HQ.lng));
+      bounds.extend(HQ);
 
       // Create participants
       const participants = PEOPLE.map(name => {
-        const bonus = Math.min(Math.floor(Math.random() * 40000), totalRoute);
+        const bonus = Math.min(
+          Math.floor(Math.random() * cumDist[cumDist.length - 1]),
+          cumDist[cumDist.length - 1]
+        );
         const marker = new google.maps.Marker({
           map,
           position: HQ,
           icon: {
-            url: `img/${encodeURIComponent(name)}.png`,
-            scaledSize: new google.maps.Size(32, 32),
-            anchor: new google.maps.Point(16, 32)
+            url: `img/${encodeURIComponent(name)}_cvface1.png`,
+            scaledSize: new google.maps.Size(48, 48),
+            anchor: new google.maps.Point(24, 48)
           },
           title: name
         });
@@ -114,25 +121,28 @@
 
       // Compute final positions
       participants.forEach(p => {
-        p.finalPos = computePosition(path, segmentLengths, p.bonus);
+        let i = cumDist.findIndex((d, idx) => p.bonus >= d && p.bonus <= cumDist[idx+1]);
+        if (i < 0) i = segments.length - 1;
+        const start = path[i], end = path[i+1];
+        const frac = (p.bonus - cumDist[i]) / segments[i];
+        p.finalPos = {
+          lat: start.lat() + (end.lat() - start.lat()) * frac,
+          lng: start.lng() + (end.lng() - start.lng()) * frac
+        };
       });
 
-      // Offset overlapping positions
-      participants.forEach((p, i) => {
-        for (let j = 0; j < i; j++) {
+      // Offset overlapping final positions
+      participants.forEach((p, idx) => {
+        for (let j = 0; j < idx; j++) {
           const a = p.finalPos, b = participants[j].finalPos;
-          const dx = a.lng - b.lng, dy = a.lat - b.lat;
-          if (Math.hypot(dx, dy) < 0.0003) {
-            a.lat += 0.0003;
-            a.lng += 0.0003;
+          if (Math.hypot(a.lat - b.lat, a.lng - b.lng) < 0.0003) {
+            a.lat += 0.0003; a.lng += 0.0003;
           }
         }
       });
 
-      // Fit bounds
-      participants.forEach(p => {
-        bounds.extend(new google.maps.LatLng(p.finalPos.lat, p.finalPos.lng));
-      });
+      // Fit bounds to all positions
+      participants.forEach(p => bounds.extend(p.finalPos));
       map.fitBounds(bounds);
 
       // Update leaderboard
@@ -141,42 +151,34 @@
       lb.innerHTML = '';
       participants.forEach((p, i) => {
         const li = document.createElement('li');
-        li.textContent = `${i === 0 ? '👑 ' : ''}${i + 1}. ${p.name}: ${Math.round(p.bonus).toLocaleString()} m`;
+
+        // Crown for the leader
+        const crown = i === 0 ? '👑 ' : '';
+        const img = document.createElement('img');
+        img.src = `img/${encodeURIComponent(p.name)}_cvface1.png`;
+        img.alt = p.name;
+
+        li.textContent = `${crown}${i+1}. ${p.name}: ${p.bonus.toLocaleString()} m`;
+        li.prepend(img);
         lb.appendChild(li);
       });
 
       // Animate markers
       participants.forEach(p => {
-        animateMarker(p.marker, HQ, p.finalPos, (p.bonus / totalRoute) * 5000);
+        const duration = (p.bonus / cumDist[cumDist.length - 1]) * 5000;
+        const startTime = performance.now();
+        function step(now) {
+          const t = Math.min((now - startTime) / duration, 1);
+          const lat = HQ.lat + (p.finalPos.lat - HQ.lat) * t;
+          const lng = HQ.lng + (p.finalPos.lng - HQ.lng) * t;
+          p.marker.setPosition({ lat, lng });
+          if (t < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
       });
     }
 
-    function computePosition(path, segs, dist) {
-      let traveled = 0, idx = 0;
-      while (idx < segs.length && traveled + segs[idx] < dist) {
-        traveled += segs[idx++];
-      }
-      const frac = (dist - traveled) / segs[idx];
-      const s = path[idx], e = path[idx + 1];
-      return {
-        lat: s.lat() + (e.lat() - s.lat()) * frac,
-        lng: s.lng() + (e.lng() - s.lng()) * frac
-      };
-    }
-
-    function animateMarker(marker, startPos, endPos, duration) {
-      const startTime = performance.now();
-      function step(now) {
-        const t = Math.min((now - startTime) / duration, 1);
-        const lat = startPos.lat + (endPos.lat - startPos.lat) * t;
-        const lng = startPos.lng + (endPos.lng - startPos.lng) * t;
-        marker.setPosition({ lat, lng });
-        if (t < 1) requestAnimationFrame(step);
-      }
-      requestAnimationFrame(step);
-    }
-
-    // Load Google Maps API script dynamically
+    // Load Google Maps API
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&callback=loadMap&libraries=geometry`;
     script.async = true;
