@@ -34,17 +34,16 @@
   <script
     async
     defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&callback=initMap&libraries=geometry,marker">
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&callback=initMap&libraries=geometry">
   </script>
 
   <script>
-    const API_KEY = 'AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI';
     const HQ = { lat: 50.43135, lng: -3.797092 };
-    const HQ_ICON = 'img/JHB Logo.png';  // untouched
+    const HQ_ICON = 'img/JHB Logo.png';
+    const GOLDEN_CIRCLE = 'img/golden_circle.png';
     const WAYPOINTS = ['London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands','Berlin, Germany','Prague, Czech Republic','Vienna, Austria','Bratislava, Slovakia','Budapest, Hungary'];
     const DESTINATION = 'Zagreb, Croatia';
     const PEOPLE = ['Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Tunstill','Brendon Kilcullen','Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan','Darren Hatfield','David Mahon','Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks','James Rundle-Jones','Jay Dunn','Joe Lambourne-Gillen','John Peters','Jonathan Thompson','Joseph Nixon','Joseph Young','Joshua Powell','Joshua Rowberry','Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Morgan Hemming','Nicholas Kingshott','Richard Clanford','Richard Turvey','Robert Tamas','Ross Watson','Ryan Breslan','Ryan Manners','Tom Brooks','Tyler Webb'];
-    const GOLDEN_CIRCLE = 'img/golden_circle.png';
 
     function initMap() {
       const directions = new google.maps.DirectionsService();
@@ -63,48 +62,45 @@
       const map = new google.maps.Map(document.getElementById('map'));
       const bounds = new google.maps.LatLngBounds();
 
-      // compute segments & cumulative distances
-      const segments = path.slice(0,-1).map((pt,i) =>
+      // segments & cumulative distances
+      const segments = path.slice(0,-1).map((pt,i)=>
         google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
       );
       const cumDist = [0];
       segments.forEach((d,i)=> cumDist[i+1]=cumDist[i]+d);
 
       // HQ marker
-      new google.maps.marker.AdvancedMarkerElement({
+      new google.maps.Marker({
         map,
         position: HQ,
         icon: {
           url: HQ_ICON,
-          size: new google.maps.Size(64,64),
           scaledSize: new google.maps.Size(64,64),
         },
-        title: 'JHB UK Ltd',
+        title: 'JHB UK Ltd'
       });
       bounds.extend(HQ);
 
-      // build participants
+      // participants
       const participants = PEOPLE.map(name => {
         const bonus = Math.floor(Math.random()*200000);
-        const marker = new google.maps.marker.AdvancedMarkerElement({
+        const marker = new google.maps.Marker({
           map,
           position: HQ,
           icon: {
             url: `img/${encodeURIComponent(name)}_cvface1.png`,
-            size: new google.maps.Size(64,64),
             scaledSize: new google.maps.Size(64,64),
           },
-          title: name,
+          title: name
         });
         return { name, bonus, marker };
       });
 
-      // compute final positions
+      // compute finals with jitter
       participants.forEach(p => {
-        // find segment
         let idx = cumDist.findIndex((d,i)=> p.bonus < cumDist[i+1]);
         if (idx < 0) idx = segments.length-1;
-        const start = path[idx], end = path[idx+1] || path[idx];
+        const start = path[idx], end = path[idx+1]||path[idx];
         const frac = Math.min((p.bonus - cumDist[idx]) / (segments[idx]||1), 1);
         p.finalPos = {
           lat: start.lat() + (end.lat()-start.lat())*frac + (Math.random()-0.5)*0.002,
@@ -112,44 +108,37 @@
         };
       });
 
-      // fit bounds
+      // fit & leaderboard
       participants.forEach(p=> bounds.extend(p.finalPos));
       map.fitBounds(bounds);
 
-      // render leaderboard
       participants.sort((a,b)=> b.bonus - a.bonus);
       const lb = document.getElementById('leaderboard-list');
       lb.innerHTML = '';
-      participants.forEach((p,i)=> {
-        const li = document.createElement('li');
-        let imgTag = `<img src="img/${encodeURIComponent(p.name)}_cvface1.png" alt="${p.name}" />`;
+      participants.forEach((p,i)=>{
+        const imgTag = `<img src="img/${encodeURIComponent(p.name)}_cvface1.png">`;
+        let content;
         if (i===0) {
-          // wrap leader in golden circle
-          li.innerHTML = `<img src="${GOLDEN_CIRCLE}" style="width:24px;height:24px;vertical-align:middle;margin-right:8px;">` +
-                         imgTag +
-                         `👑 ${i+1}. ${p.name}: ${p.bonus.toLocaleString()} m`;
+          content = `<img src="${GOLDEN_CIRCLE}" style="width:24px;height:24px;vertical-align:middle;margin-right:4px;">${imgTag} ${i+1}. ${p.name}: ${p.bonus.toLocaleString()} m`;
         } else {
-          li.innerHTML = `${imgTag} ${i+1}. ${p.name}: ${p.bonus.toLocaleString()} m`;
+          content = `${imgTag} ${i+1}. ${p.name}: ${p.bonus.toLocaleString()} m`;
         }
+        const li = document.createElement('li');
+        li.innerHTML = content;
         lb.appendChild(li);
       });
 
       // animate
-      participants.forEach(p => {
-        const dur = p.bonus/200000*5000;
+      participants.forEach(p=>{
+        const duration = p.bonus/200000*5000;
         const start = performance.now();
-        const step = now => {
-          const t = Math.min((now-start)/dur,1);
+        const step = now=>{
+          const t = Math.min((now-start)/duration,1);
           const pos = {
             lat: HQ.lat + (p.finalPos.lat-HQ.lat)*t,
             lng: HQ.lng + (p.finalPos.lng-HQ.lng)*t
           };
-          // AdvancedMarkerElement uses .position
-          if (typeof p.marker.setPosition === 'function') {
-            p.marker.setPosition(pos);
-          } else {
-            p.marker.position = pos;
-          }
+          p.marker.setPosition(pos);
           if (t<1) requestAnimationFrame(step);
         };
         requestAnimationFrame(step);
