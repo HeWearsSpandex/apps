@@ -13,7 +13,7 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       z-index: 1002; font-family: Arial, sans-serif;
       font-size: 16px; max-height: 90vh; overflow-y: auto;
-      line-height: 1.6; min-width: 240px;
+      line-height: 1.6; min-width: 260px;
     }
     #leaderboard-list li {
       display: flex;
@@ -21,8 +21,8 @@
       margin-bottom: 8px;
     }
     #leaderboard-list img {
-      width: 24px; /* match text size */
-      height: 24px;
+      width: 48px;
+      height: 48px;
       margin-right: 8px;
       border-radius: 50%;
     }
@@ -38,8 +38,6 @@
   <script>
     const API_KEY = 'AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI';
     const HQ = { lat: 50.43135, lng: -3.797092 };
-
-    // Use the original PNG for the HQ icon
     const HQ_ICON = 'img/JHB%20Logo.png';
 
     const WAYPOINTS = [
@@ -79,14 +77,14 @@
       const map = new google.maps.Map(document.getElementById('map'));
       const bounds = new google.maps.LatLngBounds();
 
-      // Compute segment lengths and cumulative distances
+      // Compute distances along route
       const segments = path.slice(0, -1).map((pt, i) =>
         google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
       );
       const cumDist = [0];
       segments.forEach((d, i) => cumDist[i+1] = cumDist[i] + d);
 
-      // Place HQ marker
+      // HQ marker
       new google.maps.Marker({
         map,
         position: HQ,
@@ -100,12 +98,9 @@
       });
       bounds.extend(HQ);
 
-      // Create participants
+      // Create participants with a random “bonus” distance up to 200 000m
       const participants = PEOPLE.map(name => {
-        const bonus = Math.min(
-          Math.floor(Math.random() * cumDist[cumDist.length - 1]),
-          cumDist[cumDist.length - 1]
-        );
+        const bonus = Math.floor(Math.random() * 200000);  // <-- now 0–200 000 m
         const marker = new google.maps.Marker({
           map,
           position: HQ,
@@ -119,21 +114,21 @@
         return { name, bonus, marker };
       });
 
-      // Compute final positions
+      // Compute each final position along the path
       participants.forEach(p => {
-        let i = cumDist.findIndex((d, idx) => p.bonus >= d && p.bonus <= cumDist[idx+1]);
-        if (i < 0) i = segments.length - 1;
-        const start = path[i], end = path[i+1];
-        const frac = (p.bonus - cumDist[i]) / segments[i];
+        let idx = cumDist.findIndex((d, i) => p.bonus >= d && p.bonus <= cumDist[i+1]);
+        if (idx < 0) idx = segments.length - 1;
+        const start = path[idx], end = path[idx+1];
+        const frac = (p.bonus - cumDist[idx]) / segments[idx];
         p.finalPos = {
           lat: start.lat() + (end.lat() - start.lat()) * frac,
           lng: start.lng() + (end.lng() - start.lng()) * frac
         };
       });
 
-      // Offset overlapping final positions
-      participants.forEach((p, idx) => {
-        for (let j = 0; j < idx; j++) {
+      // Slightly offset any overlapping points
+      participants.forEach((p, i) => {
+        for (let j = 0; j < i; j++) {
           const a = p.finalPos, b = participants[j].finalPos;
           if (Math.hypot(a.lat - b.lat, a.lng - b.lng) < 0.0003) {
             a.lat += 0.0003; a.lng += 0.0003;
@@ -141,37 +136,35 @@
         }
       });
 
-      // Fit bounds to all positions
+      // Fit map to include everyone
       participants.forEach(p => bounds.extend(p.finalPos));
       map.fitBounds(bounds);
 
-      // Update leaderboard
+      // Build leaderboard with images + crown for #1
       participants.sort((a, b) => b.bonus - a.bonus);
       const lb = document.getElementById('leaderboard-list');
       lb.innerHTML = '';
       participants.forEach((p, i) => {
         const li = document.createElement('li');
-
-        // Crown for the leader
         const crown = i === 0 ? '👑 ' : '';
         const img = document.createElement('img');
         img.src = `img/${encodeURIComponent(p.name)}_cvface1.png`;
         img.alt = p.name;
-
         li.textContent = `${crown}${i+1}. ${p.name}: ${p.bonus.toLocaleString()} m`;
         li.prepend(img);
         lb.appendChild(li);
       });
 
-      // Animate markers
+      // Animate markers from HQ out to their final positions
       participants.forEach(p => {
-        const duration = (p.bonus / cumDist[cumDist.length - 1]) * 5000;
+        const duration = (p.bonus / 200000) * 5000; // proportional
         const startTime = performance.now();
         function step(now) {
           const t = Math.min((now - startTime) / duration, 1);
-          const lat = HQ.lat + (p.finalPos.lat - HQ.lat) * t;
-          const lng = HQ.lng + (p.finalPos.lng - HQ.lng) * t;
-          p.marker.setPosition({ lat, lng });
+          p.marker.setPosition({
+            lat: HQ.lat + (p.finalPos.lat - HQ.lat) * t,
+            lng: HQ.lng + (p.finalPos.lng - HQ.lng) * t
+          });
           if (t < 1) requestAnimationFrame(step);
         }
         requestAnimationFrame(step);
