@@ -5,10 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Animated Face Marker on Google Maps</title>
   <style>
-    /* Full-screen map */
     #map { height: 100vh; width: 100%; }
-
-    /* Leaderboard panel */
     #leaderboard {
       position: absolute; top: 10px; right: 10px;
       background: #fff; padding: 16px; border-radius: 10px;
@@ -20,8 +17,7 @@
     #leaderboard img {
       vertical-align: middle;
       width: 1em; height: 1em;
-      border-radius: 50%;
-      margin-right: 4px;
+      border-radius: 50%; margin-right: 4px;
     }
   </style>
 </head>
@@ -32,40 +28,41 @@
   </div>
   <div id="map"></div>
 
-  <!-- Load Maps API once, with both geometry + marker libraries -->
+  <!-- 1) Load Maps API with async & defer. -->
   <script
-    defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&callback=initMap&libraries=geometry,marker">
+    async defer
+    src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY_HERE&callback=initMap&libraries=geometry,marker">
   </script>
 
   <script>
-    // === CONFIG ===
-    const HQ = { lat: 50.43135, lng: -3.797092 };
-    const HQ_ICON   = 'img/JHB Logo.png';
-    const GOLDEN_CIRCLE = 'img/A_2D_digital_illustration_features_a_circular_gold.png';
-    const WAYPOINTS = [
-      'London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands',
-      'Berlin, Germany','Prague, Czech Republic','Vienna, Austria','Bratislava, Slovakia',
-      'Budapest, Hungary'
-    ];
-    const DESTINATION = 'Zagreb, Croatia';
-    const PEOPLE = [
-      'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Tunstill','Brendon Kilcullen',
-      'Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan',
-      'Darren Hatfield','David Mahon','Edward Shanley','Gary Mounce','George Norris',
-      'James Hickman','James Hodge-Brooks','James Rundle-Jones','Jay Dunn',
-      'Joe Lambourne-Gillen','John Peters','Jonathan Thompson','Joseph Nixon',
-      'Joseph Young','Joshua Powell','Joshua Rowberry','Lewis Cannon','Liam Hammon',
-      'Luke Piller','Mark Sneap','Morgan Hemming','Nicholas Kingshott','Richard Clanford',
-      'Richard Turvey','Robert Tamas','Ross Watson','Ryan Breslan','Ryan Manners',
-      'Tom Brooks','Tyler Webb'
-    ];
-    const MAX_DISTANCE = 200000;  // meters
-    const ICON_SIZE = 64;         // px
+    // === Make sure initMap is global ===
+    window.initMap = function() {
+      const HQ = { lat: 50.43135, lng: -3.797092 };
+      const HQ_ICON = 'img/JHB Logo.png';
+      const GOLDEN_CIRCLE = 'img/A_2D_digital_illustration_features_a_circular_gold.png';
+      const WAYPOINTS = [
+        'London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands',
+        'Berlin, Germany','Prague, Czech Republic','Vienna, Austria','Bratislava, Slovakia',
+        'Budapest, Hungary'
+      ];
+      const DESTINATION = 'Zagreb, Croatia';
+      const PEOPLE = [
+        'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Tunstill','Brendon Kilcullen',
+        'Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan',
+        'Darren Hatfield','David Mahon','Edward Shanley','Gary Mounce','George Norris',
+        'James Hickman','James Hodge-Brooks','James Rundle-Jones','Jay Dunn',
+        'Joe Lambourne-Gillen','John Peters','Jonathan Thompson','Joseph Nixon',
+        'Joseph Young','Joshua Powell','Joshua Rowberry','Lewis Cannon','Liam Hammon',
+        'Luke Piller','Mark Sneap','Morgan Hemming','Nicholas Kingshott','Richard Clanford',
+        'Richard Turvey','Robert Tamas','Ross Watson','Ryan Breslan','Ryan Manners',
+        'Tom Brooks','Tyler Webb'
+      ];
+      const MAX_DISTANCE = 200000;
+      const ICON_SIZE = 64;
 
-    // === MAIN ENTRY POINT ===
-    function initMap() {
-      const ds = new google.maps.DirectionsService();
+      // Create map & directions
+      const map = new google.maps.Map(document.getElementById('map'));
+      const ds  = new google.maps.DirectionsService();
       ds.route({
         origin: HQ,
         destination: DESTINATION,
@@ -76,39 +73,132 @@
           console.error('DirectionsService error:', status);
           return;
         }
-        drawAnimatedMap(res.routes[0].overview_path);
+        drawAnimatedMap(res.routes[0].overview_path, map);
       });
-    }
 
-    function drawAnimatedMap(path) {
-      // Create the map and bounds
-      const map = new google.maps.Map(document.getElementById('map'));
-      const bounds = new google.maps.LatLngBounds();
-      bounds.extend(HQ);
+      function drawAnimatedMap(path, map) {
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend(HQ);
 
-      // Precompute cumulative distances
-      const segments = [];
-      for (let i = 0; i < path.length - 1; i++) {
-        segments.push(
+        // Cumulative distances
+        const segments = path.slice(0, -1).map((pt, i) =>
           google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
         );
+        const cumDist = segments.reduce((arr, d) => {
+          arr.push(arr[arr.length-1] + d);
+          return arr;
+        }, [0]);
+
+        // HQ marker
+        new google.maps.Marker({
+          map, position: HQ,
+          icon: {
+            url: HQ_ICON,
+            scaledSize: new google.maps.Size(ICON_SIZE, ICON_SIZE),
+            anchor: new google.maps.Point(ICON_SIZE/2, ICON_SIZE/2)
+          },
+          title: 'JHB UK Ltd', zIndex: 999
+        });
+
+        // Build participants
+        const participants = PEOPLE.map(name => ({
+          name,
+          bonus: Math.floor(Math.random() * MAX_DISTANCE),
+          marker: new google.maps.Marker({ map, position: HQ })
+        }));
+
+        // Compute final positions
+        const totalLength = cumDist[cumDist.length - 1];
+        participants.forEach(p => {
+          const dist = Math.min(p.bonus, totalLength);
+          let i = cumDist.findIndex((d, idx) => dist >= d && dist <= cumDist[idx+1]);
+          if (i < 0) i = segments.length - 1;
+          const start = path[i], end = path[i+1];
+          const frac  = (dist - cumDist[i]) / segments[i];
+          p.finalPos = {
+            lat: start.lat() + (end.lat()-start.lat())*frac,
+            lng: start.lng() + (end.lng()-start.lng())*frac
+          };
+        });
+
+        // Jitter overlaps
+        for (let i=0; i<participants.length; i++) {
+          for (let j=0; j<i; j++) {
+            const a = participants[i].finalPos, b = participants[j].finalPos;
+            if (Math.hypot(a.lat-b.lat, a.lng-b.lng) < 0.0003) {
+              a.lat += (Math.random()-0.5)*0.0006;
+              a.lng += (Math.random()-0.5)*0.0006;
+            }
+          }
+        }
+
+        // Fit all points
+        participants.forEach(p => bounds.extend(p.finalPos));
+        map.fitBounds(bounds);
+
+        // Leaderboard
+        participants.sort((a,b) => b.bonus - a.bonus);
+        const lb = document.getElementById('leaderboard-list');
+        lb.innerHTML = '';
+        participants.forEach((p,i) => {
+          const li = document.createElement('li');
+          li.innerHTML = `
+            ${i===0?'👑 ':''}
+            <img src="img/${p.name}_cvface1.png" alt="${p.name}">
+            ${i+1}. ${p.name}: ${p.bonus.toLocaleString()} m
+          `;
+          lb.appendChild(li);
+        });
+
+        // Place & animate
+        participants.forEach((p, idx) => {
+          const duration = (p.bonus/MAX_DISTANCE)*5000;
+          const startT   = performance.now();
+
+          // Leader: golden circle + face via AdvancedMarkerElement
+          if (idx===0 && google.maps.marker && google.maps.marker.AdvancedMarkerElement) {
+            const container = document.createElement('div');
+            container.style.position = 'relative';
+            container.style.width  = `${ICON_SIZE}px`;
+            container.style.height = `${ICON_SIZE}px`;
+
+            const bg = document.createElement('img');
+            bg.src = GOLDEN_CIRCLE;
+            bg.style.width = '100%'; bg.style.height = '100%';
+            container.appendChild(bg);
+
+            const fg = document.createElement('img');
+            fg.src = `img/${p.name}_cvface1.png`;
+            fg.style.position = 'absolute';
+            fg.style.width  = '60%'; fg.style.height = '60%';
+            fg.style.top    = '50%'; fg.style.left   = '50%';
+            fg.style.transform = 'translate(-50%,-50%)';
+            fg.style.borderRadius = '50%';
+            container.appendChild(fg);
+
+            p.marker = new google.maps.marker.AdvancedMarkerElement({
+              map, position: HQ, content: container
+            });
+          } else {
+            p.marker.setIcon({
+              url: `img/${p.name}_cvface1.png`,
+              scaledSize: new google.maps.Size(ICON_SIZE, ICON_SIZE),
+              anchor: new google.maps.Point(ICON_SIZE/2, ICON_SIZE/2)
+            });
+            p.marker.setPosition(HQ);
+          }
+
+          function step(now) {
+            const t = Math.min((now - startT) / duration, 1);
+            const lat = HQ.lat + (p.finalPos.lat - HQ.lat)*t;
+            const lng = HQ.lng + (p.finalPos.lng - HQ.lng)*t;
+            p.marker.setPosition({ lat, lng });
+            if (t < 1) requestAnimationFrame(step);
+          }
+          requestAnimationFrame(step);
+        });
       }
-      const cumDist = segments.reduce((arr, d) => {
-        arr.push(arr[arr.length-1] + d);
-        return arr;
-      }, [0]);
-
-      // HQ marker
-      new google.maps.Marker({
-        map,
-        position: HQ,
-        icon: {
-          url: HQ_ICON,
-          scaledSize: new google.maps.Size(ICON_SIZE, ICON_SIZE),
-          anchor: new google.maps.Point(ICON_SIZE/2, ICON_SIZE/2)
-        },
-        title: 'JHB UK Ltd',
-        zIndex: 999
-      });
-
-      // Build p
+    };
+  </script>
+</body>
+</html>
