@@ -5,218 +5,143 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Animated Face Marker on Google Maps</title>
   <style>
-    /* Full-screen map and leaderboard styling */
+    /* Map and leaderboard styling */
     #map { height: 100vh; width: 100%; }
     #leaderboard {
-      position: absolute;
-      top: 10px; right: 10px;
+      position: absolute; top: 10px; right: 10px;
       background: #fff; padding: 16px; border-radius: 10px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       z-index: 1002; font-family: Arial, sans-serif;
-      font-size: 14px; max-height: 90vh; overflow-y: auto;
+      font-size: 16px; max-height: 90vh; overflow-y: auto;
       line-height: 1.6; min-width: 260px;
     }
-    #leaderboard ul { list-style: none; margin: 0; padding: 0; }
-    #leaderboard li {
-      display: flex; align-items: center;
-      margin-bottom: 8px;
-    }
-    #leaderboard img {
-      width: 32px; height: 32px;
-      border-radius: 50%;
-      object-fit: cover;
-      margin-right: 8px;
-    }
-    #leaderboard .leader img {
-      width: 36px; height: 36px; /* slightly larger */
-    }
-    #leaderboard .leader { font-weight: bold; }
+    #leaderboard-list { list-style: none; margin: 0; padding: 0; }
+    #leaderboard-list li { display: flex; align-items: center; margin-bottom: 8px; }
+    #leaderboard-list img { width: 32px; height: 32px; border-radius: 50%; margin-right: 8px; }
   </style>
 </head>
 <body>
-  <div id="leaderboard"><strong>Leaderboard</strong>
-    <ul id="leaderboard-list"></ul>
-  </div>
+  <div id="leaderboard"><strong>Leaderboard</strong><ul id="leaderboard-list"></ul></div>
   <div id="map"></div>
 
   <script>
-    const API_KEY      = 'AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI';
-    const IMG_FOLDER   = 'img/';
-    const ICON_SIZE    = 64;  // px for map markers & composite canvas
-    const HQ           = { lat: 50.43135, lng: -3.797092 };
-    const HQ_LOGO      = IMG_FOLDER + 'JHB Logo.png';
-    const GOLD_RING    = IMG_FOLDER + 'golden_circle.png';
-    const WAYPOINTS    = [
-      'London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands',
-      'Berlin, Germany','Prague, Czech Republic','Vienna, Austria',
-      'Bratislava, Slovakia','Budapest, Hungary'
-    ];
-    const DESTINATION  = 'Zagreb, Croatia';
-    const PEOPLE       = [
-      'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Tunstill',
-      'Brendon Kilcullen','Byron Claridge','Callum Evans','Cameron Gill',
-      'Christopher Scourfield','Craig Dolan','Darren Hatfield','David Mahon',
-      'Edward Shanley','Gary Mounce','George Norris','James Hickman',
-      'James Hodge-Brooks','James Rundle-Jones','Jay Dunn','Joe Lambourne-Gillen',
-      'John Peters','Jonathan Thompson','Joseph Nixon','Joseph Young',
-      'Joshua Powell','Joshua Rowberry','Lewis Cannon','Liam Hammon',
-      'Luke Piller','Mark Sneap','Morgan Hemming','Nicholas Kingshott',
-      'Richard Clanford','Richard Turvey','Robert Tamas','Ross Watson',
-      'Ryan Breslan','Ryan Manners','Tom Brooks','Tyler Webb'
-    ];
+    const API_KEY = 'YOUR_API_KEY_HERE';
+    const HQ = { lat: 50.43135, lng: -3.797092 };
+    const HQ_ICON = 'img/JHB Logo.png';
+    const WAYPOINTS = ['London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands','Berlin, Germany','Prague, Czech Republic','Vienna, Austria','Bratislava, Slovakia','Budapest, Hungary'];
+    const DESTINATION = 'Zagreb, Croatia';
+    const PEOPLE = ['Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Tunstill','Brendon Kilcullen','Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan','Darren Hatfield','David Mahon','Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks','James Rundle-Jones','Jay Dunn','Joe Lambourne-Gillen','John Peters','Jonathan Thompson','Joseph Nixon','Joseph Young','Joshua Powell','Joshua Rowberry','Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Morgan Hemming','Nicholas Kingshott','Richard Clanford','Richard Turvey','Robert Tamas','Ross Watson','Ryan Breslan','Ryan Manners','Tom Brooks','Tyler Webb'];
 
-    // Load the Maps API and kick off initMap
-    function loadGoogleMaps() {
-      const s = document.createElement('script');
-      s.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}` +
-              `&callback=initMap&libraries=geometry`;
-      s.async = true;
-      document.head.appendChild(s);
-    }
-    loadGoogleMaps();
-
-    // Helper: return a Promise resolving to a DataURL where `faceUrl` is
-    // drawn atop the `circleUrl`, both scaled to `size`.
-    function compositeIcon(faceUrl, circleUrl, size=ICON_SIZE) {
-      return new Promise((resolve, reject) => {
-        const canvas = document.createElement('canvas');
-        canvas.width = canvas.height = size;
-        const ctx = canvas.getContext('2d');
-        const ring = new Image();
-        const face = new Image();
-        ring.crossOrigin = face.crossOrigin = 'anonymous';
-
-        ring.onload = () => {
-          ctx.drawImage(ring, 0, 0, size, size);
-          face.src = faceUrl;
-        };
-        ring.onerror = () => reject(new Error('Failed to load ring:' + circleUrl));
-
-        face.onload = () => {
-          ctx.drawImage(face, 0, 0, size, size);
-          resolve(canvas.toDataURL());
-        };
-        face.onerror = () => reject(new Error('Failed to load face:' + faceUrl));
-
-        ring.src = circleUrl;
-      });
-    }
-
-    // The main entrypoint called by Google Maps once it's ready
-    async function initMap() {
-      const directions = new google.maps.DirectionsService();
-      const res = await directions.route({
+    function loadMap() {
+      const service = new google.maps.DirectionsService();
+      service.route({
         origin: HQ,
         destination: DESTINATION,
         waypoints: WAYPOINTS.map(loc => ({ location: loc })),
         travelMode: 'DRIVING'
+      }, (res, status) => {
+        if (status === 'OK') initMap(res.routes[0].overview_path);
+        else console.error('Directions error:', status);
       });
-      drawAnimatedMap(res.routes[0].overview_path);
     }
 
-    // Build map, place HQ, participants, and animate
-    async function drawAnimatedMap(path) {
+    async function initMap(path) {
       const map = new google.maps.Map(document.getElementById('map'));
       const bounds = new google.maps.LatLngBounds();
+
+      // compute segment distances
+      const segments = path.slice(0,-1).map((pt,i) => google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1]));
+      const cumDist = [0]; segments.forEach((d,i)=>cumDist[i+1]=cumDist[i]+d);
+
+      // HQ marker
+      new google.maps.Marker({ map, position: HQ, icon: { url: HQ_ICON, scaledSize: new google.maps.Size(64,64) }, title: 'JHB UK Ltd', zIndex: 999 });
       bounds.extend(HQ);
 
-      // precompute distances
-      const segments = path.slice(0,-1).map((p,i)=>
-        google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
-      );
-      const cumDist = [0];
-      segments.forEach((d,i)=>cumDist[i+1]=cumDist[i]+d);
-      const totalDist = cumDist[cumDist.length-1];
+      // preload golden circle
+      const ringImg = await loadImage('img/golden_circle.png');
 
-      // Add HQ marker
-      new google.maps.Marker({
-        map, position: HQ,
-        icon: { url: HQ_LOGO, scaledSize: new google.maps.Size(ICON_SIZE,ICON_SIZE) },
-        title: 'JHB UK Ltd', zIndex: 1000
-      });
-
-      // Create participants with random “bonus” distance
+      // create participants
       const participants = PEOPLE.map(name => ({
         name,
-        faceUrl: IMG_FOLDER + encodeURIComponent(name) + '_cvface1.png',
-        bonus: Math.random() * 200000,  // up to 200 000m
+        bonus: Math.floor(Math.random()*200000),
+        faceUrl: `img/${name}_cvface1.png`,
+        marker: null,
+        finalPos: null,
+        compositeIcon: null
       }));
 
-      // determine finalLatLng for each
+      // calculate final position
       participants.forEach(p => {
-        const d = Math.min(p.bonus, totalDist);
-        let idx = cumDist.findIndex((cd,i)=> cd<=d && d<=cumDist[i+1]);
-        if (idx < 0) idx = segments.length - 1;
-        const start = path[idx], end = path[idx+1];
-        const frac = (d - cumDist[idx]) / segments[idx];
-        p.position = {
-          lat: start.lat() + (end.lat()-start.lat())*frac,
-          lng: start.lng() + (end.lng()-start.lng())*frac
-        };
+        let idx = cumDist.findIndex((d,i)=>p.bonus>=d && p.bonus<=cumDist[i+1]);
+        if (idx<0) idx=segments.length-1;
+        const [start,end] = [path[idx], path[idx+1]];
+        const frac = (p.bonus-cumDist[idx])/segments[idx];
+        p.finalPos = { lat: start.lat() + (end.lat()-start.lat())*frac, lng: start.lng() + (end.lng()-start.lng())*frac };
       });
 
-      // simple overlap nudge
+      // offset small overlaps
       participants.forEach((p,i)=>{
-        for (let j=0;j<i;j++){
-          const a=p.position, b=participants[j].position;
-          if (Math.hypot(a.lat-b.lat,a.lng-b.lng) < 0.001) {
-            a.lat += 0.0005; a.lng += 0.0005;
-          }
+        for(let j=0;j<i;j++){
+          const a=p.finalPos, b=participants[j].finalPos;
+          if(Math.hypot(a.lat-b.lat,a.lng-b.lng) < 0.001){ a.lat+=0.001; a.lng+=0.001; }
         }
       });
 
-      // now sort by bonus descending for leaderboard
-      participants.sort((a,b)=>b.bonus - a.bonus);
-
-      // build composite icons for leader only, plain URLs for others
-      await Promise.all(participants.map((p, i) => {
-        if (i === 0) {
-          return compositeIcon(p.faceUrl, GOLD_RING, ICON_SIZE)
-            .then(dataUrl => p.iconUrl = dataUrl);
+      // create markers
+      for (const p of participants) {
+        // composite icon for leader
+        if (!p.compositeIcon && p === participants.reduce((a,b)=>a.bonus>b.bonus?a:b)) {
+          const face = await loadImage(p.faceUrl);
+          const canvas = document.createElement('canvas'); canvas.width=64; canvas.height=64;
+          const ctx=canvas.getContext('2d');
+          ctx.drawImage(ringImg,0,0,64,64);
+          ctx.drawImage(face,8,8,48,48);
+          p.compositeIcon = canvas.toDataURL();
         }
-        p.iconUrl = p.faceUrl;
-        return Promise.resolve();
-      }));
+        const iconUrl = (p === participants[0]) ? p.compositeIcon : p.faceUrl;
+        p.marker = new google.maps.Marker({ map, position: HQ, icon: { url: iconUrl, scaledSize: new google.maps.Size(64,64) }, title: p.name });
+        bounds.extend(p.finalPos);
+      }
 
-      // add to leaderboard
+      // fit map
+      map.fitBounds(bounds);
+
+      // leaderboard
       const lb = document.getElementById('leaderboard-list');
-      lb.innerHTML = '';
+      participants.sort((a,b)=>b.bonus-a.bonus);
       participants.forEach((p,i) => {
-        const li = document.createElement('li');
-        if (i===0) li.classList.add('leader');
-        li.innerHTML = `
-          <img src="${p.iconUrl}" alt="${p.name}">
-          ${i===0?'👑 ':''}${i+1}. ${p.name} – ${Math.round(p.bonus).toLocaleString()} m
-        `;
+        const li=document.createElement('li');
+        const img = document.createElement('img');
+        img.src = (i===0? p.compositeIcon : p.faceUrl);
+        li.appendChild(img);
+        li.appendChild(document.createTextNode(`${i===0?'👑 ':''}${i+1}. ${p.name}: ${p.bonus.toLocaleString()} m`));
         lb.appendChild(li);
       });
 
-      // add markers and animate from HQ → final pos
-      participants.forEach(p => {
-        const marker = new google.maps.Marker({
-          map,
-          position: HQ,
-          icon: { url: p.iconUrl, scaledSize: new google.maps.Size(ICON_SIZE,ICON_SIZE) },
-          title: p.name
-        });
-        bounds.extend(p.position);
-
-        const duration = (p.bonus/200000) * 5000; // max 5s
+      // animate
+      participants.forEach(p=>{
+        const dur = (p.bonus/200000)*5000;
         const startTime = performance.now();
-
-        function step(now) {
-          const t = Math.min((now - startTime) / duration, 1);
-          marker.setPosition({
-            lat: HQ.lat + (p.position.lat - HQ.lat) * t,
-            lng: HQ.lng + (p.position.lng - HQ.lng) * t
-          });
-          if (t < 1) requestAnimationFrame(step);
+        function step(now){
+          const t=Math.min((now-startTime)/dur,1);
+          p.marker.setPosition({ lat: HQ.lat + (p.finalPos.lat-HQ.lat)*t, lng: HQ.lng + (p.finalPos.lng-HQ.lng)*t });
+          if(t<1) requestAnimationFrame(step);
         }
         requestAnimationFrame(step);
       });
-
-      map.fitBounds(bounds);
     }
+
+    function loadImage(src) {
+      return new Promise((res, rej) => {
+        const img=new Image(); img.onload=()=>res(img); img.onerror=()=>rej(src); img.src=src;
+      });
+    }
+
+    // load API
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&callback=loadMap&libraries=geometry`;
+    script.async = true;
+    document.head.appendChild(script);
   </script>
 </body>
 </html>
