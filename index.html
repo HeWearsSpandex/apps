@@ -5,25 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Animated Face Marker on Google Maps</title>
   <style>
-    #map { height: 100vh; width: 100%; }
+    html, body { margin:0; padding:0; height:100%; }
+    #map { height:100%; width:100%; }
     #leaderboard {
-      position: absolute; top: 10px; right: 10px;
-      background: #fff; padding: 16px; border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-      z-index: 1002; font-family: Arial, sans-serif;
-      font-size: 16px; max-height: 90vh; overflow-y: auto;
-      line-height: 1.6; min-width: 240px;
-    }
-    #leaderboard li {
-      display: flex;
-      align-items: center;
-      margin-bottom: 8px;
+      position:absolute; top:10px; right:10px;
+      background:#fff; padding:16px; border-radius:10px;
+      box-shadow:0 4px 10px rgba(0,0,0,0.3);
+      z-index:1002; font-family:Arial,sans-serif;
+      font-size:16px; max-height:90%; overflow-y:auto;
+      line-height:1.6; min-width:260px;
     }
     #leaderboard img {
-      width: 32px; height: 32px;
-      margin-right: 8px;
-      border-radius: 50%;
+      width:32px; height:32px;
+      vertical-align:middle; margin-right:8px;
+      border-radius:50%;
     }
+    #leaderboard li { margin-bottom:8px; }
   </style>
 </head>
 <body>
@@ -34,153 +31,137 @@
   <div id="map"></div>
 
   <script>
-    window.initMap = async function() {
-      const HQ = { lat: 50.43135, lng: -3.797092 };
-      const DEST = 'Zagreb, Croatia';
-      const WAYPOINTS = [
-        'London, UK','Paris, France','Brussels, Belgium',
-        'Amsterdam, Netherlands','Berlin, Germany',
-        'Prague, Czech Republic','Vienna, Austria',
-        'Bratislava, Slovakia','Budapest, Hungary'
-      ];
+    const API_KEY = 'YOUR_API_KEY_HERE';
+    const IMG_PATH = 'img/';
+    const CIRCLE_SRC = IMG_PATH + 'golden_circle.png';
+    const HQ = { lat: 50.43135, lng: -3.797092 };
+    const PEOPLE = [
+      'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Tunstill','Brendon Kilcullen',
+      /* …etc… */
+      'Tom Brooks','Tyler Webb'
+    ];
+    const DESTINATION = 'Zagreb, Croatia';
+    const WAYPOINTS = ['London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands',
+                       'Berlin, Germany','Prague, Czech Republic','Vienna, Austria',
+                       'Bratislava, Slovakia','Budapest, Hungary'];
 
-      const NAMES = [
-        'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Tunstill',
-        'Brendon Kilcullen','Byron Claridge','Callum Evans','Cameron Gill',
-        'Christopher Scourfield','Craig Dolan','Darren Hatfield','David Mahon',
-        'Edward Shanley','Gary Mounce','George Norris','James Hickman',
-        'James Hodge-Brooks','James Rundle-Jones','Jay Dunn','Joe Lambourne-Gillen',
-        'John Peters','Jonathan Thompson','Joseph Nixon','Joseph Young',
-        'Joshua Powell','Joshua Rowberry','Lewis Cannon','Liam Hammon',
-        'Luke Piller','Mark Sneap','Morgan Hemming','Nicholas Kingshott',
-        'Richard Clanford','Richard Turvey','Robert Tamas','Ross Watson',
-        'Ryan Breslan','Ryan Manners','Tom Brooks','Tyler Webb'
-      ];
+    // Utils to load images and merge onto circle
+    function loadImage(src) {
+      return new Promise((res, rej) => {
+        const img = new Image();
+        img.crossOrigin = ''; // in case you need CORS
+        img.onload = () => res(img);
+        img.onerror = rej;
+        img.src = src;
+      });
+    }
 
-      // 1. Get route
+    async function makeIcon(faceName) {
+      const [circle, face] = await Promise.all([
+        loadImage(CIRCLE_SRC),
+        loadImage(IMG_PATH + encodeURIComponent(faceName) + '_cvface1.png')
+      ]);
+      const size = 64;
+      const c = document.createElement('canvas');
+      c.width = c.height = size;
+      const ctx = c.getContext('2d');
+      // draw circle full-canvas
+      ctx.drawImage(circle, 0, 0, size, size);
+      // draw face centered (reduce if needed)
+      ctx.drawImage(face, 0, 0, size, size);
+      return c.toDataURL('image/png');
+    }
+
+    function loadMap() {
       const ds = new google.maps.DirectionsService();
-      const res = await ds.route({
+      ds.route({
         origin: HQ,
-        destination: DEST,
+        destination: DESTINATION,
         waypoints: WAYPOINTS.map(loc => ({ location: loc })),
         travelMode: 'DRIVING'
+      }, (res, status) => {
+        if (status === 'OK') drawAnimatedMap(res.routes[0].overview_path);
+        else console.error('Directions error:', status);
       });
-      const path = res.routes[0].overview_path;
+    }
 
-      // 2. Cumulate distances
-      const segments = path.slice(0,-1).map((pt,i) =>
-        google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
-      );
-      const cum = [0];
-      segments.forEach((d,i)=>cum[i+1]=cum[i]+d);
-
-      // 3. Icon‐composer
-      function makeIcon(faceUrl) {
-        return new Promise((resolve) => {
-          const c = document.createElement('canvas');
-          c.width = c.height = 64;
-          const ctx = c.getContext('2d');
-          const ring = new Image();
-          const face = new Image();
-          ring.src = 'img/golden_circle.png';
-          face.src = faceUrl;
-          ring.onload = () => {
-            face.onload = () => {
-              ctx.drawImage(ring,0,0,64,64);
-              ctx.drawImage(face,0,0,64,64);
-              resolve(c.toDataURL());
-            };
-            face.onerror = () => {
-              console.warn('Failed to load face:', faceUrl);
-              // fallback: just the ring
-              ctx.drawImage(ring,0,0,64,64);
-              resolve(c.toDataURL());
-            };
-          };
-          ring.onerror = () => {
-            console.warn('Failed to load ring');
-            resolve(faceUrl); // fallback to face only
-          };
-        });
-      }
-
-      // 4. Map setup
+    async function drawAnimatedMap(path) {
       const map = new google.maps.Map(document.getElementById('map'));
       const bounds = new google.maps.LatLngBounds();
       bounds.extend(HQ);
 
-      // 5. Create participants
-      const parts = await Promise.all(NAMES.map(async (name, i) => {
+      // HQ marker
+      new google.maps.Marker({
+        map, position: HQ,
+        icon: { url: IMG_PATH + 'JHB Logo.png', scaledSize: new google.maps.Size(32,32) },
+        title: 'JHB UK Ltd'
+      });
+
+      // compute cumulative distances
+      const segs = path.slice(0,-1).map((_,i) =>
+        google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
+      );
+      const cum = segs.reduce((a,d)=> (a.push(a.slice(-1)[0]+d), a), [0]);
+
+      // build participants
+      const parts = await Promise.all(PEOPLE.map(async name => {
+        // random up to 200km
         const bonus = Math.floor(Math.random()*200000);
-        const isLead = i===0;
-        const facePath = `img/${name}_cvface1.png`;
-        const icon = isLead
-          ? await makeIcon(facePath)
-          : facePath;
-        const m = new google.maps.Marker({
-          map, title: name, position: HQ,
-          icon: {
-            url: icon,
-            scaledSize: new google.maps.Size(64,64),
+        // find segment index
+        let i = cum.findIndex((d,j) => bonus >= d && bonus < (cum[j+1]||Infinity));
+        if (i<0) i = cum.length-1;
+        const frac = (bonus - cum[i]) / segs[i];
+        const p0 = path[i], p1 = path[i+1];
+        const pos = {
+          lat: p0.lat() + (p1.lat()-p0.lat())*frac,
+          lng: p0.lng() + (p1.lng()-p0.lng())*frac
+        };
+        const iconUrl = await makeIcon(name);
+        const marker = new google.maps.Marker({
+          map, position: HQ, icon: {
+            url: iconUrl, scaledSize: new google.maps.Size(64,64),
             anchor: new google.maps.Point(32,32)
-          }
+          },
+          title: name
         });
-        return { name, bonus, marker: m, isLead };
+        return { name, bonus, marker, finalPos: pos, iconUrl };
       }));
 
-      // 6. Position along route
-      parts.forEach(p=>{
-        let idx = cum.findIndex((d,j)=>p.bonus>=d && p.bonus<=cum[j+1]);
-        if(idx<0) idx = segments.length-1;
-        const A=path[idx], B=path[idx+1];
-        const f=(p.bonus-cum[idx])/segments[idx];
-        p.pos = { lat: A.lat()+(B.lat()-A.lat())*f, lng: A.lng()+(B.lng()-A.lng())*f };
-      });
-
-      // 7. Nudge overlaps
-      parts.forEach((p,i)=>{
-        for(let j=0;j<i;j++){
-          const a=p.pos, b=parts[j].pos;
-          if(Math.hypot(a.lat-b.lat,a.lng-b.lng)<0.0004){
-            a.lat+=0.0004; a.lng+=0.0004;
-          }
-        }
-      });
-
-      // 8. Drop markers + fit
-      parts.forEach(p=>{
-        p.marker.setPosition(p.pos);
-        bounds.extend(p.pos);
-      });
+      // fit map
+      parts.forEach(p=> bounds.extend(p.finalPos));
       map.fitBounds(bounds);
 
-      // 9. Leaderboard
-      parts.sort((a,b)=>b.bonus-a.bonus);
-      const ul = document.getElementById('leaderboard-list');
-      ul.innerHTML = '';
-      for(let i=0;i<parts.length;i++){
-        const p=parts[i];
-        const li=document.createElement('li');
-        const img=document.createElement('img');
-        if(p.isLead) {
-          img.src = await makeIcon(`img/${p.name}_cvface1.png`);
-        } else {
-          img.src = `img/${p.name}_cvface1.png`;
+      // animate
+      parts.forEach(p=>{
+        const duration = (p.bonus/200000)*5000;
+        const start = performance.now();
+        function step(now) {
+          const t = Math.min((now-start)/duration,1);
+          p.marker.setPosition({
+            lat: HQ.lat + (p.finalPos.lat-HQ.lat)*t,
+            lng: HQ.lng + (p.finalPos.lng-HQ.lng)*t
+          });
+          if (t<1) requestAnimationFrame(step);
         }
-        li.appendChild(img);
-        li.appendChild(document.createTextNode(`${i+1}. ${p.name} (${p.bonus.toLocaleString()} m)`));
-        ul.appendChild(li);
-      }
-    };
+        requestAnimationFrame(step);
+      });
 
-    // async load Maps API
-    const s = document.createElement('script');
-    s.src = 
-      'https://maps.googleapis.com/maps/api/js' +
-      '?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI' +
-      '&callback=initMap&libraries=geometry';
-    s.async = true;
-    document.head.appendChild(s);
+      // leaderboard
+      const lb = document.getElementById('leaderboard-list');
+      parts.sort((a,b)=>b.bonus-a.bonus)
+           .forEach((p,i)=>{
+             const li = document.createElement('li');
+             const img = document.createElement('img');
+             img.src = p.iconUrl;
+             li.appendChild(img);
+             li.appendChild(document.createTextNode(`${i+1}. ${p.name}: ${p.bonus.toLocaleString()} m`));
+             lb.appendChild(li);
+           });
+    }
+
+  </script>
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=loadMap">
   </script>
 </body>
 </html>
