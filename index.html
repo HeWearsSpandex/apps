@@ -2,21 +2,26 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Animated Face Marker on Google Maps</title>
   <style>
+    /* Full-screen map */
     #map { height: 100vh; width: 100%; }
+
+    /* Leaderboard panel */
     #leaderboard {
       position: absolute; top: 10px; right: 10px;
       background: #fff; padding: 16px; border-radius: 10px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       z-index: 1002; font-family: Arial, sans-serif;
       font-size: 16px; max-height: 90vh; overflow-y: auto;
-      line-height: 1.6; min-width: 260px;
+      line-height: 1.6; min-width: 240px;
     }
-    #leaderboard-list img {
-      vertical-align: middle; width: 32px; height: 32px;
-      margin-right: 8px; border-radius: 50%;
+    #leaderboard img {
+      vertical-align: middle;
+      width: 1em; height: 1em;
+      border-radius: 50%;
+      margin-right: 4px;
     }
   </style>
 </head>
@@ -27,128 +32,83 @@
   </div>
   <div id="map"></div>
 
+  <!-- Load Maps API once, with both geometry + marker libraries -->
+  <script
+    defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&callback=initMap&libraries=geometry,marker">
+  </script>
+
   <script>
-    const API_KEY = 'AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI';
+    // === CONFIG ===
     const HQ = { lat: 50.43135, lng: -3.797092 };
-    const HQ_ICON = 'img/JHB%20Logo.png';
-    const WAYPOINTS = ['London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands',
-                       'Berlin, Germany','Prague, Czech Republic','Vienna, Austria',
-                       'Bratislava, Slovakia','Budapest, Hungary'];
+    const HQ_ICON   = 'img/JHB Logo.png';
+    const GOLDEN_CIRCLE = 'img/A_2D_digital_illustration_features_a_circular_gold.png';
+    const WAYPOINTS = [
+      'London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands',
+      'Berlin, Germany','Prague, Czech Republic','Vienna, Austria','Bratislava, Slovakia',
+      'Budapest, Hungary'
+    ];
     const DESTINATION = 'Zagreb, Croatia';
-    const PEOPLE = [ /* ...your list of names... */ ];
+    const PEOPLE = [
+      'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Tunstill','Brendon Kilcullen',
+      'Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan',
+      'Darren Hatfield','David Mahon','Edward Shanley','Gary Mounce','George Norris',
+      'James Hickman','James Hodge-Brooks','James Rundle-Jones','Jay Dunn',
+      'Joe Lambourne-Gillen','John Peters','Jonathan Thompson','Joseph Nixon',
+      'Joseph Young','Joshua Powell','Joshua Rowberry','Lewis Cannon','Liam Hammon',
+      'Luke Piller','Mark Sneap','Morgan Hemming','Nicholas Kingshott','Richard Clanford',
+      'Richard Turvey','Robert Tamas','Ross Watson','Ryan Breslan','Ryan Manners',
+      'Tom Brooks','Tyler Webb'
+    ];
+    const MAX_DISTANCE = 200000;  // meters
+    const ICON_SIZE = 64;         // px
 
-    function makePlaceholderImg(size=64) {
-      const cv = document.createElement('canvas');
-      cv.width = cv.height = size;
-      const ctx = cv.getContext('2d');
-      ctx.fillStyle = '#ccc';
-      ctx.fillRect(0,0,size,size);
-      return cv;
-    }
-
-    function loadImage(src, size=64) {
-      return new Promise(res => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload  = () => res(img);
-        img.onerror = () => res(makePlaceholderImg(size));
-        img.src = src;
-      });
-    }
-
-    function loadMap() {
-      // now "google" is guaranteed to exist
-      new google.maps.DirectionsService().route({
+    // === MAIN ENTRY POINT ===
+    function initMap() {
+      const ds = new google.maps.DirectionsService();
+      ds.route({
         origin: HQ,
         destination: DESTINATION,
         waypoints: WAYPOINTS.map(loc => ({ location: loc })),
         travelMode: 'DRIVING'
       }, (res, status) => {
-        if (status === 'OK') initMap(res.routes[0].overview_path);
-        else console.error('Directions error:', status);
+        if (status !== 'OK') {
+          console.error('DirectionsService error:', status);
+          return;
+        }
+        drawAnimatedMap(res.routes[0].overview_path);
       });
     }
 
-    async function initMap(path) {
+    function drawAnimatedMap(path) {
+      // Create the map and bounds
       const map = new google.maps.Map(document.getElementById('map'));
       const bounds = new google.maps.LatLngBounds();
+      bounds.extend(HQ);
 
-      // fallback for AdvancedMarkerElement
-      const MarkerClass = google.maps.marker?.AdvancedMarkerElement
-        ? google.maps.marker.AdvancedMarkerElement
-        : google.maps.Marker;
+      // Precompute cumulative distances
+      const segments = [];
+      for (let i = 0; i < path.length - 1; i++) {
+        segments.push(
+          google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
+        );
+      }
+      const cumDist = segments.reduce((arr, d) => {
+        arr.push(arr[arr.length-1] + d);
+        return arr;
+      }, [0]);
 
       // HQ marker
-      new MarkerClass({
-        map, position: HQ,
+      new google.maps.Marker({
+        map,
+        position: HQ,
         icon: {
           url: HQ_ICON,
-          scaledSize: new google.maps.Size(64,64),
-          anchor: new google.maps.Point(32,32)
+          scaledSize: new google.maps.Size(ICON_SIZE, ICON_SIZE),
+          anchor: new google.maps.Point(ICON_SIZE/2, ICON_SIZE/2)
         },
         title: 'JHB UK Ltd',
         zIndex: 999
       });
-      bounds.extend(HQ);
 
-      // route math
-      const segments = path.slice(0,-1).map((pt,i)=>
-        google.maps.geometry.spherical.computeDistanceBetween(path[i],path[i+1])
-      );
-      const cumDist = [0];
-      segments.forEach((d,i)=> cumDist[i+1] = cumDist[i] + d);
-
-      // participants
-      const participants = PEOPLE.map(name=>({
-        name,
-        bonus: Math.floor(Math.random()*200000),
-        finalPos: null,
-        marker: null
-      }));
-      participants.forEach(p=>{
-        let idx = cumDist.findIndex((d,i)=>p.bonus>=d&&p.bonus<(cumDist[i+1]||d));
-        if (idx<0) idx = segments.length-1;
-        const s=path[idx], e=path[idx+1]||s;
-        const frac = segments[idx] ? (p.bonus-cumDist[idx])/segments[idx] : 0;
-        p.finalPos = { lat: s.lat() + (e.lat()-s.lat())*frac, lng: s.lng() + (e.lng()-s.lng())*frac };
-      });
-      participants.sort((a,b)=>b.bonus-a.bonus);
-      const leader = participants[0];
-
-      // preload images
-      const circleImg = await loadImage('img/golden_circle.png',64);
-      const faceImgs = await Promise.all(participants.map(p=>
-        loadImage(`img/${encodeURIComponent(p.name)}_cvface1.png`,64)
-      ));
-
-      function makeLeaderIcon(faceImg){
-        const size=64, inset=8;
-        const cv=document.createElement('canvas');
-        cv.width=cv.height=size;
-        const ctx=cv.getContext('2d');
-        ctx.drawImage(circleImg,0,0,size,size);
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(size/2,size/2,(size/2)-inset,0,2*Math.PI);
-        ctx.clip();
-        ctx.drawImage(faceImg,inset,inset,size-2*inset,size-2*inset);
-        ctx.restore();
-        return {
-          url: cv.toDataURL(),
-          scaledSize: new google.maps.Size(size,size),
-          anchor: new google.maps.Point(size/2,size/2)
-        };
-      }
-
-      // place & animate
-      participants.forEach((p,i)=>{
-        const isLeader = p===leader;
-        const iconOpts = isLeader
-          ? makeLeaderIcon(faceImgs[i])
-          : {
-              url: faceImgs[i].src,
-              scaledSize: new google.maps.Size(64,64),
-              anchor: new google.maps.Point(32,32)
-            };
-
-        p.marker = new MarkerClass({ map, position: HQ, icon: iconOpts, title: p.name });
+      // Build p
