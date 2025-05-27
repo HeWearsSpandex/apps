@@ -35,7 +35,7 @@
                        'Berlin, Germany','Prague, Czech Republic','Vienna, Austria',
                        'Bratislava, Slovakia','Budapest, Hungary'];
     const DESTINATION = 'Zagreb, Croatia';
-    const PEOPLE = [ /* ...your names... */ ];
+    const PEOPLE = [ /* ...your list of names... */ ];
 
     function makePlaceholderImg(size=64) {
       const cv = document.createElement('canvas');
@@ -57,6 +57,7 @@
     }
 
     function loadMap() {
+      // now "google" is guaranteed to exist
       new google.maps.DirectionsService().route({
         origin: HQ,
         destination: DESTINATION,
@@ -72,7 +73,7 @@
       const map = new google.maps.Map(document.getElementById('map'));
       const bounds = new google.maps.LatLngBounds();
 
-      // choose AdvancedMarkerElement if available, else fallback
+      // fallback for AdvancedMarkerElement
       const MarkerClass = google.maps.marker?.AdvancedMarkerElement
         ? google.maps.marker.AdvancedMarkerElement
         : google.maps.Marker;
@@ -90,20 +91,23 @@
       });
       bounds.extend(HQ);
 
-      // compute route segments & cumulative distances
+      // route math
       const segments = path.slice(0,-1).map((pt,i)=>
         google.maps.geometry.spherical.computeDistanceBetween(path[i],path[i+1])
       );
       const cumDist = [0];
       segments.forEach((d,i)=> cumDist[i+1] = cumDist[i] + d);
 
-      // build participants
+      // participants
       const participants = PEOPLE.map(name=>({
-        name, bonus: Math.floor(Math.random()*200000), marker:null, finalPos:null
+        name,
+        bonus: Math.floor(Math.random()*200000),
+        finalPos: null,
+        marker: null
       }));
       participants.forEach(p=>{
-        let idx = cumDist.findIndex((d,i)=>p.bonus>=d&&p.bonus<=(cumDist[i+1]||d));
-        if(idx<0) idx=segments.length-1;
+        let idx = cumDist.findIndex((d,i)=>p.bonus>=d&&p.bonus<(cumDist[i+1]||d));
+        if (idx<0) idx = segments.length-1;
         const s=path[idx], e=path[idx+1]||s;
         const frac = segments[idx] ? (p.bonus-cumDist[idx])/segments[idx] : 0;
         p.finalPos = { lat: s.lat() + (e.lat()-s.lat())*frac, lng: s.lng() + (e.lng()-s.lng())*frac };
@@ -148,44 +152,3 @@
             };
 
         p.marker = new MarkerClass({ map, position: HQ, icon: iconOpts, title: p.name });
-
-        const start=performance.now(),
-              duration=(p.bonus/200000)*5000;
-        (function step(now){
-          const t=Math.min((now-start)/duration,1);
-          p.marker.position = {
-            lat: HQ.lat + (p.finalPos.lat-HQ.lat)*t,
-            lng: HQ.lng + (p.finalPos.lng-HQ.lng)*t
-          };
-          if(t<1) requestAnimationFrame(step);
-        })(start);
-
-        bounds.extend(p.finalPos);
-      });
-
-      map.fitBounds(bounds);
-
-      // leaderboard
-      const lb = document.getElementById('leaderboard-list');
-      participants.forEach((p,i)=>{
-        const li = document.createElement('li'),
-              img = document.createElement('img');
-        img.src = (p===leader ? makeLeaderIcon(faceImgs[i]).url : faceImgs[i].src);
-        li.appendChild(img);
-        li.appendChild(document.createTextNode(
-          `${i===0?'👑 ':''}${i+1}. ${p.name}: ${p.bonus.toLocaleString()} m`
-        ));
-        lb.appendChild(li);
-      });
-    }
-
-    // load Maps API with both geometry & marker
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}
-                  &callback=loadMap
-                  &libraries=geometry,marker`;
-    script.async = true; script.defer = true;
-    document.head.appendChild(script);
-  </script>
-</body>
-</html>
