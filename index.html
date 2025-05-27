@@ -5,22 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Animated Face Marker on Google Maps</title>
   <style>
-    html, body { margin:0; padding:0; height:100%; }
-    #map { height:100%; width:100%; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    #map { height: 100%; width: 100%; }
     #leaderboard {
-      position:absolute; top:10px; right:10px;
-      background:#fff; padding:16px; border-radius:10px;
-      box-shadow:0 4px 10px rgba(0,0,0,0.3);
-      z-index:1002; font-family:Arial,sans-serif;
-      font-size:16px; max-height:90%; overflow-y:auto;
-      line-height:1.6; min-width:260px;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #fff;
+      padding: 16px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      z-index: 1002;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      max-height: 90%;
+      overflow-y: auto;
+      line-height: 1.6;
+      min-width: 260px;
     }
     #leaderboard img {
-      width:32px; height:32px;
-      vertical-align:middle; margin-right:8px;
-      border-radius:50%;
+      width: 32px;
+      height: 32px;
+      vertical-align: middle;
+      margin-right: 8px;
+      border-radius: 50%;
     }
-    #leaderboard li { margin-bottom:8px; }
+    #leaderboard li { margin-bottom: 8px; }
   </style>
 </head>
 <body>
@@ -31,137 +41,113 @@
   <div id="map"></div>
 
   <script>
-    const API_KEY = 'YOUR_API_KEY_HERE';
+    // Replace with your actual key
+    const API_KEY = 'AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI';
     const IMG_PATH = 'img/';
     const CIRCLE_SRC = IMG_PATH + 'golden_circle.png';
     const HQ = { lat: 50.43135, lng: -3.797092 };
     const PEOPLE = [
       'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Tunstill','Brendon Kilcullen',
-      /* …etc… */
-      'Tom Brooks','Tyler Webb'
+      'Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan',
+      'Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks',
+      'James Rundle-Jones','James Whiteoak','Jay Dunn','Joe Lambourne-Gillen','John Peters',
+      'Jonathan Thompson','Joseph Nixon','Joseph Young','Joshua Powell','Joshua Rowberry',
+      'Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Mark Stafford',
+      'Morgan Hemming','Nicholas Kingshott','Richard Clanford','Robert Tamas','Ross Watson',
+      'Ryan Breslan','Ryan Manners','Tom Brooks','Tristan Allen','Tyler Webb'
     ];
     const DESTINATION = 'Zagreb, Croatia';
-    const WAYPOINTS = ['London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands',
-                       'Berlin, Germany','Prague, Czech Republic','Vienna, Austria',
-                       'Bratislava, Slovakia','Budapest, Hungary'];
+    const WAYPOINTS = [
+      'London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands',
+      'Berlin, Germany','Prague, Czech Republic','Vienna, Austria',
+      'Bratislava, Slovakia','Budapest, Hungary'
+    ];
 
-    // Utils to load images and merge onto circle
     function loadImage(src) {
-      return new Promise((res, rej) => {
+      return new Promise((resolve, reject) => {
         const img = new Image();
-        img.crossOrigin = ''; // in case you need CORS
-        img.onload = () => res(img);
-        img.onerror = rej;
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = reject;
         img.src = src;
       });
     }
 
-    async function makeIcon(faceName) {
+    async function makeIcon(name) {
       const [circle, face] = await Promise.all([
         loadImage(CIRCLE_SRC),
-        loadImage(IMG_PATH + encodeURIComponent(faceName) + '_cvface1.png')
+        loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`)
       ]);
       const size = 64;
-      const c = document.createElement('canvas');
-      c.width = c.height = size;
-      const ctx = c.getContext('2d');
-      // draw circle full-canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
       ctx.drawImage(circle, 0, 0, size, size);
-      // draw face centered (reduce if needed)
       ctx.drawImage(face, 0, 0, size, size);
-      return c.toDataURL('image/png');
+      return canvas.toDataURL('image/png');
     }
 
-    function loadMap() {
+    function initMap() {
+      window.map = new google.maps.Map(document.getElementById('map'));
       const ds = new google.maps.DirectionsService();
       ds.route({
         origin: HQ,
         destination: DESTINATION,
         waypoints: WAYPOINTS.map(loc => ({ location: loc })),
-        travelMode: 'DRIVING'
-      }, (res, status) => {
-        if (status === 'OK') drawAnimatedMap(res.routes[0].overview_path);
-        else console.error('Directions error:', status);
+        travelMode: google.maps.TravelMode.DRIVING
+      }, async (result, status) => {
+        if (status !== 'OK') return console.error('Directions error:', status);
+        const path = result.routes[0].overview_path;
+        animateRoute(window.map, path);
       });
     }
 
-    async function drawAnimatedMap(path) {
-      const map = new google.maps.Map(document.getElementById('map'));
+    async function animateRoute(map, path) {
       const bounds = new google.maps.LatLngBounds();
       bounds.extend(HQ);
-
-      // HQ marker
       new google.maps.Marker({
-        map, position: HQ,
-        icon: { url: IMG_PATH + 'JHB Logo.png', scaledSize: new google.maps.Size(32,32) },
+        map,
+        position: HQ,
+        icon: { url: `${IMG_PATH}JHB Logo.png`, scaledSize: new google.maps.Size(32, 32) },
         title: 'JHB UK Ltd'
       });
-
-      // compute cumulative distances
-      const segs = path.slice(0,-1).map((_,i) =>
+      const distances = path.slice(0, -1).map((_, i) =>
         google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
       );
-      const cum = segs.reduce((a,d)=> (a.push(a.slice(-1)[0]+d), a), [0]);
-
-      // build participants
-      const parts = await Promise.all(PEOPLE.map(async name => {
-        // random up to 200km
-        const bonus = Math.floor(Math.random()*200000);
-        // find segment index
-        let i = cum.findIndex((d,j) => bonus >= d && bonus < (cum[j+1]||Infinity));
-        if (i<0) i = cum.length-1;
-        const frac = (bonus - cum[i]) / segs[i];
-        const p0 = path[i], p1 = path[i+1];
-        const pos = {
-          lat: p0.lat() + (p1.lat()-p0.lat())*frac,
-          lng: p0.lng() + (p1.lng()-p0.lng())*frac
-        };
-        const iconUrl = await makeIcon(name);
-        const marker = new google.maps.Marker({
-          map, position: HQ, icon: {
-            url: iconUrl, scaledSize: new google.maps.Size(64,64),
-            anchor: new google.maps.Point(32,32)
-          },
-          title: name
-        });
-        return { name, bonus, marker, finalPos: pos, iconUrl };
-      }));
-
-      // fit map
-      parts.forEach(p=> bounds.extend(p.finalPos));
+      const cumulative = distances.reduce((arr, d) => { arr.push((arr.slice(-1)[0]||0)+d); return arr; }, []);
+      const participants = await Promise.all(
+        PEOPLE.map(async name => {
+          const bonus = Math.random() * (cumulative[cumulative.length-1] || 0);
+          let idx = cumulative.findIndex(d => bonus <= d);
+          if (idx < 0) idx = cumulative.length - 1;
+          const prev = cumulative[idx-1]||0;
+          const frac = (bonus - prev) / distances[idx];
+          const p0 = path[idx], p1 = path[idx+1];
+          const target = { lat: p0.lat() + (p1.lat()-p0.lat())*frac, lng: p0.lng() + (p1.lng()-p0.lng())*frac };
+          const iconUrl = await makeIcon(name);
+          const marker = new google.maps.Marker({ map, position: HQ, icon: { url: iconUrl, scaledSize: new google.maps.Size(64,64)}, title: name });
+          return { name, bonus, marker, target };
+        })
+      );
+      participants.forEach(p => bounds.extend(p.target));
       map.fitBounds(bounds);
-
-      // animate
-      parts.forEach(p=>{
-        const duration = (p.bonus/200000)*5000;
+      participants.forEach(p => {
         const start = performance.now();
-        function step(now) {
+        const duration = 5000;
+        const animate = now => {
           const t = Math.min((now-start)/duration,1);
-          p.marker.setPosition({
-            lat: HQ.lat + (p.finalPos.lat-HQ.lat)*t,
-            lng: HQ.lng + (p.finalPos.lng-HQ.lng)*t
-          });
-          if (t<1) requestAnimationFrame(step);
-        }
-        requestAnimationFrame(step);
+          p.marker.setPosition({ lat: HQ.lat + (p.target.lat-HQ.lat)*t, lng: HQ.lng + (p.target.lng-HQ.lng)*t });
+          if (t<1) requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
       });
-
-      // leaderboard
       const lb = document.getElementById('leaderboard-list');
-      parts.sort((a,b)=>b.bonus-a.bonus)
-           .forEach((p,i)=>{
-             const li = document.createElement('li');
-             const img = document.createElement('img');
-             img.src = p.iconUrl;
-             li.appendChild(img);
-             li.appendChild(document.createTextNode(`${i+1}. ${p.name}: ${p.bonus.toLocaleString()} m`));
-             lb.appendChild(li);
-           });
+      participants.sort((a,b)=>b.bonus-a.bonus).forEach((p,i)=>{
+        const li=document.createElement('li'); const img=document.createElement('img'); img.src=p.marker.getIcon().url; li.append(img, document.createTextNode(`${i+1}. ${p.name}: ${Math.round(p.bonus)} m`)); lb.append(li);
+      });
     }
-
   </script>
-  <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=loadMap">
-  </script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap"></script>
 </body>
 </html>
