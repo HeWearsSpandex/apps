@@ -24,7 +24,9 @@
   <script>
     const API_KEY = 'AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI';
     const HQ = { lat: 50.43135, lng: -3.797092 };
-    const HQ_ICON = 'dist/img/' + encodeURIComponent('JHB Logo') + '.webp';
+    // Updated to use PNG with _cvface1 suffix
+    const HQ_ICON = 'dist/img/' + encodeURIComponent('JHB Logo') + '_cvface1.png';
+
     const WAYPOINTS = ['London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands','Berlin, Germany','Prague, Czech Republic','Vienna, Austria','Bratislava, Slovakia','Budapest, Hungary'];
     const DESTINATION = 'Zagreb, Croatia';
     const PEOPLE = ['Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Tunstill','Brendon Kilcullen','Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan','Darren Hatfield','David Mahon','Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks','James Rundle-Jones','Jay Dunn','Joe Lambourne-Gillen','John Peters','Jonathan Thompson','Joseph Nixon','Joseph Young','Joshua Powell','Joshua Rowberry','Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Morgan Hemming','Nicholas Kingshott','Richard Clanford','Richard Turvey','Robert Tamas','Ross Watson','Ryan Breslan','Ryan Manners','Tom Brooks','Tyler Webb'];
@@ -69,7 +71,12 @@
         const marker = new google.maps.Marker({
           map,
           position: HQ,
-          icon: { url: `dist/img/${encodeURIComponent(name)}.webp`, scaledSize: new google.maps.Size(32,32), anchor: new google.maps.Point(16,32) },
+          icon: {
+            // Now looks for Name_cvface1.png
+            url: `dist/img/${encodeURIComponent(name)}_cvface1.png`,
+            scaledSize: new google.maps.Size(32,32),
+            anchor: new google.maps.Point(16,32)
+          },
           title: name
         });
         return { name, bonus, marker };
