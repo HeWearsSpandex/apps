@@ -56,13 +56,27 @@
 
     // Draws face and optional golden stroke circle
     async function drawIcon(name, useCircle) {
-      const size = 64;
-      const strokeWidth = useCircle ? 10 : 0; // 10px border on map leader
+      const faceSize = 64;
+      const strokeWidth = useCircle ? 10 : 0; // external stroke width for map
+      // canvas size grows if circle: add strokeWidth*2
+      const size = faceSize + strokeWidth * 2;
       const canvas = document.createElement('canvas');
       canvas.width = canvas.height = size;
       const ctx = canvas.getContext('2d');
-      // draw face full canvas
+      // draw face centered
       const face = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
+      ctx.drawImage(face, strokeWidth, strokeWidth, faceSize, faceSize);
+      if (useCircle) {
+        ctx.lineWidth = strokeWidth;
+        ctx.strokeStyle = 'gold';
+        ctx.beginPath();
+        // circle centered, radius = faceSize/2 + strokeWidth/2
+        const radius = faceSize/2 + strokeWidth/2;
+        ctx.arc(size/2, size/2, radius, 0, 2 * Math.PI);
+        ctx.stroke();
+      }
+      return canvas.toDataURL('image/png');
+    }${encodeURIComponent(name)}_cvface1.png`);
       ctx.drawImage(face, 0, 0, size, size);
       if (useCircle) {
         ctx.lineWidth = strokeWidth;
