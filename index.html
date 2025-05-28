@@ -204,16 +204,16 @@
 
       // Build leaderboard icons
       const lb = document.getElementById('leaderboard-list'); lb.innerHTML = '';
-      for (let i=0; i<participants.length; i++) {
+      for (let i = 0; i < participants.length; i++) {
         const p = participants[i];
-        const isLeader = i===0;
+        const isLeader = i === 0;
+        // draw 32x32 face with 5px halo for leader (42x42 canvas)
         const iconUrl = await drawIcon(p.name, isLeader, 32, isLeader ? 5 : 0);
         const img = document.createElement('img');
         img.src = iconUrl;
-        // Leave natural canvas size for correct face and halo proportions
         const li = document.createElement('li');
+        // only the face image, no ranking text
         li.appendChild(img);
-        li.appendChild(document.createTextNode(`${i+1}. ${p.name}: ${Math.round(p.bonus)} m`));
         lb.appendChild(li);
       }
     }
