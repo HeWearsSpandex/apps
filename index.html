@@ -107,8 +107,9 @@
 
     function initMap() {
       const map = new google.maps.Map(document.getElementById('map'), {
-        // 10px buffer on both sides for markers
-        );
+        // buffer space: 10px left plus leave full width for top leaderboard
+        padding: { top: 70, right: 10, bottom: 10, left: 10 }
+      });
       window.map = map;
       // HQ marker with updated logo size
       new google.maps.Marker({
