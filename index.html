@@ -52,26 +52,29 @@
     // Draw face and optional circle border
     async function drawIcon(name, useCircle) {
       const faceSize = 64;
-      const stroke = useCircle ? 10 : 0;
+      const stroke = useCircle ? 10 : 0;  // border thickness
       const size = faceSize + stroke * 2;
       const canvas = document.createElement('canvas');
       canvas.width = canvas.height = size;
       const ctx = canvas.getContext('2d');
 
-      // draw face centered
+      if (useCircle) {
+        // Draw gold ring outside the face with no overlap
+        ctx.fillStyle = 'gold';
+        ctx.beginPath();
+        // Outer circle
+        ctx.arc(size/2, size/2, faceSize/2 + stroke, 0, 2 * Math.PI);
+        // Inner circle (hole)
+        ctx.arc(size/2, size/2, faceSize/2, 0, 2 * Math.PI);
+        ctx.fill('evenodd');
+      }
+
+      // Draw face centered inside ring
       const face = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
       ctx.drawImage(face, stroke, stroke, faceSize, faceSize);
 
-      // draw circle outside
-      if (useCircle) {
-        ctx.lineWidth = stroke;
-        ctx.strokeStyle = 'gold';
-        ctx.beginPath();
-        const radius = faceSize / 2 + stroke;
-        ctx.arc(size / 2, size / 2, radius, 0, 2 * Math.PI);
-        ctx.stroke();
-      }
       return canvas.toDataURL('image/png');
+    }
     }
 
     function initMap() {
