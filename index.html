@@ -38,7 +38,7 @@
       'Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks',
       'James Rundle-Jones','James Whiteoak','Jay Dunn','Joe Lambourne-Gillen','John Peters',
       'Jonathan Thompson','Joseph Nixon','Joseph Young','Joshua Powell','Joshua Rowberry',
-      'Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Mark Stafford',
+      'Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap',
       'Morgan Hemming','Nicholas Kingshott','Richard Clanford','Robert Tamas','Ross Watson',
       'Ryan Breslan','Ryan Manners','Tom Brooks','Tristan Allen','Tyler Webb'
     ];
@@ -164,6 +164,8 @@
       const bounds = new google.maps.LatLngBounds();
       participants.forEach(p => bounds.extend(p.target)); bounds.extend(HQ);
       map.fitBounds(bounds);
+      // Shift map left by half the leaderboard width (260px/2=130px) so HQ/logo appears further right of edge
+      map.panBy(-130, 0);
       participants.forEach(p => {
         const start = performance.now(), dur = 5000;
         (function step(now) {
