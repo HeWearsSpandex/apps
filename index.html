@@ -25,12 +25,25 @@
       z-index: 1002;
       font-family: Arial, sans-serif;
       font-size: 16px;
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 8px 16px;
-      justify-items: center;
-      align-items: center;
+      /* Use CSS columns to flow items top-to-bottom in 7 columns */
+      /* Remove grid layout */
+    }
+    #leaderboard ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      column-count: 7;
+      column-gap: 16px;
+    }
+    #leaderboard li {
+      break-inside: avoid;
+      margin-bottom: 8px;
       text-align: center;
+    }
+    #leaderboard img {
+      display: block;
+      margin: 0 auto 4px;
+      border-radius: 50%;
     }
     #leaderboard img { vertical-align:middle; margin-right:8px; border-radius:50%; }
     #leaderboard li { margin-bottom:8px; }
