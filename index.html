@@ -25,40 +25,28 @@
       z-index: 1002;
       font-family: Arial, sans-serif;
       font-size: 16px;
-      text-align: center; /* center header */
-      /* Use CSS columns to flow items top-to-bottom in 7 columns */
-      /* Remove grid layout */
+      text-align: center;
     }
     #leaderboard ul {
       list-style: none;
       padding: 0;
-      margin: 0;
+      margin: 8px 0 0 0;
       column-count: 7;
       column-gap: 16px;
+      text-align: left;
     }
     #leaderboard li {
       break-inside: avoid;
       margin-bottom: 8px;
-      text-align: left;
       display: flex;
       align-items: center;
       gap: 8px;
+      text-align: left;
     }
     #leaderboard img {
       border-radius: 50%;
+      display: inline-block;
     }
-    #leaderboard li {
-      break-inside: avoid;
-      margin-bottom: 8px;
-      text-align: center;
-    }
-    #leaderboard img {
-      display: block;
-      margin: 0 auto 4px;
-      border-radius: 50%;
-    }
-    #leaderboard img { vertical-align:middle; margin-right:8px; border-radius:50%; }
-    #leaderboard li { margin-bottom:8px; }
   </style>
 </head>
 <body>
