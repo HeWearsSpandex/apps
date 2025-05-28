@@ -154,8 +154,7 @@
         const iconUrl = await drawIcon(p.name, isLeader, 32, isLeader ? 5 : 0);
         const img = document.createElement('img');
         img.src = iconUrl;
-        img.width = 32 + (isLeader ? 10 : 0);
-        img.height = 32 + (isLeader ? 10 : 0);
+        // Leave natural canvas size for correct face and halo proportions
         const li = document.createElement('li');
         li.appendChild(img);
         li.appendChild(document.createTextNode(`${i+1}. ${p.name}: ${Math.round(p.bonus)} m`));
