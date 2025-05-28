@@ -14,7 +14,8 @@
     }
     #leaderboard img { width:32px; height:32px; vertical-align:middle; margin-right:8px; border-radius:50%; }
     #leaderboard li { margin-bottom:8px; }
-    #leaderboard li.leader img { box-shadow: 0 0 0 5px gold; }
+    #leaderboard li.leader img { /* no CSS halo - handled via canvas */ }
+    
   </style>
 </head>
 <body>
@@ -154,17 +155,37 @@
         })(start);
       });
       // leaderboard
-      const lb = document.getElementById('leaderboard-list'); lb.innerHTML='';
-      participants.forEach((p,i)=>{
+      const lb = document.getElementById('leaderboard-list');
+      lb.innerHTML = '';
+      // generate leaderboard icons with halo via canvas
+      async function drawLeaderboardIcon(name, isLeader) {
+        const faceSize = 32;
+        const halo = isLeader ? 5 : 0;
+        const size = faceSize + halo * 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        if (isLeader) {
+          ctx.fillStyle = 'gold';
+          ctx.beginPath();
+          ctx.arc(size/2, size/2, faceSize/2 + halo, 0, 2*Math.PI);
+          ctx.arc(size/2, size/2, faceSize/2, 0, 2*Math.PI);
+          ctx.fill('evenodd');
+        }
+        const img = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
+        ctx.drawImage(img, halo, halo, faceSize, faceSize);
+        return canvas.toDataURL('image/png');
+      }
+
+      for (let i = 0; i < participants.length; i++) {
+        const p = participants[i];
         const li = document.createElement('li');
-        if (i===0) li.classList.add('leader');
-        const img = document.createElement('img'); img.src = p.marker.getIcon().url;
-        li.appendChild(img);
+        const isLeader = i === 0;
+        li.classList.toggle('leader', isLeader);
+        const imgEl = document.createElement('img');
+        imgEl.src = await drawLeaderboardIcon(p.name, isLeader);
+        li.appendChild(imgEl);
         li.appendChild(document.createTextNode(`${i+1}. ${p.name}: ${Math.round(p.bonus)} m`));
         lb.appendChild(li);
-      });
+      }
     }
-  </script>
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap"></script>
-</body>
-</html>
