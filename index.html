@@ -14,9 +14,21 @@
       bottom: 0;
     }
     #leaderboard {
-      position:absolute; top:10px; right:10px; background:#fff; padding:16px;
-      border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.3); z-index:1002;
-      font-family:Arial,sans-serif; font-size:16px; max-height:90%; overflow:auto; min-width:260px;
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      background: #fff;
+      padding: 16px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      z-index: 1002;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      display: grid;
+      grid-template-columns: repeat(7, auto);
+      gap: 8px 16px;
+      align-items: center;
     }
     #leaderboard img { vertical-align:middle; margin-right:8px; border-radius:50%; }
     #leaderboard li { margin-bottom:8px; }
@@ -96,8 +108,7 @@
     function initMap() {
       const map = new google.maps.Map(document.getElementById('map'), {
         // 10px buffer on both sides for markers
-        padding: { top: 0, right: 10, bottom: 0, left: 10 }
-      });
+        );
       window.map = map;
       // HQ marker with updated logo size
       new google.maps.Marker({
@@ -165,7 +176,7 @@
       participants.forEach(p => bounds.extend(p.target)); bounds.extend(HQ);
       map.fitBounds(bounds);
       // Shift map left by half the leaderboard width (260px/2=130px) so HQ/logo appears further right of edge
-      map.panBy(-130, 0);
+      
       participants.forEach(p => {
         const start = performance.now(), dur = 5000;
         (function step(now) {
