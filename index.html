@@ -21,7 +21,7 @@
   <div id="map"></div>
 
   <script>
-    // Your valid Google Maps API key below
+    // Google Maps API key
     const API_KEY = 'AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI';
     const IMG_PATH = 'img/';
     const CIRCLE_SRC = IMG_PATH + 'golden_circle.png';
@@ -45,7 +45,8 @@
 
     function loadImage(src) {
       return new Promise((resolve, reject) => {
-        const img = new Image(); img.crossOrigin = 'anonymous';
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
         img.onload = () => resolve(img);
         img.onerror = reject;
         img.src = src;
@@ -60,11 +61,11 @@
       canvas.width = canvas.height = size;
       const ctx = canvas.getContext('2d');
 
-      // Draw face inset if overlaying circle
+      // Draw face
       const face = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
       ctx.drawImage(face, inset, inset, faceSize, faceSize);
 
-      // Overlay golden circle if requested
+      // Overlay circle
       if (useCircle) {
         const circle = await loadImage(CIRCLE_SRC);
         ctx.drawImage(circle, 0, 0, size, size);
@@ -115,14 +116,12 @@
         })(start);
       });
 
-      // Highlight leader after animation completes
       await new Promise(res => setTimeout(res, 5000));
       parts.sort((a, b) => b.bonus - a.bonus);
       const leader = parts[0];
       const circled = await drawIcon(leader.name, true);
       leader.marker.setIcon({ url: circled, scaledSize: new google.maps.Size(64,64), anchor: new google.maps.Point(32,32) });
 
-      // Update leaderboard UI
       const lb = document.getElementById('leaderboard-list'); lb.innerHTML = '';
       parts.forEach((p, i) => {
         const li = document.createElement('li');
@@ -133,6 +132,6 @@
       });
     }
   </script>
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=" + API_KEY + "&libraries=geometry&callback=initMap"></script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap"></script>
 </body>
 </html>
