@@ -38,6 +38,17 @@
     #leaderboard li {
       break-inside: avoid;
       margin-bottom: 8px;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #leaderboard img {
+      border-radius: 50%;
+    }
+    #leaderboard li {
+      break-inside: avoid;
+      margin-bottom: 8px;
       text-align: center;
     }
     #leaderboard img {
@@ -51,7 +62,7 @@
 </head>
 <body>
   <div id="leaderboard">
-    <strong style="grid-column: 1 / -1; text-align: center; display: block;">Leaderboard</strong>
+    <strong>Leaderboard</strong>
     <ul id="leaderboard-list"></ul>
   </div>
   <div id="map"></div>
@@ -202,7 +213,7 @@
         })(start);
       });
 
-      // Build leaderboard icons
+            // Build leaderboard icons
       const lb = document.getElementById('leaderboard-list'); lb.innerHTML = '';
       for (let i = 0; i < participants.length; i++) {
         const p = participants[i];
@@ -211,9 +222,14 @@
         const iconUrl = await drawIcon(p.name, isLeader, 32, isLeader ? 5 : 0);
         const img = document.createElement('img');
         img.src = iconUrl;
+        img.style.verticalAlign = 'middle';
+        // create list item with face, name, and meters
         const li = document.createElement('li');
-        // only the face image, no ranking text
+        // face on left
         li.appendChild(img);
+        // name and meters
+        const text = document.createTextNode(` ${p.name} - ${Math.round(p.bonus)} m`);
+        li.appendChild(text);
         lb.appendChild(li);
       }
     }
