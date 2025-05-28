@@ -49,97 +49,143 @@
 
     function loadImage(src) {
       return new Promise((res, rej) => {
-        const img = new Image(); img.crossOrigin='anonymous';
-        img.onload = () => res(img); img.onerror = rej; img.src = src;
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => res(img);
+        img.onerror = rej;
+        img.src = src;
       });
     }
 
-    // Draws face and optional golden stroke circle
+    // Draw face and optional golden stroke circle around outer edge
     async function drawIcon(name, useCircle) {
       const faceSize = 64;
-      const strokeWidth = useCircle ? 10 : 0; // external stroke width for map
-      // canvas size grows if circle: add strokeWidth*2
-      const size = faceSize + strokeWidth * 2;
+      const strokeWidth = useCircle ? 10 : 0;
+      const size = faceSize + strokeWidth;
       const canvas = document.createElement('canvas');
       canvas.width = canvas.height = size;
       const ctx = canvas.getContext('2d');
-      // draw face centered
+
+      // Draw face at top-left (fills 64x64)
       const face = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
-      ctx.drawImage(face, strokeWidth, strokeWidth, faceSize, faceSize);
+      ctx.drawImage(face, 0, 0, faceSize, faceSize);
+
+      // Draw circle just outside face edge
       if (useCircle) {
         ctx.lineWidth = strokeWidth;
         ctx.strokeStyle = 'gold';
         ctx.beginPath();
-        // circle centered, radius = faceSize/2 + strokeWidth/2
-        const radius = faceSize/2 + strokeWidth/2;
-        ctx.arc(size/2, size/2, radius, 0, 2 * Math.PI);
+        const radius = faceSize / 2;
+        ctx.arc(radius, radius, radius + strokeWidth / 2, 0, 2 * Math.PI);
         ctx.stroke();
       }
-      return canvas.toDataURL('image/png');
-    }${encodeURIComponent(name)}_cvface1.png`);
-      ctx.drawImage(face, 0, 0, size, size);
-      if (useCircle) {
-        ctx.lineWidth = strokeWidth;
-        ctx.strokeStyle = 'gold';
-        ctx.beginPath();
-        ctx.arc(size/2, size/2, (size - strokeWidth)/2, 0, 2*Math.PI);
-        ctx.stroke();
-      }
+
       return canvas.toDataURL('image/png');
     }
 
     function initMap() {
       const map = new google.maps.Map(document.getElementById('map'));
       window.map = map;
-      new google.maps.Marker({ map, position: HQ,
-        icon: { url: `${IMG_PATH}JHB Logo.png`, scaledSize: new google.maps.Size(32,32), anchor: new google.maps.Point(16,16) }
+      new google.maps.Marker({
+        map,
+        position: HQ,
+        icon: {
+          url: `${IMG_PATH}JHB Logo.png`,
+          scaledSize: new google.maps.Size(32, 32),
+          anchor: new google.maps.Point(16, 16)
+        }
       });
       const ds = new google.maps.DirectionsService();
-      ds.route({ origin: HQ, destination: DESTINATION, waypoints: WAYPOINTS.map(loc=>({location:loc})), travelMode: google.maps.TravelMode.DRIVING },
-        (res, status) => { if(status==='OK') animateRoute(res.routes[0].overview_path); else console.error('Directions error:', status); }
-      );
+      ds.route({
+        origin: HQ,
+        destination: DESTINATION,
+        waypoints: WAYPOINTS.map(loc => ({ location: loc })),
+        travelMode: google.maps.TravelMode.DRIVING
+      }, (res, status) => {
+        if (status === 'OK') animateRoute(res.routes[0].overview_path);
+        else console.error('Directions error:', status);
+      });
     }
 
     async function animateRoute(path) {
       const map = window.map;
-      const segs = path.slice(0,-1).map((_,i)=>google.maps.geometry.spherical.computeDistanceBetween(path[i],path[i+1]));
-      const cum = segs.reduce((arr,d)=>(arr.push((arr.slice(-1)[0]||0)+d),arr),[]);
+      const distances = path.slice(0, -1).map((_, i) =>
+        google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
+      );
+      const cumulative = distances.reduce((arr, d) => {
+        arr.push((arr.slice(-1)[0] || 0) + d);
+        return arr;
+      }, []);
 
-      const parts = await Promise.all(PEOPLE.map(async name => {
-        const bonus = Math.random()*cum[cum.length-1];
-        let idx = cum.findIndex(d=>bonus<=d); if(idx<0) idx=cum.length-1;
-        const prev = cum[idx-1]||0;
-        const frac = segs[idx] ? (bonus-prev)/segs[idx] : 0;
-        const p0=path[idx], p1=path[idx+1]||p0;
-        const target = { lat:p0.lat()+(p1.lat()-p0.lat())*frac, lng:p0.lng()+(p1.lng()-p0.lng())*frac };
-        const url = await drawIcon(name, false);
-        const marker = new google.maps.Marker({ map, position: HQ,
-          icon:{url,scaledSize:new google.maps.Size(size=64,size),anchor:new google.maps.Point(32,32)}, title:name
-        });
-        return { name, bonus, marker, target };
-      }));
+      const participants = await Promise.all(
+        PEOPLE.map(async name => {
+          const bonus = Math.random() * cumulative[cumulative.length - 1];
+          let idx = cumulative.findIndex(d => bonus <= d);
+          if (idx < 0) idx = cumulative.length - 1;
+          const prev = cumulative[idx - 1] || 0;
+          const fraction = distances[idx]
+            ? (bonus - prev) / distances[idx]
+            : 0;
+          const p0 = path[idx];
+          const p1 = path[idx + 1] || p0;
+          const target = {
+            lat: p0.lat() + (p1.lat() - p0.lat()) * fraction,
+            lng: p0.lng() + (p1.lng() - p0.lng()) * fraction
+          };
+          const iconUrl = await drawIcon(name, false);
+          const marker = new google.maps.Marker({
+            map,
+            position: HQ,
+            icon: {
+              url: iconUrl,
+              scaledSize: new google.maps.Size(64, 64),
+              anchor: new google.maps.Point(32, 32)
+            },
+            title: name
+          });
+          return { name, bonus, marker, target };
+        })
+      );
 
-      const bounds = new google.maps.LatLngBounds(); parts.forEach(p=>bounds.extend(p.target)); bounds.extend(HQ); map.fitBounds(bounds);
-      parts.forEach(p=>{
-        const start=performance.now(),dur=5000;
-        (function step(now){ const t=Math.min((now-start)/dur,1);
-          p.marker.setPosition({ lat: HQ.lat+(p.target.lat-HQ.lat)*t, lng: HQ.lng+(p.target.lng-HQ.lng)*t });
-          if(t<1) requestAnimationFrame(step);
+      const bounds = new google.maps.LatLngBounds();
+      participants.forEach(p => bounds.extend(p.target));
+      bounds.extend(HQ);
+      map.fitBounds(bounds);
+
+      participants.forEach(p => {
+        const start = performance.now();
+        const duration = 5000;
+        (function step(now) {
+          const t = Math.min((now - start) / duration, 1);
+          p.marker.setPosition({
+            lat: HQ.lat + (p.target.lat - HQ.lat) * t,
+            lng: HQ.lng + (p.target.lng - HQ.lng) * t
+          });
+          if (t < 1) requestAnimationFrame(step);
         })(start);
       });
 
-      await new Promise(r=>setTimeout(r,5000));
-      parts.sort((a,b)=>b.bonus-a.bonus);
-      const leader = parts[0];
-      const urlLeader = await drawIcon(leader.name, true);
-      leader.marker.setIcon({ url:urlLeader, scaledSize:new google.maps.Size(64,64), anchor:new google.maps.Point(32,32) });
+      await new Promise(res => setTimeout(res, 5000));
+      participants.sort((a, b) => b.bonus - a.bonus);
+      const leader = participants[0];
+      const leaderUrl = await drawIcon(leader.name, true);
+      leader.marker.setIcon({
+        url: leaderUrl,
+        scaledSize: new google.maps.Size(64, 64),
+        anchor: new google.maps.Point(32, 32)
+      });
 
-      const lb = document.getElementById('leaderboard-list'); lb.innerHTML='';
-      parts.forEach((p,i)=>{
-        const li=document.createElement('li'); if(i===0) li.classList.add('leader');
-        const img=document.createElement('img'); img.src=p.marker.getIcon().url;
+      const lb = document.getElementById('leaderboard-list');
+      lb.innerHTML = '';
+      participants.forEach((p, i) => {
+        const li = document.createElement('li');
+        if (i === 0) li.classList.add('leader');
+        const img = document.createElement('img');
+        img.src = p.marker.getIcon().url;
         li.appendChild(img);
-        li.appendChild(document.createTextNode(`${i+1}. ${p.name}: ${Math.round(p.bonus)} m`));
+        li.appendChild(document.createTextNode(`${i + 1}. ${p.name}: ${Math.round(
+          p.bonus
+        )} m`));
         lb.appendChild(li);
       });
     }
