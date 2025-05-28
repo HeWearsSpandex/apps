@@ -80,15 +80,19 @@
     }
 
     function initMap() {
-      const map = new google.maps.Map(document.getElementById('map'), {});
+      const map = new google.maps.Map(document.getElementById('map'), {
+        // leave padding to avoid leaderboard overlap
+        padding: { top: 0, right: 300, bottom: 0, left: 0 }
+      });
       window.map = map;
+      // HQ marker with updated logo size
       new google.maps.Marker({
         map,
         position: HQ,
         icon: {
           url: `${IMG_PATH}JHB Logo.png`,
-          scaledSize: new google.maps.Size(32,32),
-          anchor: new google.maps.Point(16,16)
+          scaledSize: new google.maps.Size(64, 114.88),
+          anchor: new google.maps.Point(32, 114.88)
         }
       });
       const ds = new google.maps.DirectionsService();
