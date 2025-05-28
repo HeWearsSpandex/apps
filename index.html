@@ -26,9 +26,11 @@
       font-family: Arial, sans-serif;
       font-size: 16px;
       display: grid;
-      grid-template-columns: repeat(7, auto);
+      grid-template-columns: repeat(7, 1fr);
       gap: 8px 16px;
+      justify-items: center;
       align-items: center;
+      text-align: center;
     }
     #leaderboard img { vertical-align:middle; margin-right:8px; border-radius:50%; }
     #leaderboard li { margin-bottom:8px; }
@@ -36,7 +38,7 @@
 </head>
 <body>
   <div id="leaderboard">
-    <strong>Leaderboard</strong>
+    <strong style="grid-column: 1 / -1; text-align: center; display: block;">Leaderboard</strong>
     <ul id="leaderboard-list"></ul>
   </div>
   <div id="map"></div>
