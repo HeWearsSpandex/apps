@@ -12,10 +12,14 @@
       border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.3); z-index:1002;
       font-family:Arial,sans-serif; font-size:16px; max-height:90%; overflow:auto; min-width:260px;
     }
-    #leaderboard img { width:32px; height:32px; vertical-align:middle; margin-right:8px; border-radius:50%; }
+    #leaderboard img {
+      width:32px; height:32px; vertical-align:middle; margin-right:8px; border-radius:50%;
+    }
     #leaderboard li { margin-bottom:8px; }
-    /* Highlight leader with golden outline around avatar */
-    #leaderboard li.leader img { box-shadow: 0 0 0 5px gold; }
+    /* Golden circle border on leaderboard leader avatar */
+    #leaderboard li.leader img {
+      box-shadow: 0 0 0 5px gold;
+    }
   </style>
 </head>
 <body>
@@ -25,7 +29,6 @@
   <script>
     const API_KEY = 'AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI';
     const IMG_PATH = 'img/';
-    const CIRCLE_SRC = IMG_PATH + 'golden_circle.png';
     const HQ = { lat: 50.43135, lng: -3.797092 };
     const PEOPLE = [
       'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Tunstill','Brendon Kilcullen',
@@ -46,27 +49,28 @@
 
     function loadImage(src) {
       return new Promise((res, rej) => {
-        const img = new Image(); img.crossOrigin='anonymous'; img.onload = () => res(img); img.onerror = rej; img.src = src;
+        const img = new Image(); img.crossOrigin='anonymous';
+        img.onload = () => res(img); img.onerror = rej; img.src = src;
       });
     }
 
-    // Draws face full-size and overlays circle matching face dimensions
+    // Draws face and optional golden stroke circle
     async function drawIcon(name, useCircle) {
       const size = 64;
+      const strokeWidth = useCircle ? 10 : 0; // 10px border on map leader
       const canvas = document.createElement('canvas');
       canvas.width = canvas.height = size;
       const ctx = canvas.getContext('2d');
-
-      // Draw face at full canvas
+      // draw face full canvas
       const face = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
       ctx.drawImage(face, 0, 0, size, size);
-
-      // Overlay golden circle exactly same size
       if (useCircle) {
-        const circle = await loadImage(CIRCLE_SRC);
-        ctx.drawImage(circle, 0, 0, size, size);
+        ctx.lineWidth = strokeWidth;
+        ctx.strokeStyle = 'gold';
+        ctx.beginPath();
+        ctx.arc(size/2, size/2, (size - strokeWidth)/2, 0, 2*Math.PI);
+        ctx.stroke();
       }
-
       return canvas.toDataURL('image/png');
     }
 
@@ -87,40 +91,39 @@
       const segs = path.slice(0,-1).map((_,i)=>google.maps.geometry.spherical.computeDistanceBetween(path[i],path[i+1]));
       const cum = segs.reduce((arr,d)=>(arr.push((arr.slice(-1)[0]||0)+d),arr),[]);
 
-      const participants = await Promise.all(PEOPLE.map(async name => {
-        const bonus = Math.random() * cum[cum.length-1];
-        let idx = cum.findIndex(d => bonus <= d); if(idx<0) idx=cum.length-1;
+      const parts = await Promise.all(PEOPLE.map(async name => {
+        const bonus = Math.random()*cum[cum.length-1];
+        let idx = cum.findIndex(d=>bonus<=d); if(idx<0) idx=cum.length-1;
         const prev = cum[idx-1]||0;
         const frac = segs[idx] ? (bonus-prev)/segs[idx] : 0;
-        const p0 = path[idx], p1 = path[idx+1]||p0;
-        const target = { lat: p0.lat() + (p1.lat()-p0.lat())*frac, lng: p0.lng() + (p1.lng()-p0.lng())*frac };
+        const p0=path[idx], p1=path[idx+1]||p0;
+        const target = { lat:p0.lat()+(p1.lat()-p0.lat())*frac, lng:p0.lng()+(p1.lng()-p0.lng())*frac };
         const url = await drawIcon(name, false);
         const marker = new google.maps.Marker({ map, position: HQ,
-          icon: { url, scaledSize: new google.maps.Size(64,64), anchor: new google.maps.Point(32,32) }, title: name
+          icon:{url,scaledSize:new google.maps.Size(size=64,size),anchor:new google.maps.Point(32,32)}, title:name
         });
         return { name, bonus, marker, target };
       }));
 
-      const bounds = new google.maps.LatLngBounds(); participants.forEach(p=>bounds.extend(p.target)); bounds.extend(HQ); map.fitBounds(bounds);
-
-      participants.forEach(p=>{
-        const start=performance.now(), dur=5000;
+      const bounds = new google.maps.LatLngBounds(); parts.forEach(p=>bounds.extend(p.target)); bounds.extend(HQ); map.fitBounds(bounds);
+      parts.forEach(p=>{
+        const start=performance.now(),dur=5000;
         (function step(now){ const t=Math.min((now-start)/dur,1);
-          p.marker.setPosition({ lat: HQ.lat + (p.target.lat-HQ.lat)*t, lng: HQ.lng + (p.target.lng-HQ.lng)*t });
+          p.marker.setPosition({ lat: HQ.lat+(p.target.lat-HQ.lat)*t, lng: HQ.lng+(p.target.lng-HQ.lng)*t });
           if(t<1) requestAnimationFrame(step);
         })(start);
       });
 
       await new Promise(r=>setTimeout(r,5000));
-      participants.sort((a,b)=>b.bonus-a.bonus);
-      const leader = participants[0];
-      const circUrl = await drawIcon(leader.name, true);
-      leader.marker.setIcon({ url: circUrl, scaledSize: new google.maps.Size(64,64), anchor: new google.maps.Point(32,32) });
+      parts.sort((a,b)=>b.bonus-a.bonus);
+      const leader = parts[0];
+      const urlLeader = await drawIcon(leader.name, true);
+      leader.marker.setIcon({ url:urlLeader, scaledSize:new google.maps.Size(64,64), anchor:new google.maps.Point(32,32) });
 
-      const lb = document.getElementById('leaderboard-list'); lb.innerHTML = '';
-      participants.forEach((p,i)=>{
-        const li = document.createElement('li'); if(i===0) li.classList.add('leader');
-        const img = document.createElement('img'); img.src = p.marker.getIcon().url;
+      const lb = document.getElementById('leaderboard-list'); lb.innerHTML='';
+      parts.forEach((p,i)=>{
+        const li=document.createElement('li'); if(i===0) li.classList.add('leader');
+        const img=document.createElement('img'); img.src=p.marker.getIcon().url;
         li.appendChild(img);
         li.appendChild(document.createTextNode(`${i+1}. ${p.name}: ${Math.round(p.bonus)} m`));
         lb.appendChild(li);
