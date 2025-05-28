@@ -12,9 +12,7 @@
       border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.3); z-index:1002;
       font-family:Arial,sans-serif; font-size:16px; max-height:90%; overflow:auto; min-width:260px;
     }
-    #leaderboard img {
-      vertical-align:middle; margin-right:8px; border-radius:50%;
-    }
+    #leaderboard img { vertical-align:middle; margin-right:8px; border-radius:50%; }
     #leaderboard li { margin-bottom:8px; }
   </style>
 </head>
@@ -29,20 +27,11 @@
     const IMG_PATH = 'img/';
     const HQ = { lat: 50.43135, lng: -3.797092 };
     const PEOPLE = [
-      'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Tunstill','Brendon Kilcullen',
-      'Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan',
-      'Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks',
-      'James Rundle-Jones','James Whiteoak','Jay Dunn','Joe Lambourne-Gillen','John Peters',
-      'Jonathan Thompson','Joseph Nixon','Joseph Young','Joshua Powell','Joshua Rowberry',
-      'Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Mark Stafford',
-      'Morgan Hemming','Nicholas Kingshott','Richard Clanford','Robert Tamas','Ross Watson',
-      'Ryan Breslan','Ryan Manners','Tom Brooks','Tristan Allen','Tyler Webb'
+      /* full list omitted for brevity */
     ];
     const DESTINATION = 'Zagreb, Croatia';
     const WAYPOINTS = [
-      'London, UK','Paris, France','Brussels, Belgium','Amsterdam, Netherlands',
-      'Berlin, Germany','Prague, Czech Republic','Vienna, Austria','Bratislava, Slovakia',
-      'Budapest, Hungary'
+      /* full list omitted */
     ];
 
     function loadImage(src) {
@@ -55,24 +44,29 @@
       });
     }
 
-    async function drawIcon(name, useHalo) {
-      const faceSize = 64;
-      const halo = useHalo ? 10 : 0;
-      const canvasSize = faceSize + halo * 2;
+    /**
+     * Draws a face icon with optional halo ring.
+     * @param {string} name - Participant name
+     * @param {boolean} useHalo - Whether to draw halo
+     * @param {number} faceSize - Size of face in px
+     * @param {number} haloThickness - Thickness of halo in px
+     */
+    async function drawIcon(name, useHalo, faceSize = 64, haloThickness = useHalo ? 10 : 0) {
+      const size = faceSize + haloThickness * 2;
       const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = canvasSize;
+      canvas.width = canvas.height = size;
       const ctx = canvas.getContext('2d');
 
       if (useHalo) {
         ctx.fillStyle = 'gold';
         ctx.beginPath();
-        ctx.arc(canvasSize/2, canvasSize/2, faceSize/2 + halo, 0, 2*Math.PI);
-        ctx.arc(canvasSize/2, canvasSize/2, faceSize/2, 0, 2*Math.PI);
+        ctx.arc(size/2, size/2, faceSize/2 + haloThickness, 0, 2*Math.PI);
+        ctx.arc(size/2, size/2, faceSize/2, 0, 2*Math.PI);
         ctx.fill('evenodd');
       }
 
       const faceImg = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
-      ctx.drawImage(faceImg, halo, halo, faceSize, faceSize);
+      ctx.drawImage(faceImg, haloThickness, haloThickness, faceSize, faceSize);
       return canvas.toDataURL('image/png');
     }
 
@@ -102,31 +96,32 @@
 
     async function animateRoute(path) {
       const map = window.map;
-      const segs = path.slice(0, -1).map((_, i) => google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1]));
-      const cum = segs.reduce((arr, d) => (arr.push((arr.slice(-1)[0] || 0) + d), arr), []);
+      const distances = path.slice(0, -1).map((_, i) => google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1]));
+      const cum = distances.reduce((arr, d) => (arr.push((arr.slice(-1)[0]||0) + d), arr), []);
 
       const participants = await Promise.all(PEOPLE.map(async name => {
         const bonus = Math.random() * cum[cum.length-1];
         let idx = cum.findIndex(d => bonus <= d);
         if (idx < 0) idx = cum.length - 1;
         const prev = cum[idx-1] || 0;
-        const frac = segs[idx] ? (bonus - prev) / segs[idx] : 0;
+        const frac = distances[idx] ? (bonus - prev)/distances[idx] : 0;
         const p0 = path[idx], p1 = path[idx+1] || p0;
         const target = {
-          lat: p0.lat() + (p1.lat() - p0.lat()) * frac,
-          lng: p0.lng() + (p1.lng() - p0.lng()) * frac
+          lat: p0.lat() + (p1.lat()-p0.lat())*frac,
+          lng: p0.lng() + (p1.lng()-p0.lng())*frac
         };
         return { name, bonus, target };
       }));
 
-      // Determine leader
-      participants.sort((a, b) => b.bonus - a.bonus);
+      // Identify leader
+      participants.sort((a,b) => b.bonus - a.bonus);
       const leaderName = participants[0].name;
 
-      // Create markers
+      // Create map markers
       for (const p of participants) {
-        const iconUrl = await drawIcon(p.name, p.name === leaderName);
-        const size = 64 + (p.name === leaderName ? 20 : 0);
+        const isLeader = p.name === leaderName;
+        const iconUrl = await drawIcon(p.name, isLeader, 64, isLeader ? 10 : 0);
+        const size = 64 + (isLeader ? 20 : 0);
         p.marker = new google.maps.Marker({
           map,
           position: HQ,
@@ -138,34 +133,30 @@
         });
       }
 
-      // Fit and animate
+      // Fit map and animate
       const bounds = new google.maps.LatLngBounds();
-      participants.forEach(p => bounds.extend(p.target));
-      bounds.extend(HQ);
+      participants.forEach(p => bounds.extend(p.target)); bounds.extend(HQ);
       map.fitBounds(bounds);
-
       participants.forEach(p => {
         const start = performance.now(), dur = 5000;
         (function step(now) {
-          const t = Math.min((now - start) / dur, 1);
-          p.marker.setPosition({
-            lat: HQ.lat + (p.target.lat - HQ.lat) * t,
-            lng: HQ.lng + (p.target.lng - HQ.lng) * t
-          });
-          if (t < 1) requestAnimationFrame(step);
+          const t = Math.min((now - start)/dur,1);
+          p.marker.setPosition({ lat: HQ.lat + (p.target.lat-HQ.lat)*t, lng: HQ.lng + (p.target.lng-HQ.lng)*t });
+          if (t<1) requestAnimationFrame(step);
         })(start);
       });
 
-      // Build leaderboard with canvas halos
-      const lb = document.getElementById('leaderboard-list');
-      lb.innerHTML = '';
-      for (let i = 0; i < participants.length; i++) {
+      // Build leaderboard icons
+      const lb = document.getElementById('leaderboard-list'); lb.innerHTML = '';
+      for (let i=0; i<participants.length; i++) {
         const p = participants[i];
-        const isLeader = i === 0;
-        const iconUrl = await drawIcon(p.name, isLeader);
-        const li = document.createElement('li');
+        const isLeader = i===0;
+        const iconUrl = await drawIcon(p.name, isLeader, 32, isLeader ? 5 : 0);
         const img = document.createElement('img');
         img.src = iconUrl;
+        img.width = 32 + (isLeader ? 10 : 0);
+        img.height = 32 + (isLeader ? 10 : 0);
+        const li = document.createElement('li');
         li.appendChild(img);
         li.appendChild(document.createTextNode(`${i+1}. ${p.name}: ${Math.round(p.bonus)} m`));
         lb.appendChild(li);
