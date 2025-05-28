@@ -50,19 +50,23 @@
       });
     }
 
+    // Draws face full-size and overlays circle matching face dimensions
     async function drawIcon(name, useCircle) {
-      const faceSize = 64;
-      const margin = 10;
-      const size = useCircle ? faceSize + margin * 2 : faceSize;
-      const inset = useCircle ? margin : 0;
-      const canvas = document.createElement('canvas'); canvas.width = canvas.height = size;
+      const size = 64;
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = size;
       const ctx = canvas.getContext('2d');
+
+      // Draw face at full canvas
+      const face = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
+      ctx.drawImage(face, 0, 0, size, size);
+
+      // Overlay golden circle exactly same size
       if (useCircle) {
         const circle = await loadImage(CIRCLE_SRC);
         ctx.drawImage(circle, 0, 0, size, size);
       }
-      const face = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
-      ctx.drawImage(face, inset, inset, faceSize, faceSize);
+
       return canvas.toDataURL('image/png');
     }
 
@@ -111,7 +115,7 @@
       participants.sort((a,b)=>b.bonus-a.bonus);
       const leader = participants[0];
       const circUrl = await drawIcon(leader.name, true);
-      leader.marker.setIcon({ url: circUrl, scaledSize: new google.maps.Size(84,84), anchor: new google.maps.Point(42,42) });
+      leader.marker.setIcon({ url: circUrl, scaledSize: new google.maps.Size(64,64), anchor: new google.maps.Point(32,32) });
 
       const lb = document.getElementById('leaderboard-list'); lb.innerHTML = '';
       participants.forEach((p,i)=>{
