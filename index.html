@@ -81,8 +81,8 @@
 
     function initMap() {
       const map = new google.maps.Map(document.getElementById('map'), {
-        // leave padding to avoid leaderboard overlap
-        padding: { top: 0, right: 300, bottom: 0, left: 0 }
+        // 10px buffer on both sides for markers
+        padding: { top: 0, right: 10, bottom: 0, left: 10 }
       });
       window.map = map;
       // HQ marker with updated logo size
