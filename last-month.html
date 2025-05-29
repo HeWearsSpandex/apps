@@ -54,11 +54,6 @@
      * @param {string} name 
      * @param {boolean} useHalo 
      */
-// name→filename overrides for known mismatches:
-const NAME_OVERRIDES = {
-  'Bradley Turnstill': 'Bradley Tunstill'
-  // add more here if you spot other typos
-};
 
 // modified drawIcon that applies overrides and falls back gracefully
 async function drawIcon(name, useHalo = true, faceSize = 64, haloThickness = useHalo ? 10 : 0) {
