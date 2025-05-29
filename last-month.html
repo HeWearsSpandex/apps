@@ -11,9 +11,14 @@
     th { background:#f4f4f4; }
     img.face { border-radius:50%; vertical-align:middle; }
     td.rank { font-size:inherit; }
+    .logo { text-align:center; margin-bottom:20px; }
+    .logo img { max-width:200px; height:auto; }
   </style>
 </head>
 <body>
+  <div class="logo">
+    <img src="img/JHB logo.png" alt="JHB Logo">
+  </div>
   <h1>Last Month’s Leaderboard</h1>
   <table id="lm-table">
     <thead>
@@ -57,7 +62,8 @@
 
     async function drawIcon(name, useHalo = true, faceSize = 64, haloThickness = useHalo ? 10 : 0) {
       const key      = NAME_OVERRIDES[name] || name;
-      const safe     = key.trim();  // don’t replace spaces
+      // preserve spaces so filenames like "Byron Claridge_cvface1.png" resolve
+      const safe     = key.trim();
       const filename = `${encodeURIComponent(safe)}_cvface1.png`;
       const size     = faceSize + 2*haloThickness;
       const canvas   = document.createElement('canvas');
@@ -107,19 +113,23 @@
         r._rank = currentRank;
       });
 
-      // 3) render table
+      // 3) build a map of how many share each rank
+      const rankCounts = rows.reduce((acc, r) => {
+        acc[r._rank] = (acc[r._rank] || 0) + 1;
+        return acc;
+      }, {});
+
+      // 4) render table
       const tbody = document.querySelector('#lm-table tbody');
       tbody.innerHTML = '';
-      let prevRank = null;
 
       for (const row of rows) {
         const isLeader    = row._rank === 1;
         const displaySize = 64 + (isLeader ? 10 : 0);
 
-        // determine how to display rank (prefix '=' if same as previous)
-        const sameTie = (row._rank === prevRank);
-        const rankText = (sameTie ? '=' : '') + row._rank + '.';
-        prevRank = row._rank;
+        // prefix '=' for any tied rank; no trailing dot
+        const isTie    = rankCounts[row._rank] > 1;
+        const rankText = (isTie ? '=' : '') + row._rank;
 
         const tr = document.createElement('tr');
 
