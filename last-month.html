@@ -9,7 +9,7 @@
     table { border-collapse: collapse; width:100%; max-width:600px; margin:auto; }
     th, td { padding:8px 12px; text-align:left; }
     th { background:#f4f4f4; }
-    img { border-radius:50%; vertical-align:middle; }
+    img.face { border-radius:50%; vertical-align:middle; }
     td.rank { font-size:inherit; }
   </style>
 </head>
@@ -34,9 +34,10 @@
       const keys = hdr.split(',').map(h => h.trim());
       return lines.map(line => {
         const cols = line.split(',');
-        const obj = {};
-        keys.forEach((k,i) => obj[k] = (cols[i]||'').trim());
-        return obj;
+        return keys.reduce((obj,k,i) => {
+          obj[k] = (cols[i]||'').trim();
+          return obj;
+        }, {});
       });
     }
 
@@ -51,15 +52,15 @@
     }
 
     const NAME_OVERRIDES = {
-      // e.g. 'Bradley Turnstill': 'Bradley_Tunstill'
+      // 'Bradley Turnstill': 'Bradley_Tunstill'
     };
 
     async function drawIcon(name, useHalo = true, faceSize = 64, haloThickness = useHalo ? 10 : 0) {
-      const fileKey = NAME_OVERRIDES[name] || name;
-      const safe    = fileKey.trim().replace(/\s+/g,'_');
-      const filename= `${encodeURIComponent(safe)}_cvface1.png`;
-      const size    = faceSize + 2*haloThickness;
-      const canvas  = document.createElement('canvas');
+      const key      = NAME_OVERRIDES[name] || name;
+      const safe     = key.trim().replace(/\s+/g,'_');
+      const filename = `${encodeURIComponent(safe)}_cvface1.png`;
+      const size     = faceSize + 2*haloThickness;
+      const canvas   = document.createElement('canvas');
       canvas.width = canvas.height = size;
       const ctx = canvas.getContext('2d');
 
@@ -89,12 +90,12 @@
     async function buildLastMonthTable() {
       const data = await fetchData();
 
-      // 1) sort by TOTAL METERS desc
+      // 1) sort by TOTAL METERS descending
       const rows = data
         .filter(r => r['TOTAL METERS'])
         .sort((a,b) => Number(b['TOTAL METERS']) - Number(a['TOTAL METERS']));
 
-      // 2) assign competition ranks
+      // 2) assign competition ranks (_rank), ties share rank
       let lastMeters = null, count = 0, currentRank = 0;
       rows.forEach(r => {
         count++;
@@ -109,28 +110,36 @@
       // 3) render table
       const tbody = document.querySelector('#lm-table tbody');
       tbody.innerHTML = '';
+      let prevRank = null;
+
       for (const row of rows) {
-        const isLeader = row._rank === 1;
+        const isLeader    = row._rank === 1;
         const displaySize = 64 + (isLeader ? 10 : 0);
+
+        // determine how to display rank (prefix '=' if same as previous)
+        const sameTie = (row._rank === prevRank);
+        const rankText = (sameTie ? '=' : '') + row._rank + '.';
+        prevRank = row._rank;
 
         const tr = document.createElement('tr');
 
-        // Rank
+        // Rank cell
         const tdRank = document.createElement('td');
         tdRank.classList.add('rank');
-        tdRank.textContent = row._rank + '.';
+        tdRank.textContent = rankText;
         tr.appendChild(tdRank);
 
-        // Face
+        // Face cell
         const tdFace = document.createElement('td');
         const iconUrl = await drawIcon(row['NAME'], isLeader);
-        const imgEl = document.createElement('img');
+        const imgEl   = document.createElement('img');
         imgEl.src     = iconUrl;
         imgEl.width   = imgEl.height = displaySize;
+        imgEl.classList.add('face');
         tdFace.appendChild(imgEl);
         tr.appendChild(tdFace);
 
-        // Name
+        // Name cell
         const tdName = document.createElement('td');
         tdName.textContent = row['NAME'];
         tr.appendChild(tdName);
