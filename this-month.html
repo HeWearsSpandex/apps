@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>This Month’s Leaderboard</title>
   <style>
     body { font-family: Arial, sans-serif; padding:20px; }
     table { border-collapse: collapse; width:100%; max-width:700px; margin:auto; }
-    th, td { padding:8px 12px; text-align:left; }
-    th { background:#f4f4f4; }
+    th, td { padding:8px 12px; }
+    th { background:#f4f4f4; text-align:left; }
     img.face { border-radius:50%; vertical-align:middle; }
     .up   { color:green;  font-weight:bold; }
     .down { color:red;    font-weight:bold; }
@@ -30,77 +30,85 @@
     const IMG_PATH = 'img/';
 
     async function fetchData() {
-      const res  = await fetch(CSV_URL, { cache:'no-cache' });
-      const text = await res.text();
-      const [header, ...lines] = text.trim().split('\n');
-      const cols = header.split(',');
-      return lines.map(l => {
-        const parts = l.split(',');
+      const res = await fetch(CSV_URL, { cache: 'no-cache' });
+      if (!res.ok) throw new Error('Could not load CSV: ' + res.status);
+      const lines = (await res.text()).trim().split('\n');
+      const headers = lines.shift().split(',').map(h => h.trim());
+      return lines.map(line => {
+        const cols = line.split(',');
         const obj = {};
-        cols.forEach((c,i)=> obj[c.trim()] = parts[i].trim());
+        headers.forEach((h,i) => { obj[h] = cols[i]?.trim(); });
         return obj;
       });
     }
 
     function loadImage(src) {
-      return new Promise((r,j)=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>r(i); i.onerror=j; i.src=src; });
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload  = () => resolve(img);
+        img.onerror = reject;
+        img.src     = src;
+      });
     }
+
     async function drawIcon(name) {
       const faceSize = 64, halo = 10, size = faceSize + halo*2;
-      const c = document.createElement('canvas'); c.width=c.height=size;
-      const ctx = c.getContext('2d');
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = size;
+      const ctx = canvas.getContext('2d');
       ctx.fillStyle = 'gold';
       ctx.beginPath();
       ctx.arc(size/2,size/2,faceSize/2+halo,0,2*Math.PI);
       ctx.arc(size/2,size/2,faceSize/2,0,2*Math.PI);
       ctx.fill('evenodd');
-      const img = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
-      ctx.drawImage(img, halo, halo, faceSize, faceSize);
-      return c.toDataURL();
+      const faceImg = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
+      ctx.drawImage(faceImg,halo,halo,faceSize,faceSize);
+      return canvas.toDataURL();
     }
 
-    async function buildTable() {
+    async function buildThisMonthTable() {
       const data = await fetchData();
-
-      // Create a map of last month ranks
-      const lastMap = {};
-      data.forEach(d=>{
-        if (d['L/M Rank']) lastMap[d['Name']] = Number(d['L/M Rank']);
+      // map last month
+      const lastRanks = {};
+      data.forEach(r => {
+        if (r['L/M Rank']) lastRanks[r['Name']] = Number(r['L/M Rank']);
       });
 
-      // Filter & sort by T/M Rank
       const rows = data
-        .filter(d=>d['T/M Rank'])
-        .sort((a,b)=>Number(a['T/M Rank']) - Number(b['T/M Rank']));
+        .filter(r => r['T/M Rank'])
+        .sort((a,b) => Number(a['T/M Rank']) - Number(b['T/M Rank']));
 
       const tbody = document.querySelector('#tm-table tbody');
+      tbody.innerHTML = '';
+
       for (const row of rows) {
-        const name = row['Name'];
+        const name   = row['Name'];
         const tmRank = Number(row['T/M Rank']);
-        const lmRank = lastMap[name] || Infinity;
-        // Determine arrow
+        const lmRank = lastRanks[name] ?? Infinity;
         let arrow = '', cls = '';
-        if (tmRank < lmRank)   { arrow = '↑'; cls = 'up'; }
+        if (tmRank < lmRank)      { arrow = '↑'; cls = 'up'; }
         else if (tmRank > lmRank) { arrow = '↓'; cls = 'down'; }
 
         const tr = document.createElement('tr');
-        // face
+        // Face
         const tdFace = document.createElement('td');
-        const icon  = await drawIcon(name);
-        const img   = document.createElement('img');
-        img.src = icon; img.width = img.height = 64 + 20;
+        const iconUrl = await drawIcon(name);
+        const img = document.createElement('img');
+        img.src = iconUrl;
+        img.width = img.height = 64 + 20;
         img.classList.add('face');
         tdFace.appendChild(img);
         tr.appendChild(tdFace);
-        // name
+        // Name
         const tdName = document.createElement('td');
         tdName.textContent = name;
         tr.appendChild(tdName);
-        // meters
+        // Meters
         const tdMet = document.createElement('td');
-        tdMet.textContent = Math.round(Number(row['Meters'] || 0)) + ' m';
+        tdMet.textContent = Math.round(Number(row['Meters']||0)) + ' m';
         tr.appendChild(tdMet);
-        // change arrow
+        // Change
         const tdCh = document.createElement('td');
         tdCh.textContent = arrow;
         tdCh.classList.add(cls);
@@ -110,7 +118,12 @@
       }
     }
 
-    buildTable();
+    // Kick it off
+    buildThisMonthTable().catch(e => {
+      console.error(e);
+      document.querySelector('#tm-table tbody').innerHTML =
+        '<tr><td colspan="4" style="color:red">Failed to load data.</td></tr>';
+    });
   </script>
 </body>
 </html>
