@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Last Month’s Leaderboard</title>
   <style>
     body { font-family: Arial, sans-serif; padding:20px; }
-    table { border-collapse: collapse; width: 100%; max-width: 600px; margin: auto; }
-    th, td { padding: 8px 12px; }
-    th { background: #f4f4f4; text-align: left; }
-    img { border-radius: 50%; vertical-align: middle; }
+    table { border-collapse: collapse; width:100%; max-width:600px; margin:auto; }
+    th, td { padding:8px 12px; text-align:left; }
+    th { background:#f4f4f4; }
+    img { border-radius:50%; vertical-align:middle; }
   </style>
 </head>
 <body>
@@ -25,87 +25,76 @@
     const CSV_URL = 'https://raw.githubusercontent.com/HeWearsSpandex/animated-map/main/data/actual_distances.csv';
     const IMG_PATH = 'img/';
 
-    // Fetch and parse CSV into array of row-objects
-async function fetchData() {
-  const res = await fetch(CSV_URL, { cache: 'no-cache' });
-  if (!res.ok) throw new Error('Could not load CSV: ' + res.status);
-
-  const text = await res.text();
-  // Split on any of CRLF, LF, or CR
-  const lines = text.trim().split(/\r\n|\n|\r/);
-
-  // Log how many lines we got (for debugging)
-  console.log('Detected CSV lines:', lines.length);
-
-  const headers = lines.shift().split(',').map(h => h.trim());
-  console.log('Parsed headers:', headers);
-
-  return lines.map(line => {
-    const cols = line.split(',');
-    const obj  = {};
-    headers.forEach((h,i) => obj[h] = cols[i]?.trim());
-    return obj;
-  });
-}
-
-    function loadImage(src) {
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload  = () => resolve(img);
-        img.onerror = reject;
-        img.src     = src;
+    async function fetchData() {
+      const res = await fetch(CSV_URL, { cache: 'no-cache' });
+      if (!res.ok) throw new Error('Could not load CSV: ' + res.status);
+      const text = await res.text();
+      const lines = text.trim().split(/\r\n|\n|\r/);
+      const headers = lines.shift().split(',').map(h => h.trim());
+      return lines.map(line => {
+        const cols = line.split(',');
+        const obj = {};
+        headers.forEach((h,i) => { obj[h] = cols[i]?.trim(); });
+        return obj;
       });
     }
 
-    // Draw face with 10px halo
-    async function drawIcon(name) {
-      const faceSize = 64, halo = 10, size = faceSize + halo * 2;
-      const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = size;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = 'gold';
-      ctx.beginPath();
-      ctx.arc(size/2, size/2, faceSize/2 + halo, 0, 2*Math.PI);
-      ctx.arc(size/2, size/2, faceSize/2, 0, 2*Math.PI);
-      ctx.fill('evenodd');
-      const faceImg = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
-      ctx.drawImage(faceImg, halo, halo, faceSize, faceSize);
-      return canvas.toDataURL();
+    function loadImage(src) {
+      return new Promise((r,j)=> {
+        const i=new Image();
+        i.crossOrigin='anonymous';
+        i.onload=()=>r(i);
+        i.onerror=j;
+        i.src=src;
+      });
     }
 
-    // Build the Last Month table
+    async function drawIcon(name) {
+      const faceSize=64, halo=10, size=faceSize+halo*2;
+      const c=document.createElement('canvas');
+      c.width=c.height=size;
+      const ctx=c.getContext('2d');
+      ctx.fillStyle='gold';
+      ctx.beginPath();
+      ctx.arc(size/2,size/2,faceSize/2+halo,0,2*Math.PI);
+      ctx.arc(size/2,size/2,faceSize/2,0,2*Math.PI);
+      ctx.fill('evenodd');
+      const img=await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
+      ctx.drawImage(img,halo,halo,faceSize,faceSize);
+      return c.toDataURL();
+    }
+
     async function buildLastMonthTable() {
       const data = await fetchData();
       const rows = data
-        .filter(r => r['L/M Rank'])
-        .sort((a,b) => Number(a['L/M Rank']) - Number(b['L/M Rank']));
+        .filter(r => r['L/M RANK'])
+        .sort((a,b) => Number(a['L/M RANK']) - Number(b['L/M RANK']));
 
       const tbody = document.querySelector('#lm-table tbody');
       tbody.innerHTML = '';
 
       for (const row of rows) {
+        const name = row['NAME'];
         const tr = document.createElement('tr');
 
-        // Face cell
+        // Face
         const tdFace = document.createElement('td');
-        const iconUrl = await drawIcon(row['Name']);
+        const iconUrl = await drawIcon(name);
         const img = document.createElement('img');
         img.src = iconUrl;
-        img.width = img.height = 64 + 20;  // face + 2×halo
+        img.width = img.height = 64 + 20;
         tdFace.appendChild(img);
         tr.appendChild(tdFace);
 
-        // Name cell
+        // Name
         const tdName = document.createElement('td');
-        tdName.textContent = row['Name'];
+        tdName.textContent = name;
         tr.appendChild(tdName);
 
         tbody.appendChild(tr);
       }
     }
 
-    // Kick it off
     buildLastMonthTable().catch(e => {
       console.error(e);
       document.querySelector('#lm-table tbody').innerHTML =
