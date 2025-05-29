@@ -186,28 +186,6 @@
         };
         return { name, bonus, target };
       }));
-      }));
-      }));
-      }));
-
-      // Identify leader
-      participants.sort((a,b) => b.bonus - a.bonus);
-      const leaderName = participants[0].name;
-
-      // Create map markers
-      for (const p of participants) {
-        const isLeader = p.name === leaderName;
-        const iconUrl = await drawIcon(p.name, isLeader, 64, isLeader ? 10 : 0);
-        const size = 64 + (isLeader ? 20 : 0);
-        p.marker = new google.maps.Marker({
-          map,
-          position: HQ,
-          icon: {
-            url: iconUrl,
-            scaledSize: new google.maps.Size(size, size),
-            anchor: new google.maps.Point(size/2, size/2)
-          }
-        });
       }
 
       // Fit map and animate
