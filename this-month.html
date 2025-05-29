@@ -6,7 +6,7 @@
   <title>This Month’s Movement</title>
   <style>
     body { font-family: Arial, sans-serif; padding:20px; }
-    
+
     /* Logo */
     .logo { text-align:center; margin-bottom:20px; }
     .logo img { max-width:200px; height:auto; }
@@ -20,7 +20,7 @@
     table {
       border-collapse: collapse;
       width:100%;
-      max-width:500px;
+      max-width:600px;
       margin:auto;
     }
     th, td {
@@ -34,6 +34,9 @@
       border-radius:50%;
       vertical-align:middle;
     }
+    td.rank {
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -45,7 +48,12 @@
 
   <table id="movement-table">
     <thead>
-      <tr><th>Face</th><th>Name</th><th>Change</th></tr>
+      <tr>
+        <th>Rank</th>
+        <th>Face</th>
+        <th>Name</th>
+        <th>Change</th>
+      </tr>
     </thead>
     <tbody></tbody>
   </table>
@@ -54,7 +62,6 @@
     const CSV_URL  = 'https://raw.githubusercontent.com/HeWearsSpandex/animated-map/main/data/actual_distances.csv';
     const IMG_PATH = 'img/';
 
-    // load image or placeholder canvas
     async function loadImageElement(src, size) {
       return new Promise(res => {
         const img = new Image();
@@ -72,7 +79,6 @@
       });
     }
 
-    // draw face + optional halo
     async function drawIcon(name, isTop) {
       const baseSize = 64;
       const halo     = isTop ? 10 : 0;
@@ -97,7 +103,6 @@
       return canvas.toDataURL('image/png');
     }
 
-    // fetch & parse CSV
     async function fetchData() {
       const r = await fetch(CSV_URL, { cache:'no-cache' });
       if (!r.ok) throw new Error('CSV load error: ' + r.status);
@@ -113,18 +118,20 @@
       });
     }
 
-    // build the movement table
     async function buildTable() {
       const data = await fetchData();
 
-      const lastRanks = {};
-      data.forEach(r => {
-        if (r['L/M RANK']) lastRanks[r['NAME']] = +r['L/M RANK'];
-      });
-
+      // Filter & sort by This Month's rank
       const rows = data
         .filter(r => r['T/M RANK'])
         .sort((a,b) => +a['T/M RANK'] - +b['T/M RANK']);
+
+      // Build frequency map for ties
+      const rankCounts = rows.reduce((acc, r) => {
+        const rk = +r['T/M RANK'];
+        acc[rk] = (acc[rk] || 0) + 1;
+        return acc;
+      }, {});
 
       const tbody = document.querySelector('#movement-table tbody');
       tbody.innerHTML = '';
@@ -135,33 +142,50 @@
         const tmRank = +r['T/M RANK'];
         const lmRank = r['L/M RANK'] ? +r['L/M RANK'] : Infinity;
 
-        let arrow = '';
-        if (tmRank < lmRank)      arrow = 'green_arrow.png';
-        else if (tmRank > lmRank) arrow = 'red_arrow.png';
+        // Determine if this entry is tied
+        const isTie = rankCounts[tmRank] > 1;
+        const rankText = (isTie ? '=' : '') + tmRank;
 
-        const iconUrl = await drawIcon(name, i === 0);
-        const faceSize = 64 + (i===0 ? 10 : 0);
+        // Arrow logic (with spaces)
+        let arrowFile = '';
+        if (tmRank < lmRank)      arrowFile = 'Green Arrow.png';
+        else if (tmRank > lmRank) arrowFile = 'Red Arrow.png';
 
+        // Draw face icon
+        const isTop = i === 0;
+        const iconUrl = await drawIcon(name, isTop);
+        const faceSize = 64 + (isTop ? 10 : 0);
+
+        // Build row
         const tr = document.createElement('tr');
 
+        // Rank cell
+        const tdRank = document.createElement('td');
+        tdRank.classList.add('rank');
+        tdRank.textContent = rankText;
+        tr.appendChild(tdRank);
+
+        // Face cell
         const tdFace = document.createElement('td');
         const imgFace = document.createElement('img');
-        imgFace.src    = iconUrl;
-        imgFace.width  = imgFace.height = faceSize;
+        imgFace.src = iconUrl;
+        imgFace.width = imgFace.height = faceSize;
         imgFace.classList.add('face');
         tdFace.appendChild(imgFace);
         tr.appendChild(tdFace);
 
+        // Name cell
         const tdName = document.createElement('td');
         tdName.textContent = name;
         tr.appendChild(tdName);
 
+        // Change cell
         const tdCh = document.createElement('td');
-        if (arrow) {
+        if (arrowFile) {
           const arr = new Image();
           arr.crossOrigin = 'anonymous';
-          arr.src    = IMG_PATH + encodeURIComponent(arrow);
-          arr.width  = arr.height = 32;
+          arr.src = IMG_PATH + encodeURIComponent(arrowFile);
+          arr.width = arr.height = 32;
           tdCh.appendChild(arr);
         }
         tr.appendChild(tdCh);
@@ -173,7 +197,7 @@
     buildTable().catch(e => {
       console.error(e);
       document.querySelector('#movement-table tbody').innerHTML =
-        '<tr><td colspan="3" style="color:red">Failed to load data.</td></tr>';
+        '<tr><td colspan="4" style="color:red">Failed to load data.</td></tr>';
     });
   </script>
 </body>
