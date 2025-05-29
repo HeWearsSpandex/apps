@@ -3,21 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>This Month’s Leaderboard</title>
+  <title>This Month’s Movement</title>
   <style>
     body { font-family: Arial, sans-serif; padding:20px; }
-    table { border-collapse: collapse; width:100%; max-width:700px; margin:auto; }
-    th, td { padding:8px 12px; text-align:left; }
+    table { border-collapse: collapse; width:100%; max-width:500px; margin:auto; }
+    th, td { padding:8px; text-align:center; }
     th { background:#f4f4f4; }
     img.face { border-radius:50%; vertical-align:middle; }
-    td.change img { vertical-align:middle; }
   </style>
 </head>
 <body>
-  <h1>This Month’s Leaderboard</h1>
-  <table id="tm-table">
+  <h1>This Month’s Movement</h1>
+  <table id="movement-table">
     <thead>
-      <tr><th>Face</th><th>Name</th><th>Meters</th><th>Change</th></tr>
+      <tr><th>Face</th><th>Name</th><th>Change</th></tr>
     </thead>
     <tbody></tbody>
   </table>
@@ -26,127 +25,116 @@
     const CSV_URL  = 'https://raw.githubusercontent.com/HeWearsSpandex/animated-map/main/data/actual_distances.csv';
     const IMG_PATH = 'img/';
 
-    async function fetchData() {
-      const res = await fetch(CSV_URL, { cache: 'no-cache' });
-      if (!res.ok) throw new Error('Could not load CSV: ' + res.status);
-      const text = await res.text();
-      const [headerLine, ...lines] = text.trim().split(/\r?\n/);
-      const headers = headerLine.split(',').map(h => h.trim());
-      return lines.map(line => {
-        const cols = line.split(',');
-        return headers.reduce((obj, h, i) => {
-          obj[h] = (cols[i]||'').trim();
-          return obj;
-        }, {});
-      });
-    }
-
-    const NAME_OVERRIDES = { 'Bradley Turnstill': 'Bradley_Tunstill' };
-
-    function loadImageElement(src, faceSize) {
-      return new Promise(resolve => {
+    // load image or placeholder
+    async function loadImageElement(src, size) {
+      return new Promise(res => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
-        img.onload = () => resolve(img);
+        img.onload  = () => res(img);
         img.onerror = () => {
-          console.warn('Could not load face:', src);
           const c = document.createElement('canvas');
-          c.width = c.height = faceSize;
+          c.width = c.height = size;
           c.getContext('2d').fillStyle = '#ccc';
-          c.getContext('2d').fillRect(0,0,faceSize,faceSize);
-          resolve(c);
+          c.getContext('2d').fillRect(0,0,size,size);
+          res(c);
         };
         img.src = src;
       });
     }
 
-    async function drawIcon(name, faceSize = 64, halo = 10) {
-      const key      = NAME_OVERRIDES[name] || name;
-      const safeName = key.trim().replace(/\s+/g, '_');
-      const filename = `${encodeURIComponent(safeName)}_cvface1.png`;
-      const src      = `${IMG_PATH}${filename}`;
-
-      const totalSize = faceSize + 2 * halo;
-      const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = totalSize;
+    // draw face + optional golden halo
+    async function drawIcon(name, isTop) {
+      const baseSize = 64;
+      const halo     = isTop ? 10 : 0;
+      const total    = baseSize + 2*halo;
+      const canvas   = document.createElement('canvas');
+      canvas.width = canvas.height = total;
       const ctx = canvas.getContext('2d');
 
-      // golden ring
-      ctx.fillStyle = 'gold';
-      ctx.beginPath();
-      ctx.arc(totalSize/2, totalSize/2, faceSize/2 + halo, 0, 2*Math.PI);
-      ctx.arc(totalSize/2, totalSize/2, faceSize/2, 0, 2*Math.PI);
-      ctx.fill('evenodd');
+      if (isTop) {
+        ctx.fillStyle = 'gold';
+        ctx.beginPath();
+        ctx.arc(total/2, total/2, baseSize/2 + halo, 0, 2*Math.PI);
+        ctx.arc(total/2, total/2, baseSize/2,       0, 2*Math.PI);
+        ctx.fill('evenodd');
+      }
 
-      // face
-      const faceImg = await loadImageElement(src, faceSize);
-      ctx.drawImage(faceImg, halo, halo, faceSize, faceSize);
+      const safe    = name.trim().replace(/\s+/g,'_');
+      const file    = `${encodeURIComponent(safe)}_cvface1.png`;
+      const faceImg = await loadImageElement(IMG_PATH + file, baseSize);
+      ctx.drawImage(faceImg, halo, halo, baseSize, baseSize);
 
       return canvas.toDataURL('image/png');
     }
 
-    async function buildThisMonthTable() {
+    // fetch & parse CSV
+    async function fetchData() {
+      const r = await fetch(CSV_URL, {cache:'no-cache'});
+      if (!r.ok) throw new Error('CSV load error: ' + r.status);
+      const txt = await r.text();
+      const [hdr, ...lines] = txt.trim().split(/\r?\n/);
+      const keys = hdr.split(',').map(h=>h.trim());
+      return lines.map(line => {
+        const cols = line.split(',');
+        return keys.reduce((o,k,i)=> (o[k]= (cols[i]||'').trim(), o), {});
+      });
+    }
+
+    // build the table
+    async function buildTable() {
       const data = await fetchData();
       const lastRanks = {};
       data.forEach(r => {
-        if (r['L/M RANK']) lastRanks[r['NAME']] = Number(r['L/M RANK']);
+        if (r['L/M RANK']) lastRanks[r['NAME']] = +r['L/M RANK'];
       });
 
       const rows = data
         .filter(r => r['T/M RANK'])
-        .sort((a,b) => Number(a['T/M RANK']) - Number(b['T/M RANK']));
+        .sort((a,b)=> +a['T/M RANK'] - +b['T/M RANK']);
 
-      const tbody = document.querySelector('#tm-table tbody');
+      const tbody = document.querySelector('#movement-table tbody');
       tbody.innerHTML = '';
 
-      for (let i = 0; i < rows.length; i++) {
-        const row    = rows[i];
-        const name   = row['NAME'];
-        const meters = Math.round(Number(row['TOTAL METERS']) || 0) + ' m';
-        const tmRank = Number(row['T/M RANK']);
-        const lmRank = lastRanks[name] ?? Infinity;
+      for (let i=0; i<rows.length; i++) {
+        const r      = rows[i];
+        const name   = r['NAME'];
+        const tmRank = +r['T/M RANK'];
+        const lmRank = r['L/M RANK'] ? +r['L/M RANK'] : Infinity;
 
-        // choose arrow image based on up/down
-        let changeImg = '';
-        if (tmRank < lmRank)      changeImg = 'green_arrow.png';
-        else if (tmRank > lmRank) changeImg = 'red_arrow.png';
+        let arrowFile = '';
+        if (tmRank < lmRank)      arrowFile = 'green_arrow.png';
+        else if (tmRank > lmRank) arrowFile = 'red_arrow.png';
 
-        // compute sizes
+        // sizes
         const baseSize    = 64;
-        const halo        = (i === 0 ? 10 : 0);
-        const displaySize = baseSize + 2 * halo;
+        const halo        = i===0 ? 10 : 0;
+        const displaySize = baseSize + 2*halo;
 
+        // create row
         const tr = document.createElement('tr');
 
         // Face cell
         const tdFace = document.createElement('td');
-        const iconUrl = await drawIcon(name, baseSize, halo);
-        const faceEl  = document.createElement('img');
-        faceEl.src    = iconUrl;
-        faceEl.width  = faceEl.height = displaySize;
-        faceEl.classList.add('face');
-        tdFace.appendChild(faceEl);
+        const iconUrl = await drawIcon(name, i===0);
+        const imgEl = document.createElement('img');
+        imgEl.src    = iconUrl;
+        imgEl.width  = imgEl.height = displaySize;
+        imgEl.classList.add('face');
+        tdFace.appendChild(imgEl);
         tr.appendChild(tdFace);
 
-        // Name
+        // Name cell
         const tdName = document.createElement('td');
         tdName.textContent = name;
         tr.appendChild(tdName);
 
-        // Meters
-        const tdMet = document.createElement('td');
-        tdMet.textContent = meters;
-        tr.appendChild(tdMet);
-
-        // Change
+        // Change cell
         const tdCh = document.createElement('td');
-        tdCh.classList.add('change');
-        if (changeImg) {
-          const arr = document.createElement('img');
+        if (arrowFile) {
+          const arr = new Image();
           arr.crossOrigin = 'anonymous';
-          arr.src         = `${IMG_PATH}${changeImg}`;
-          arr.width       = arr.height = displaySize;
-          arr.alt         = tmRank < lmRank ? 'Up' : 'Down';
+          arr.src    = IMG_PATH + arrowFile;
+          arr.width  = arr.height = displaySize;
           tdCh.appendChild(arr);
         }
         tr.appendChild(tdCh);
@@ -155,10 +143,10 @@
       }
     }
 
-    buildThisMonthTable().catch(err => {
-      console.error(err);
-      document.querySelector('#tm-table tbody').innerHTML =
-        '<tr><td colspan="4" style="color:red">Failed to load data.</td></tr>';
+    buildTable().catch(e=>{
+      console.error(e);
+      document.querySelector('#movement-table tbody').innerHTML =
+        '<tr><td colspan="3" style="color:red">Failed to load data.</td></tr>';
     });
   </script>
 </body>
