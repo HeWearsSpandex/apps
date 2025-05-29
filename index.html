@@ -117,7 +117,7 @@
         ctx.fill('evenodd');
       }
 
-      const faceImg = await loadImage(${IMG_PATH}${encodeURIComponent(name)}_cvface1.png);
+      const faceImg = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
       ctx.drawImage(faceImg, haloThickness, haloThickness, faceSize, faceSize);
       return canvas.toDataURL('image/png');
     }
@@ -133,7 +133,7 @@
         map,
         position: HQ,
         icon: {
-          url: ${IMG_PATH}JHB Logo.png,
+          url: `${IMG_PATH}JHB Logo.png`,
           scaledSize: new google.maps.Size(114.88, 64),
           anchor: new google.maps.Point(114.88/2, 64/2)
         }
@@ -219,7 +219,7 @@
         // face on left
         li.appendChild(img);
         // name and meters
-        const text = document.createTextNode( ${p.name} - ${Math.round(p.bonus)} m);
+        const text = document.createTextNode(` ${p.name} - ${Math.round(p.bonus)} m`);
         li.appendChild(text);
         lb.appendChild(li);
       }
