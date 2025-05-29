@@ -26,67 +26,91 @@
     const IMG_PATH = 'img/';
 
     async function fetchData() {
-      const res = await fetch(CSV_URL, { cache: 'no-cache' });
-      if (!res.ok) throw new Error('Could not load CSV: ' + res.status);
+      const res = await fetch(CSV_URL, { cache:'no-cache' });
+      if (!res.ok) throw new Error('Could not load CSV: '+res.status);
       const text = await res.text();
       const lines = text.trim().split(/\r\n|\n|\r/);
       const headers = lines.shift().split(',').map(h => h.trim());
-      return lines.map(line => {
+      return lines.map(line=>{
         const cols = line.split(',');
         const obj = {};
-        headers.forEach((h,i) => { obj[h] = cols[i]?.trim(); });
+        headers.forEach((h,i)=> obj[h]=cols[i]?.trim());
         return obj;
       });
     }
 
     function loadImage(src) {
-      return new Promise((r,j)=> {
+      return new Promise((r,j)=>{
         const i=new Image();
         i.crossOrigin='anonymous';
-        i.onload=()=>r(i);
+        i.onload=() => r(i);
         i.onerror=j;
         i.src=src;
       });
     }
 
-    async function drawIcon(name) {
-      const faceSize=64, halo=10, size=faceSize+halo*2;
-      const c=document.createElement('canvas');
-      c.width=c.height=size;
-      const ctx=c.getContext('2d');
-      ctx.fillStyle='gold';
-      ctx.beginPath();
-      ctx.arc(size/2,size/2,faceSize/2+halo,0,2*Math.PI);
-      ctx.arc(size/2,size/2,faceSize/2,0,2*Math.PI);
-      ctx.fill('evenodd');
-      const img=await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
-      ctx.drawImage(img,halo,halo,faceSize,faceSize);
-      return c.toDataURL();
+    /**
+     * Draw a 64×64 face with optional 10px halo
+     * @param {string} name 
+     * @param {boolean} useHalo 
+     */
+    async function drawIcon(name, useHalo) {
+      const faceSize = 64;
+      const halo     = useHalo ? 10 : 0;
+      const size     = faceSize + halo*2;
+      const canvas   = document.createElement('canvas');
+      canvas.width = canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      if (useHalo) {
+        ctx.fillStyle = 'gold';
+        ctx.beginPath();
+        ctx.arc(size/2,size/2,faceSize/2+halo,0,2*Math.PI);
+        ctx.arc(size/2,size/2,faceSize/2,0,2*Math.PI);
+        ctx.fill('evenodd');
+      }
+
+      let faceImg;
+      try {
+        faceImg = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
+      } catch {
+        // fallback gray square
+        faceImg = document.createElement('canvas');
+        faceImg.width = faceImg.height = faceSize;
+        const ph = faceImg.getContext('2d');
+        ph.fillStyle = '#ccc';
+        ph.fillRect(0,0,faceSize,faceSize);
+      }
+      ctx.drawImage(faceImg, halo, halo, faceSize, faceSize);
+      return canvas.toDataURL();
     }
 
     async function buildLastMonthTable() {
       const data = await fetchData();
       const rows = data
         .filter(r => r['L/M RANK'])
-        .sort((a,b) => Number(a['L/M RANK']) - Number(b['L/M RANK']));
+        .sort((a,b)=>Number(a['L/M RANK'])-Number(b['L/M RANK']));
 
       const tbody = document.querySelector('#lm-table tbody');
       tbody.innerHTML = '';
 
-      for (const row of rows) {
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const isLeader = (i === 0);
         const name = row['NAME'];
+
         const tr = document.createElement('tr');
 
-        // Face
+        // Face cell
         const tdFace = document.createElement('td');
-        const iconUrl = await drawIcon(name);
+        const iconUrl = await drawIcon(name, isLeader);
         const img = document.createElement('img');
         img.src = iconUrl;
-        img.width = img.height = 64 + 20;
+        img.width = img.height = 64 + (isLeader ? 20 : 0);
         tdFace.appendChild(img);
         tr.appendChild(tdFace);
 
-        // Name
+        // Name cell
         const tdName = document.createElement('td');
         tdName.textContent = name;
         tr.appendChild(tdName);
