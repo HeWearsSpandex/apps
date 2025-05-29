@@ -79,15 +79,15 @@
       });
     }
 
-    async function drawIcon(name, isTop) {
+    async function drawIcon(name, isLeader) {
       const baseSize = 64;
-      const halo     = isTop ? 10 : 0;
+      const halo     = isLeader ? 10 : 0;
       const total    = baseSize + 2*halo;
       const canvas   = document.createElement('canvas');
       canvas.width = canvas.height = total;
       const ctx = canvas.getContext('2d');
 
-      if (isTop) {
+      if (isLeader) {
         ctx.fillStyle = 'gold';
         ctx.beginPath();
         ctx.arc(total/2, total/2, baseSize/2 + halo, 0, 2*Math.PI);
@@ -121,12 +121,12 @@
     async function buildTable() {
       const data = await fetchData();
 
-      // Filter & sort by This Month's rank
+      // filter & sort by this month's rank
       const rows = data
         .filter(r => r['T/M RANK'])
         .sort((a,b) => +a['T/M RANK'] - +b['T/M RANK']);
 
-      // Build frequency map for ties
+      // count ties
       const rankCounts = rows.reduce((acc, r) => {
         const rk = +r['T/M RANK'];
         acc[rk] = (acc[rk] || 0) + 1;
@@ -136,56 +136,57 @@
       const tbody = document.querySelector('#movement-table tbody');
       tbody.innerHTML = '';
 
-      for (let i = 0; i < rows.length; i++) {
-        const r      = rows[i];
+      for (const r of rows) {
         const name   = r['NAME'];
         const tmRank = +r['T/M RANK'];
         const lmRank = r['L/M RANK'] ? +r['L/M RANK'] : Infinity;
 
-        // Determine if this entry is tied
-        const isTie = rankCounts[tmRank] > 1;
-        const rankText = (isTie ? '=' : '') + tmRank;
+        // rank text with '=' for all ties
+        const isTie     = rankCounts[tmRank] > 1;
+        const rankText  = (isTie ? '=' : '') + tmRank;
 
-        // Arrow logic (with spaces)
+        // arrow logic (with correct filenames)
         let arrowFile = '';
         if (tmRank < lmRank)      arrowFile = 'Green Arrow.png';
         else if (tmRank > lmRank) arrowFile = 'Red Arrow.png';
 
-        // Draw face icon
-        const isTop = i === 0;
-        const iconUrl = await drawIcon(name, isTop);
-        const faceSize = 64 + (isTop ? 10 : 0);
+        // halo for every rank-1 person
+        const isLeader = tmRank === 1;
 
-        // Build row
+        // draw face with halo if appropriate
+        const iconUrl  = await drawIcon(name, isLeader);
+        const faceSize = 64 + (isLeader ? 10 : 0);
+
+        // build row
         const tr = document.createElement('tr');
 
-        // Rank cell
+        // Rank
         const tdRank = document.createElement('td');
         tdRank.classList.add('rank');
         tdRank.textContent = rankText;
         tr.appendChild(tdRank);
 
-        // Face cell
+        // Face
         const tdFace = document.createElement('td');
         const imgFace = document.createElement('img');
-        imgFace.src = iconUrl;
-        imgFace.width = imgFace.height = faceSize;
+        imgFace.src    = iconUrl;
+        imgFace.width  = imgFace.height = faceSize;
         imgFace.classList.add('face');
         tdFace.appendChild(imgFace);
         tr.appendChild(tdFace);
 
-        // Name cell
+        // Name
         const tdName = document.createElement('td');
         tdName.textContent = name;
         tr.appendChild(tdName);
 
-        // Change cell
+        // Change
         const tdCh = document.createElement('td');
         if (arrowFile) {
           const arr = new Image();
           arr.crossOrigin = 'anonymous';
-          arr.src = IMG_PATH + encodeURIComponent(arrowFile);
-          arr.width = arr.height = 32;
+          arr.src    = IMG_PATH + encodeURIComponent(arrowFile);
+          arr.width  = arr.height = 32;
           tdCh.appendChild(arr);
         }
         tr.appendChild(tdCh);
