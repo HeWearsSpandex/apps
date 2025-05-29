@@ -57,7 +57,7 @@
 
     async function drawIcon(name, useHalo = true, faceSize = 64, haloThickness = useHalo ? 10 : 0) {
       const key      = NAME_OVERRIDES[name] || name;
-      const safe     = key.trim().replace(/\s+/g,'_');
+      const safe     = key.trim();  // don’t replace spaces
       const filename = `${encodeURIComponent(safe)}_cvface1.png`;
       const size     = faceSize + 2*haloThickness;
       const canvas   = document.createElement('canvas');
