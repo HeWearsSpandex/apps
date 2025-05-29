@@ -54,36 +54,47 @@
      * @param {string} name 
      * @param {boolean} useHalo 
      */
-    async function drawIcon(name, useHalo) {
-      const faceSize = 64;
-      const halo     = useHalo ? 10 : 0;
-      const size     = faceSize + halo*2;
-      const canvas   = document.createElement('canvas');
-      canvas.width = canvas.height = size;
-      const ctx = canvas.getContext('2d');
+// name→filename overrides for known mismatches:
+const NAME_OVERRIDES = {
+  'Bradley Turnstill': 'Bradley Tunstill'
+  // add more here if you spot other typos
+};
 
-      if (useHalo) {
-        ctx.fillStyle = 'gold';
-        ctx.beginPath();
-        ctx.arc(size/2,size/2,faceSize/2+halo,0,2*Math.PI);
-        ctx.arc(size/2,size/2,faceSize/2,0,2*Math.PI);
-        ctx.fill('evenodd');
-      }
+// modified drawIcon that applies overrides and falls back gracefully
+async function drawIcon(name, useHalo = true, faceSize = 64, haloThickness = useHalo ? 10 : 0) {
+  // apply any overrides
+  const fileKey = NAME_OVERRIDES[name] || name;
+  const filename = `${encodeURIComponent(fileKey)}_cvface1.png`;
+  const size = faceSize + haloThickness*2;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
 
-      let faceImg;
-      try {
-        faceImg = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
-      } catch {
-        // fallback gray square
-        faceImg = document.createElement('canvas');
-        faceImg.width = faceImg.height = faceSize;
-        const ph = faceImg.getContext('2d');
-        ph.fillStyle = '#ccc';
-        ph.fillRect(0,0,faceSize,faceSize);
-      }
-      ctx.drawImage(faceImg, halo, halo, faceSize, faceSize);
-      return canvas.toDataURL();
-    }
+  // draw the halo
+  ctx.fillStyle = 'gold';
+  ctx.beginPath();
+  ctx.arc(size/2, size/2, faceSize/2 + haloThickness, 0, 2*Math.PI);
+  ctx.arc(size/2, size/2, faceSize/2, 0, 2*Math.PI);
+  ctx.fill('evenodd');
+
+  // attempt to load the face image
+  let faceImg;
+  try {
+    faceImg = await loadImage(`${IMG_PATH}${filename}`);
+  } catch(e) {
+    console.warn(`Could not load face for “${name}” (tried ${filename}), using blank placeholder.`);
+    // create a gray placeholder if image fails
+    faceImg = document.createElement('canvas');
+    faceImg.width = faceImg.height = faceSize;
+    const phCtx = faceImg.getContext('2d');
+    phCtx.fillStyle = '#ccc';
+    phCtx.fillRect(0, 0, faceSize, faceSize);
+  }
+
+  // draw the face onto the haloed canvas
+  ctx.drawImage(faceImg, haloThickness, haloThickness, faceSize, faceSize);
+  return canvas.toDataURL('image/png');
+}
 
     async function buildLastMonthTable() {
       const data = await fetchData();
