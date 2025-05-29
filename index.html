@@ -60,7 +60,7 @@
     let ACTUAL_METERS = {};
 
     async function fetchActualMeters() {
-      const res = await fetch(CSV_URL);
+      const res = await fetch(CSV_URL,{ cache: 'no-cache'});
       if (!res.ok) throw new Error('Could not load CSV: ' + res.status);
       const lines = (await res.text()).trim().split('\n');
       lines.shift(); // drop header
