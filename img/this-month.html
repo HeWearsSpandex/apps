@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>This Month’s Leaderboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding:20px; }
+    table { border-collapse: collapse; width:100%; max-width:700px; margin:auto; }
+    th, td { padding:8px 12px; text-align:left; }
+    th { background:#f4f4f4; }
+    img.face { border-radius:50%; vertical-align:middle; }
+    .up   { color:green;  font-weight:bold; }
+    .down { color:red;    font-weight:bold; }
+  </style>
+</head>
+<body>
+  <h1>This Month’s Leaderboard</h1>
+  <table id="tm-table">
+    <thead>
+      <tr>
+        <th>Face</th><th>Name</th><th>Meters</th><th>Change</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const CSV_URL = 'https://raw.githubusercontent.com/HeWearsSpandex/animated-map/main/data/actual_distances.csv';
+    const IMG_PATH = 'img/';
+
+    async function fetchData() {
+      const res  = await fetch(CSV_URL, { cache:'no-cache' });
+      const text = await res.text();
+      const [header, ...lines] = text.trim().split('\n');
+      const cols = header.split(',');
+      return lines.map(l => {
+        const parts = l.split(',');
+        const obj = {};
+        cols.forEach((c,i)=> obj[c.trim()] = parts[i].trim());
+        return obj;
+      });
+    }
+
+    function loadImage(src) {
+      return new Promise((r,j)=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>r(i); i.onerror=j; i.src=src; });
+    }
+    async function drawIcon(name) {
+      const faceSize = 64, halo = 10, size = faceSize + halo*2;
+      const c = document.createElement('canvas'); c.width=c.height=size;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = 'gold';
+      ctx.beginPath();
+      ctx.arc(size/2,size/2,faceSize/2+halo,0,2*Math.PI);
+      ctx.arc(size/2,size/2,faceSize/2,0,2*Math.PI);
+      ctx.fill('evenodd');
+      const img = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
+      ctx.drawImage(img, halo, halo, faceSize, faceSize);
+      return c.toDataURL();
+    }
+
+    async function buildTable() {
+      const data = await fetchData();
+
+      // Create a map of last month ranks
+      const lastMap = {};
+      data.forEach(d=>{
+        if (d['L/M Rank']) lastMap[d['Name']] = Number(d['L/M Rank']);
+      });
+
+      // Filter & sort by T/M Rank
+      const rows = data
+        .filter(d=>d['T/M Rank'])
+        .sort((a,b)=>Number(a['T/M Rank']) - Number(b['T/M Rank']));
+
+      const tbody = document.querySelector('#tm-table tbody');
+      for (const row of rows) {
+        const name = row['Name'];
+        const tmRank = Number(row['T/M Rank']);
+        const lmRank = lastMap[name] || Infinity;
+        // Determine arrow
+        let arrow = '', cls = '';
+        if (tmRank < lmRank)   { arrow = '↑'; cls = 'up'; }
+        else if (tmRank > lmRank) { arrow = '↓'; cls = 'down'; }
+
+        const tr = document.createElement('tr');
+        // face
+        const tdFace = document.createElement('td');
+        const icon  = await drawIcon(name);
+        const img   = document.createElement('img');
+        img.src = icon; img.width = img.height = 64 + 20;
+        img.classList.add('face');
+        tdFace.appendChild(img);
+        tr.appendChild(tdFace);
+        // name
+        const tdName = document.createElement('td');
+        tdName.textContent = name;
+        tr.appendChild(tdName);
+        // meters
+        const tdMet = document.createElement('td');
+        tdMet.textContent = Math.round(Number(row['Meters'] || 0)) + ' m';
+        tr.appendChild(tdMet);
+        // change arrow
+        const tdCh = document.createElement('td');
+        tdCh.textContent = arrow;
+        tdCh.classList.add(cls);
+        tr.appendChild(tdCh);
+
+        tbody.appendChild(tr);
+      }
+    }
+
+    buildTable();
+  </script>
+</body>
+</html>
