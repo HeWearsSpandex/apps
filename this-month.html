@@ -6,14 +6,43 @@
   <title>This Month’s Movement</title>
   <style>
     body { font-family: Arial, sans-serif; padding:20px; }
-    table { border-collapse: collapse; width:100%; max-width:500px; margin:auto; }
-    th, td { padding:8px; text-align:center; }
-    th { background:#f4f4f4; }
-    img.face { border-radius:50%; vertical-align:middle; }
+    
+    /* Logo */
+    .logo { text-align:center; margin-bottom:20px; }
+    .logo img { max-width:200px; height:auto; }
+
+    /* Centered header */
+    h1 {
+      text-align: center;
+      margin-bottom: 1em;
+    }
+
+    table {
+      border-collapse: collapse;
+      width:100%;
+      max-width:500px;
+      margin:auto;
+    }
+    th, td {
+      padding:8px;
+      text-align:center;
+    }
+    th {
+      background:#f4f4f4;
+    }
+    img.face {
+      border-radius:50%;
+      vertical-align:middle;
+    }
   </style>
 </head>
 <body>
+  <div class="logo">
+    <img src="img/JHB Logo.png" alt="JHB Logo">
+  </div>
+
   <h1>This Month’s Movement</h1>
+
   <table id="movement-table">
     <thead>
       <tr><th>Face</th><th>Name</th><th>Change</th></tr>
@@ -25,7 +54,7 @@
     const CSV_URL  = 'https://raw.githubusercontent.com/HeWearsSpandex/animated-map/main/data/actual_distances.csv';
     const IMG_PATH = 'img/';
 
-    // load image or placeholder
+    // load image or placeholder canvas
     async function loadImageElement(src, size) {
       return new Promise(res => {
         const img = new Image();
@@ -34,15 +63,16 @@
         img.onerror = () => {
           const c = document.createElement('canvas');
           c.width = c.height = size;
-          c.getContext('2d').fillStyle = '#ccc';
-          c.getContext('2d').fillRect(0,0,size,size);
+          const ctx = c.getContext('2d');
+          ctx.fillStyle = '#ccc';
+          ctx.fillRect(0,0,size,size);
           res(c);
         };
         img.src = src;
       });
     }
 
-    // draw face + optional golden halo
+    // draw face + optional halo
     async function drawIcon(name, isTop) {
       const baseSize = 64;
       const halo     = isTop ? 10 : 0;
@@ -59,30 +89,34 @@
         ctx.fill('evenodd');
       }
 
-      const safe    = name.trim().replace(/\s+/g,'_');
-      const file    = `${encodeURIComponent(safe)}_cvface1.png`;
-      const faceImg = await loadImageElement(IMG_PATH + file, baseSize);
-      ctx.drawImage(faceImg, halo, halo, baseSize, baseSize);
+      const safeName = name.trim();
+      const file     = `${encodeURIComponent(safeName)}_cvface1.png`;
+      const faceImg  = await loadImageElement(IMG_PATH + file, baseSize);
 
+      ctx.drawImage(faceImg, halo, halo, baseSize, baseSize);
       return canvas.toDataURL('image/png');
     }
 
     // fetch & parse CSV
     async function fetchData() {
-      const r = await fetch(CSV_URL, {cache:'no-cache'});
+      const r = await fetch(CSV_URL, { cache:'no-cache' });
       if (!r.ok) throw new Error('CSV load error: ' + r.status);
       const txt = await r.text();
       const [hdr, ...lines] = txt.trim().split(/\r?\n/);
       const keys = hdr.split(',').map(h=>h.trim());
       return lines.map(line => {
         const cols = line.split(',');
-        return keys.reduce((o,k,i)=> (o[k]= (cols[i]||'').trim(), o), {});
+        return keys.reduce((o,k,i) => {
+          o[k] = (cols[i]||'').trim();
+          return o;
+        }, {});
       });
     }
 
-    // build the table
+    // build the movement table
     async function buildTable() {
       const data = await fetchData();
+
       const lastRanks = {};
       data.forEach(r => {
         if (r['L/M RANK']) lastRanks[r['NAME']] = +r['L/M RANK'];
@@ -90,51 +124,44 @@
 
       const rows = data
         .filter(r => r['T/M RANK'])
-        .sort((a,b)=> +a['T/M RANK'] - +b['T/M RANK']);
+        .sort((a,b) => +a['T/M RANK'] - +b['T/M RANK']);
 
       const tbody = document.querySelector('#movement-table tbody');
       tbody.innerHTML = '';
 
-      for (let i=0; i<rows.length; i++) {
+      for (let i = 0; i < rows.length; i++) {
         const r      = rows[i];
         const name   = r['NAME'];
         const tmRank = +r['T/M RANK'];
         const lmRank = r['L/M RANK'] ? +r['L/M RANK'] : Infinity;
 
-        let arrowFile = '';
-        if (tmRank < lmRank)      arrowFile = 'green_arrow.png';
-        else if (tmRank > lmRank) arrowFile = 'red_arrow.png';
+        let arrow = '';
+        if (tmRank < lmRank)      arrow = 'green_arrow.png';
+        else if (tmRank > lmRank) arrow = 'red_arrow.png';
 
-        // sizes
-        const baseSize    = 64;
-        const halo        = i===0 ? 10 : 0;
-        const displaySize = baseSize + 2*halo;
+        const iconUrl = await drawIcon(name, i === 0);
+        const faceSize = 64 + (i===0 ? 10 : 0);
 
-        // create row
         const tr = document.createElement('tr');
 
-        // Face cell
         const tdFace = document.createElement('td');
-        const iconUrl = await drawIcon(name, i===0);
-        const imgEl = document.createElement('img');
-        imgEl.src    = iconUrl;
-        imgEl.width  = imgEl.height = displaySize;
-        imgEl.classList.add('face');
-        tdFace.appendChild(imgEl);
+        const imgFace = document.createElement('img');
+        imgFace.src    = iconUrl;
+        imgFace.width  = imgFace.height = faceSize;
+        imgFace.classList.add('face');
+        tdFace.appendChild(imgFace);
         tr.appendChild(tdFace);
 
-        // Name cell
         const tdName = document.createElement('td');
         tdName.textContent = name;
         tr.appendChild(tdName);
 
-        // Change cell
         const tdCh = document.createElement('td');
-        if (arrowFile) {
+        if (arrow) {
           const arr = new Image();
           arr.crossOrigin = 'anonymous';
-          arr.src    = IMG_PATH + arrowFile;
-          arr.width  = arr.height = displaySize;
+          arr.src    = IMG_PATH + encodeURIComponent(arrow);
+          arr.width  = arr.height = 32;
           tdCh.appendChild(arr);
         }
         tr.appendChild(tdCh);
@@ -143,7 +170,7 @@
       }
     }
 
-    buildTable().catch(e=>{
+    buildTable().catch(e => {
       console.error(e);
       document.querySelector('#movement-table tbody').innerHTML =
         '<tr><td colspan="3" style="color:red">Failed to load data.</td></tr>';
