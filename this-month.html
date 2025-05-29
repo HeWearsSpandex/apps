@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>This Month’s Leaderboard</title>
   <style>
     body { font-family: Arial, sans-serif; padding:20px; }
     table { border-collapse: collapse; width:100%; max-width:700px; margin:auto; }
-    th, td { padding:8px 12px; }
-    th { background:#f4f4f4; text-align:left; }
+    th, td { padding:8px 12px; text-align:left; }
+    th { background:#f4f4f4; }
     img.face { border-radius:50%; vertical-align:middle; }
     .up   { color:green;  font-weight:bold; }
     .down { color:red;    font-weight:bold; }
@@ -18,9 +18,7 @@
   <h1>This Month’s Leaderboard</h1>
   <table id="tm-table">
     <thead>
-      <tr>
-        <th>Face</th><th>Name</th><th>Meters</th><th>Change</th>
-      </tr>
+      <tr><th>Face</th><th>Name</th><th>Meters</th><th>Change</th></tr>
     </thead>
     <tbody></tbody>
   </table>
@@ -29,95 +27,118 @@
     const CSV_URL = 'https://raw.githubusercontent.com/HeWearsSpandex/animated-map/main/data/actual_distances.csv';
     const IMG_PATH = 'img/';
 
-async function fetchData() {
-  const res = await fetch(CSV_URL, { cache: 'no-cache' });
-  if (!res.ok) throw new Error('Could not load CSV: ' + res.status);
+    async function fetchData() {
+      const res = await fetch(CSV_URL,{cache:'no-cache'});
+      if(!res.ok) throw new Error('Could not load CSV: '+res.status);
+      const text = await res.text();
+      const lines = text.trim().split(/\r\n|\n|\r/);
+      const headers = lines.shift().split(',').map(h=>h.trim());
+      return lines.map(line=>{
+        const cols = line.split(',');
+        const obj = {};
+        headers.forEach((h,i)=> obj[h]=cols[i]?.trim());
+        return obj;
+      });
+    }
 
-  const text = await res.text();
-  // Split on any of CRLF, LF, or CR
-  const lines = text.trim().split(/\r\n|\n|\r/);
+    function loadImage(src) {
+      return new Promise((r,j)=>{
+        const i=new Image();
+        i.crossOrigin='anonymous';
+        i.onload=()=>r(i);
+        i.onerror=j;
+        i.src=src;
+      });
+    }
 
-  // Log how many lines we got (for debugging)
-  console.log('Detected CSV lines:', lines.length);
+// name→filename overrides for known mismatches:
+const NAME_OVERRIDES = {
+  'Bradley Turnstill': 'Bradley Tunstill'
+  // add more here if you spot other typos
+};
 
-  const headers = lines.shift().split(',').map(h => h.trim());
-  console.log('Parsed headers:', headers);
+// modified drawIcon that applies overrides and falls back gracefully
+async function drawIcon(name, useHalo = true, faceSize = 64, haloThickness = useHalo ? 10 : 0) {
+  // apply any overrides
+  const fileKey = NAME_OVERRIDES[name] || name;
+  const filename = `${encodeURIComponent(fileKey)}_cvface1.png`;
+  const size = faceSize + haloThickness*2;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
 
-  return lines.map(line => {
-    const cols = line.split(',');
-    const obj  = {};
-    headers.forEach((h,i) => obj[h] = cols[i]?.trim());
-    return obj;
-  });
+  // draw the halo
+  ctx.fillStyle = 'gold';
+  ctx.beginPath();
+  ctx.arc(size/2, size/2, faceSize/2 + haloThickness, 0, 2*Math.PI);
+  ctx.arc(size/2, size/2, faceSize/2, 0, 2*Math.PI);
+  ctx.fill('evenodd');
+
+  // attempt to load the face image
+  let faceImg;
+  try {
+    faceImg = await loadImage(`${IMG_PATH}${filename}`);
+  } catch(e) {
+    console.warn(`Could not load face for “${name}” (tried ${filename}), using blank placeholder.`);
+    // create a gray placeholder if image fails
+    faceImg = document.createElement('canvas');
+    faceImg.width = faceImg.height = faceSize;
+    const phCtx = faceImg.getContext('2d');
+    phCtx.fillStyle = '#ccc';
+    phCtx.fillRect(0, 0, faceSize, faceSize);
+  }
+
+  // draw the face onto the haloed canvas
+  ctx.drawImage(faceImg, haloThickness, haloThickness, faceSize, faceSize);
+  return canvas.toDataURL('image/png');
 }
 
 
-    function loadImage(src) {
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload  = () => resolve(img);
-        img.onerror = reject;
-        img.src     = src;
-      });
-    }
-
-    async function drawIcon(name) {
-      const faceSize = 64, halo = 10, size = faceSize + halo*2;
-      const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = size;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = 'gold';
-      ctx.beginPath();
-      ctx.arc(size/2,size/2,faceSize/2+halo,0,2*Math.PI);
-      ctx.arc(size/2,size/2,faceSize/2,0,2*Math.PI);
-      ctx.fill('evenodd');
-      const faceImg = await loadImage(`${IMG_PATH}${encodeURIComponent(name)}_cvface1.png`);
-      ctx.drawImage(faceImg,halo,halo,faceSize,faceSize);
-      return canvas.toDataURL();
-    }
-
     async function buildThisMonthTable() {
       const data = await fetchData();
-      // map last month
       const lastRanks = {};
-      data.forEach(r => {
-        if (r['L/M Rank']) lastRanks[r['Name']] = Number(r['L/M Rank']);
+      data.forEach(r=>{
+        if(r['L/M RANK']) lastRanks[r['NAME']] = Number(r['L/M RANK']);
       });
-
       const rows = data
-        .filter(r => r['T/M Rank'])
-        .sort((a,b) => Number(a['T/M Rank']) - Number(b['T/M Rank']));
+        .filter(r=>r['T/M RANK'])
+        .sort((a,b)=>Number(a['T/M RANK'])-Number(b['T/M RANK']));
 
       const tbody = document.querySelector('#tm-table tbody');
       tbody.innerHTML = '';
 
-      for (const row of rows) {
-        const name   = row['Name'];
-        const tmRank = Number(row['T/M Rank']);
+      for(let i=0; i<rows.length; i++) {
+        const row = rows[i];
+        const name = row['NAME'];
+        const meters = Number(row['TOTAL METERS'])||0;
+        const tmRank = Number(row['T/M RANK']);
         const lmRank = lastRanks[name] ?? Infinity;
-        let arrow = '', cls = '';
-        if (tmRank < lmRank)      { arrow = '↑'; cls = 'up'; }
-        else if (tmRank > lmRank) { arrow = '↓'; cls = 'down'; }
+        let arrow='', cls='';
+        if(tmRank<lmRank)      { arrow='↑'; cls='up'; }
+        else if(tmRank>lmRank) { arrow='↓'; cls='down'; }
 
         const tr = document.createElement('tr');
+
         // Face
         const tdFace = document.createElement('td');
-        const iconUrl = await drawIcon(name);
+        const iconUrl = await drawIcon(name, i===0);
         const img = document.createElement('img');
         img.src = iconUrl;
-        img.width = img.height = 64 + 20;
+        img.width = img.height = 64 + (i===0 ? 20 : 0);
         img.classList.add('face');
         tdFace.appendChild(img);
         tr.appendChild(tdFace);
+
         // Name
         const tdName = document.createElement('td');
         tdName.textContent = name;
         tr.appendChild(tdName);
+
         // Meters
         const tdMet = document.createElement('td');
-        tdMet.textContent = Math.round(Number(row['Meters']||0)) + ' m';
+        tdMet.textContent = Math.round(meters)+' m';
         tr.appendChild(tdMet);
+
         // Change
         const tdCh = document.createElement('td');
         tdCh.textContent = arrow;
@@ -128,8 +149,7 @@ async function fetchData() {
       }
     }
 
-    // Kick it off
-    buildThisMonthTable().catch(e => {
+    buildThisMonthTable().catch(e=>{
       console.error(e);
       document.querySelector('#tm-table tbody').innerHTML =
         '<tr><td colspan="4" style="color:red">Failed to load data.</td></tr>';
