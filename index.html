@@ -155,18 +155,38 @@
       const distances = path.slice(0, -1).map((_, i) => google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1]));
       const cum = distances.reduce((arr, d) => (arr.push((arr.slice(-1)[0]||0) + d), arr), []);
 
+      const ACTUAL_METERS = {
+        'Adrian Lutic': 12814.5, 'Alex Nita': 5324.9, 'Antun Vidakovic': 27714,
+        'Bradley Tunstill': 33510.58, 'Brendon Kilcullen': 0, 'Byron Claridge': 18700,
+        'Callum Evans': 24517.05, 'Cameron Gill': 47748.7, 'Christopher Scourfield': 107905.58,
+        'Craig Dolan': 33319.3, 'Darren Hatfield': 27157.85, 'David Mahon': 4438.95,
+        'Edward Shanley': 120403.63, 'Gary Mounce': 25168.68, 'George Norris': 10900.8,
+        'James Hickman': 3303.6, 'James Hodge-Brooks': 0, 'James Rundle-Jones': 27905.9,
+        'Jay Dunn': 116135.23, 'Joe Lambourne-Gillen': 0, 'John Peters': 27356.85,
+        'Jonathan Thompson': 45939.55, 'Joseph Nixon': 14655.225, 'James Whiteoak': 28884,
+        'Joseph Young': 25254.73, 'Joshua Powell': 10739.8, 'Joshua Rowberry': 36725.9,
+        'Lewis Cannon': 31157, 'Liam Hammon': 14383.5, 'Luke Piller': 33510.58,
+        'Mark Sneap': 50035.18, 'Morgan Hemming': 56967.65, 'Nicholas Kingshott': 45939.55,
+        'Richard Clanford': 8911, 'Robert Tamas': 23636.8, 'Ross Watson': 27157.85,
+        'Ryan Breslan': 24764.425, 'Ryan Manners': 63000.425, 'Tom Brooks': 0,
+        'Tristan Allen': 0, 'Tyler Webb': 27627.48
+      };
       const participants = await Promise.all(PEOPLE.map(async name => {
-        const bonus = Math.random() * cum[cum.length-1];
+        // use actual meters or default 0
+        const bonus = ACTUAL_METERS[name] || 0;
+        // find segment index for this distance
         let idx = cum.findIndex(d => bonus <= d);
         if (idx < 0) idx = cum.length - 1;
-        const prev = cum[idx-1] || 0;
-        const frac = distances[idx] ? (bonus - prev)/distances[idx] : 0;
-        const p0 = path[idx], p1 = path[idx+1] || p0;
+        const prev = cum[idx - 1] || 0;
+        const frac = distances[idx] ? (bonus - prev) / distances[idx] : 0;
+        const p0 = path[idx], p1 = path[idx + 1] || p0;
         const target = {
-          lat: p0.lat() + (p1.lat()-p0.lat())*frac,
-          lng: p0.lng() + (p1.lng()-p0.lng())*frac
+          lat: p0.lat() + (p1.lat() - p0.lat()) * frac,
+          lng: p0.lng() + (p1.lng() - p0.lng()) * frac
         };
         return { name, bonus, target };
+      }));
+      }));
       }));
 
       // Identify leader
