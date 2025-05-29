@@ -106,14 +106,14 @@
         const tmRank = Number(row['T/M RANK']);
         const lmRank = lastRanks[name] ?? Infinity;
 
-        // determine arrow image or none
+        // choose arrow image based on up/down
         let changeImg = '';
-        if (tmRank < lmRank) changeImg = 'green arrow.png';
-        else if (tmRank > lmRank) changeImg = 'red arrow.png';
+        if (tmRank < lmRank)      changeImg = 'green_arrow.png';
+        else if (tmRank > lmRank) changeImg = 'red_arrow.png';
 
-        // compute display size (face + halo on top rank)
-        const baseSize = 64;
-        const halo     = (i === 0 ? 10 : 0);
+        // compute sizes
+        const baseSize    = 64;
+        const halo        = (i === 0 ? 10 : 0);
         const displaySize = baseSize + 2 * halo;
 
         const tr = document.createElement('tr');
@@ -121,11 +121,11 @@
         // Face cell
         const tdFace = document.createElement('td');
         const iconUrl = await drawIcon(name, baseSize, halo);
-        const faceImgEl = document.createElement('img');
-        faceImgEl.src = iconUrl;
-        faceImgEl.width = faceImgEl.height = displaySize;
-        faceImgEl.classList.add('face');
-        tdFace.appendChild(faceImgEl);
+        const faceEl  = document.createElement('img');
+        faceEl.src    = iconUrl;
+        faceEl.width  = faceEl.height = displaySize;
+        faceEl.classList.add('face');
+        tdFace.appendChild(faceEl);
         tr.appendChild(tdFace);
 
         // Name
@@ -142,10 +142,11 @@
         const tdCh = document.createElement('td');
         tdCh.classList.add('change');
         if (changeImg) {
-          const arr = new Image();
-          arr.src = `${IMG_PATH}${encodeURIComponent(changeImg)}`;
-          arr.width = arr.height = displaySize;
-          arr.alt = changeImg.includes('green') ? 'Up' : 'Down';
+          const arr = document.createElement('img');
+          arr.crossOrigin = 'anonymous';
+          arr.src         = `${IMG_PATH}${changeImg}`;
+          arr.width       = arr.height = displaySize;
+          arr.alt         = tmRank < lmRank ? 'Up' : 'Down';
           tdCh.appendChild(arr);
         }
         tr.appendChild(tdCh);
