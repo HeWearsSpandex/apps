@@ -29,18 +29,28 @@
     const CSV_URL = 'https://raw.githubusercontent.com/HeWearsSpandex/animated-map/main/data/actual_distances.csv';
     const IMG_PATH = 'img/';
 
-    async function fetchData() {
-      const res = await fetch(CSV_URL, { cache: 'no-cache' });
-      if (!res.ok) throw new Error('Could not load CSV: ' + res.status);
-      const lines = (await res.text()).trim().split('\n');
-      const headers = lines.shift().split(',').map(h => h.trim());
-      return lines.map(line => {
-        const cols = line.split(',');
-        const obj = {};
-        headers.forEach((h,i) => { obj[h] = cols[i]?.trim(); });
-        return obj;
-      });
-    }
+async function fetchData() {
+  const res = await fetch(CSV_URL, { cache: 'no-cache' });
+  if (!res.ok) throw new Error('Could not load CSV: ' + res.status);
+
+  const text = await res.text();
+  // Split on any of CRLF, LF, or CR
+  const lines = text.trim().split(/\r\n|\n|\r/);
+
+  // Log how many lines we got (for debugging)
+  console.log('Detected CSV lines:', lines.length);
+
+  const headers = lines.shift().split(',').map(h => h.trim());
+  console.log('Parsed headers:', headers);
+
+  return lines.map(line => {
+    const cols = line.split(',');
+    const obj  = {};
+    headers.forEach((h,i) => obj[h] = cols[i]?.trim());
+    return obj;
+  });
+}
+
 
     function loadImage(src) {
       return new Promise((resolve, reject) => {
