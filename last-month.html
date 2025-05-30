@@ -92,17 +92,19 @@
         img.onerror = () => {
           const c = document.createElement('canvas');
           c.width = c.height = size;
-          c.getContext('2d').fillStyle = '#ccc';
-          c.getContext('2d').fillRect(0,0,size,size);
+          const ctx = c.getContext('2d');
+          ctx.fillStyle = '#ccc';
+          ctx.fillRect(0,0,size,size);
           res(c);
         };
         img.src = src;
       });
     }
 
-    async function drawIcon(name, isLeader) {
+    // now takes a haloColor string (e.g. 'gold','silver','#cd7f32') or null
+    async function drawIcon(name, haloColor) {
       const faceSize = 64,
-            halo     = isLeader ? 10 : 0,
+            halo     = haloColor ? 10 : 0,
             total    = faceSize + 2*halo,
             canvas   = document.createElement('canvas'),
             ctx      = canvas.getContext('2d'),
@@ -110,8 +112,8 @@
 
       canvas.width = canvas.height = total;
 
-      if (isLeader) {
-        ctx.fillStyle = 'gold';
+      if (haloColor) {
+        ctx.fillStyle = haloColor;
         ctx.beginPath();
         ctx.arc(total/2, total/2, faceSize/2 + halo, 0, 2*Math.PI);
         ctx.arc(total/2, total/2, faceSize/2, 0, 2*Math.PI);
@@ -140,6 +142,7 @@
         .filter(r => r['TOTAL METERS'])
         .sort((a,b) => Number(b['TOTAL METERS']) - Number(a['TOTAL METERS']));
 
+      // assign competition ranks with ties sharing
       let lastM = null, ctr = 0, rank = 0;
       rows.forEach(r => {
         const m = Number(r['TOTAL METERS']);
@@ -148,19 +151,25 @@
         r._rank = rank;
       });
 
-      const counts = rows.reduce((a,r) => {
-        a[r._rank] = (a[r._rank]||0) + 1; return a;
-      }, {});
+      // count ties
+      const counts = rows.reduce((a,r) => { a[r._rank] = (a[r._rank]||0) + 1; return a; }, {});
 
-      document.getElementById('top-rank').innerHTML    = '';
-      document.getElementById('other-ranks').innerHTML = '';
+      const topEl   = document.getElementById('top-rank');
+      const otherEl = document.getElementById('other-ranks');
+      topEl.innerHTML = '';
+      otherEl.innerHTML = '';
 
       for (const r of rows) {
         const isLeader = r._rank === 1,
               tie      = counts[r._rank] > 1,
-              rankTxt  = (tie?'=':'') + r._rank,
-              iconURL  = await drawIcon(r['NAME'], isLeader),
-              size     = 64 + (isLeader?10:0);
+              rankTxt  = (tie ? '=' : '') + r._rank,
+              // choose halo color
+              haloColor = r._rank === 1 ? 'gold'
+                         : r._rank === 2 ? 'silver'
+                         : r._rank === 3 ? '#cd7f32'
+                         : null,
+              iconURL  = await drawIcon(r['NAME'], haloColor),
+              size     = 64 + (haloColor ? 10 : 0);
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -168,10 +177,8 @@
           <td><img src="${iconURL}" width="${size}" height="${size}" class="face"></td>
           <td>${r['NAME']}</td>
         `;
-        (isLeader
-          ? document.getElementById('top-rank')
-          : document.getElementById('other-ranks')
-        ).appendChild(tr);
+        if (isLeader) topEl.appendChild(tr);
+        else otherEl.appendChild(tr);
       }
 
       setTimeout(startPingPongScroll, 1000);
@@ -200,7 +207,6 @@
         } else {
           ct.scrollTop += speed * dt * dir;
           const max = ct.scrollHeight - ct.clientHeight;
-
           if (ct.scrollTop >= max) {
             ct.scrollTop = max; dir = -1; paused = true;
           } else if (ct.scrollTop <= 0) {
