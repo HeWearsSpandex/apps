@@ -86,15 +86,85 @@
     async function initLeaderboard(parts){const s=document.getElementById('static-rank1'),o=document.getElementById('other-ranks');s.innerHTML='';o.innerHTML='';let last=null,disp=0,count=0;for(const p of parts){count++;if(p.bonus!==last){disp=count;last=p.bonus;}p.r=disp;p.halo=p.r===1?'gold':p.r===2?'silver':p.r===3?'#cd7f32':null;}for(const p of parts){const ties=parts.filter(x=>x.bonus===p.bonus).length>1;const rt=(ties?'=':'')+p.r;const sz=32+(p.halo?5:0);const url=await drawIcon(p.name,p.halo,32,p.halo?5:0);const li=document.createElement('li');li.innerHTML=`<span class="col-rank">${rt}</span><img class="face col-face" src="${url}" width="${sz}" height="${sz}"><span class="col-name">${p.name}</span>`;p.r===1?s.appendChild(li):o.appendChild(li);}setTimeout(startPingPongScroll,1000);}
     function startPingPongScroll(){const ct=document.getElementById('scroll-container'),speed=0.05,pause=1000;let dir=1,paused=false,last=performance.now(),e=0;function step(now){const dt=now-last;last=now;if(paused){e+=dt;if(e>=pause){paused=false;e=0;}}else{ct.scrollTop+=speed*dt*dir;const m=ct.scrollHeight-ct.clientHeight;if(ct.scrollTop>=m){ct.scrollTop=m;dir=-1;paused=true;}else if(ct.scrollTop<=0){ct.scrollTop=0;dir=1;paused=true;}}requestAnimationFrame(step);}requestAnimationFrame(step);}
     async function initMap(){await fetchActualMeters();const map=new google.maps.Map(document.getElementById('map'),{padding:{top:70,right:10,bottom:10,left:10}});window.map=map;new google.maps.Marker({map,position:HQ,icon:{url:`${IMG_PATH}JHB Logo.png`,scaledSize:new google.maps.Size(115,64),anchor:new google.maps.Point(57,32)}});new google.maps.DirectionsService().route({origin:HQ,destination:DESTINATION,waypoints:WAYPOINTS.map(l=>({location:l})),travelMode:google.maps.TravelMode.DRIVING},(res,s)=>{if(s==='OK')animateRoute(res.routes[0].overview_path);});}
-    async function animateRoute(path){const map=window.map;const dist=path.slice(0,-1).map((_,i)=>google.maps.geometry.spherical.computeDistanceBetween(path[i],path[i+1]));const cum=dist.reduce((a,d)=>(a.push((a.slice(-1)[0]||0)+d),a),[]);const parts=await Promise.all(PEOPLE.map(async name=>{const b=ACTUAL_METERS[name]||0;let idx=cum.findIndex(d=>b<=d);if(idx<0)idx=cum.length-1;const prev=cum[idx-1]||0;const frac=dist[idx]?(b-prev)/dist[idx]:0;const p0=path[idx],p1=path[idx+1]||p0;return{name,bonus:b,target:{lat:p0.lat()+(p1.lat()-p0.lat())*frac,lng:p0.lng()+(p1.lng()-p0.lng())*frac}}));parts.sort((a,b)=>b.bonus-a.bonus);
-      // assign halos and ranks before map markers
-      let last=null,disp=0,count=0;
-      for(const p of parts){count++;if(p.bonus!==last){disp=count;last=p.bonus;}p.r=disp;p.halo=p.r===1?'gold':p.r===2?'silver':p.r===3?'#cd7f32':null;}
-      // draw map markers with halos
-      for(const p of parts){const size=64+(p.halo?10:0);const iconUrl=await drawIcon(p.name,p.halo,64,p.halo?10:0);p.marker=new google.maps.Marker({map,position:HQ,icon:{url:iconUrl,scaledSize:new google.maps.Size(size,size),anchor:new google.maps.Point(size/2,size/2)}});}      
-      const bounds=new google.maps.LatLngBounds();parts.forEach(p=>bounds.extend(p.target));bounds.extend(HQ);map.fitBounds(bounds);
-      for(const p of parts){const start=performance.now(),dur=5000;(function mv(now){const t=Math.min((now-start)/dur,1);p.marker.setPosition({lat:HQ.lat+(p.target.lat-HQ.lat)*t,lng:HQ.lng+(p.target.lng-HQ.lng)*t});if(t<1)requestAnimationFrame(mv);} )(start);}      
+    async function animateRoute(path) {
+      const map = window.map;
+
+      // compute distances & cumulative
+      const distances = path.slice(0, -1)
+        .map((_, i) => google.maps.geometry.spherical
+          .computeDistanceBetween(path[i], path[i+1])
+        );
+      const cum = distances.reduce((a, d) => (a.push((a.slice(-1)[0]||0) + d), a), []);
+
+      // build participants array
+      const parts = await Promise.all(PEOPLE.map(async name => {
+        const bonus = ACTUAL_METERS[name] || 0;
+        let idx = cum.findIndex(d => bonus <= d);
+        if (idx < 0) idx = cum.length - 1;
+        const prev = cum[idx - 1] || 0;
+        const frac = distances[idx] ? (bonus - prev) / distances[idx] : 0;
+        const p0 = path[idx], p1 = path[idx+1] || p0;
+        return {
+          name,
+          bonus,
+          target: {
+            lat: p0.lat() + (p1.lat() - p0.lat()) * frac,
+            lng: p0.lng() + (p1.lng() - p0.lng()) * frac
+          }
+        };
+      }));  // ← this closing paren and bracket were misaligned
+
+      parts.sort((a,b) => b.bonus - a.bonus);
+
+      // assign ranks & halo colors
+      let last = null, display = 0, count = 0;
+      for (const p of parts) {
+        count++;
+        if (p.bonus !== last) { display = count; last = p.bonus; }
+        p.rank = display;
+        p.halo = p.rank === 1 ? 'gold'
+               : p.rank === 2 ? 'silver'
+               : p.rank === 3 ? '#cd7f32'
+               : null;
+      }
+
+      // create map markers with halos
+      for (const p of parts) {
+        const size = 64 + (p.halo ? 10 : 0);
+        const iconUrl = await drawIcon(p.name, p.halo, 64, p.halo ? 10 : 0);
+        p.marker = new google.maps.Marker({
+          map,
+          position: HQ,
+          icon: {
+            url: iconUrl,
+            scaledSize: new google.maps.Size(size, size),
+            anchor: new google.maps.Point(size/2, size/2)
+          }
+        });
+      }
+
+      // fit & animate
+      const bounds = new google.maps.LatLngBounds();
+      parts.forEach(p => bounds.extend(p.target));
+      bounds.extend(HQ);
+      map.fitBounds(bounds);
+
+      parts.forEach(p => {
+        const start = performance.now(), dur = 5000;
+        (function move(now) {
+          const t = Math.min((now - start) / dur, 1);
+          p.marker.setPosition({
+            lat: HQ.lat + (p.target.lat - HQ.lat) * t,
+            lng: HQ.lng + (p.target.lng - HQ.lng) * t
+          });
+          if (t < 1) requestAnimationFrame(move);
+        })(start);
+      });
+
+      // finally build the leaderboard overlay
       initLeaderboard(parts);
+    }
+
     }
   </script>
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap"></script>
