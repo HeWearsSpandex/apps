@@ -10,18 +10,37 @@
   <script src="https://unpkg.com/three-globe"></script>
 
   <style>
-    body { margin:0; overflow:hidden; font-family: Arial, sans-serif; }
-    /* Header from last-week.html */
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    /* Header */
     .logo { text-align: center; margin: 20px 0 10px; }
     .logo img { max-width: 200px; height: auto; }
     h1 { text-align: center; margin: 0 0 20px; }
 
-    #globeContainer { position:absolute; top: 120px; left:0; right:0; bottom:0; }
-    #globeViz { width:100%; height:100%; }
+    /* Globe container fills remaining space */
+    #globeContainer {
+      flex: 1;
+      position: relative;
+    }
+    #globeViz {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+    }
+    /* Overlay */
     #meterOverlay {
-      position: absolute; top: 140px; left: 20px;
-      padding: 8px 12px; background: rgba(0,0,0,0.6);
-      color: white; font-size: 18px; border-radius: 4px;
+      position: absolute;
+      top: 10px; left: 20px;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      font-size: 18px;
+      border-radius: 4px;
     }
   </style>
 </head>
@@ -46,23 +65,35 @@
     ];
     // --------------------------------
 
-    // update overlay text
     document.getElementById('totalMeters').innerText = totalMetres.toLocaleString();
 
-    // Three.js scene setup
+    // Scene & camera setup
     const scene    = new THREE.Scene();
-    const camera   = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias:true });
-    renderer.setSize(innerWidth, innerHeight - 120);
+    const camera   = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+
+    // attach to container
+    const container = document.getElementById('globeContainer');
     document.getElementById('globeViz').appendChild(renderer.domElement);
 
-    // add lights for better illumination
+    // sizing function
+    function resize() {
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      renderer.setSize(w, h);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // lighting
     scene.add(new THREE.AmbientLight(0xffffff, 0.8));
     const sun = new THREE.DirectionalLight(0xffffff, 0.6);
     sun.position.set(50, 50, 50).normalize();
     scene.add(sun);
 
-    // create the globe with daytime texture and arcs
+    // globe with daytime texture
     const Globe = new ThreeGlobe()
       .globeImageUrl('//unpkg.com/three-globe/example/img/earth-day.jpg')
       .arcsData(arcData)
@@ -71,27 +102,23 @@
       .arcDashGap(4)
       .arcDashInitialGap(() => Math.random() * 5)
       .arcDashAnimateTime(1000);
-
     scene.add(Globe);
 
-    // center the HQ at the middle vertically (equator) and horizontally
+    // center the HQ
     const latRad = START_LAT * Math.PI/180;
     const lngRad = START_LNG * Math.PI/180;
+    // tilt globe so HQ is on equator-center and rotated horizontally
     Globe.rotation.x = Math.PI/2 - latRad;
     Globe.rotation.y = -lngRad;
+    // apply Earth's tilt
+    const earthTilt = 23.5 * Math.PI/180;
+    Globe.rotation.z = earthTilt;
 
     camera.position.z = 200;
 
-    // handle window resize
-    window.addEventListener('resize', () => {
-      renderer.setSize(innerWidth, innerHeight - 120);
-      camera.aspect = innerWidth/(innerHeight - 120);
-      camera.updateProjectionMatrix();
-    });
-
-    // animation loop: rotate anticlockwise
+    // animate: rotate around Earth's axis (anticlockwise)
     (function animate() {
-      Globe.rotation.y -= 0.0005;  // negative for anticlockwise
+      Globe.rotation.y -= 0.0005;
       renderer.render(scene, camera);
       requestAnimationFrame(animate);
     })();
