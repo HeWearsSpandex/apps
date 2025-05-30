@@ -7,15 +7,10 @@
   <style>
     body { font-family: Arial, sans-serif; padding:20px; }
 
-    /* Logo */
     .logo { text-align:center; margin-bottom:20px; }
     .logo img { max-width:200px; height:auto; }
 
-    /* Centered header */
-    h1 {
-      text-align: center;
-      margin-bottom: 1em;
-    }
+    h1 { text-align: center; margin-bottom: 1em; }
 
     table {
       border-collapse: collapse;
@@ -23,19 +18,40 @@
       max-width:600px;
       margin:auto;
     }
+
     th, td {
       padding:8px;
       text-align:center;
     }
-    th {
-      background:#f4f4f4;
-    }
+
+    th { background:#f4f4f4; }
+
     img.face {
       border-radius:50%;
       vertical-align:middle;
     }
+
     td.rank {
       font-weight: bold;
+    }
+
+    /* Sticky header section */
+    .static-section {
+      position: sticky;
+      top: 0;
+      background: white;
+      z-index: 10;
+    }
+
+    /* Scrollable list from rank 2 onwards */
+    .scrollable-section {
+      max-height: 400px;
+      overflow-y: auto;
+      border-top: 1px solid #ccc;
+    }
+
+    .scrollable-section table {
+      margin-top: 0;
     }
   </style>
 </head>
@@ -46,17 +62,25 @@
 
   <h1>Bonus Metres – Current Month’s Leaderboard</h1>
 
-  <table id="movement-table">
-    <thead>
-      <tr>
-        <th>Rank</th>
-        <th>Face</th>
-        <th>Name</th>
-        <th>Positional Change</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div class="static-section">
+    <table>
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Face</th>
+          <th>Name</th>
+          <th>Positional Change</th>
+        </tr>
+      </thead>
+      <tbody id="top-rank"></tbody>
+    </table>
+  </div>
+
+  <div class="scrollable-section">
+    <table>
+      <tbody id="other-ranks"></tbody>
+    </table>
+  </div>
 
   <script>
     const CSV_URL  = 'https://raw.githubusercontent.com/HeWearsSpandex/animated-map/main/data/actual_distances.csv';
@@ -121,52 +145,43 @@
     async function buildTable() {
       const data = await fetchData();
 
-      // filter & sort by this month's rank
       const rows = data
         .filter(r => r['T/M RANK'])
         .sort((a,b) => +a['T/M RANK'] - +b['T/M RANK']);
 
-      // count ties
       const rankCounts = rows.reduce((acc, r) => {
         const rk = +r['T/M RANK'];
         acc[rk] = (acc[rk] || 0) + 1;
         return acc;
       }, {});
 
-      const tbody = document.querySelector('#movement-table tbody');
-      tbody.innerHTML = '';
+      document.querySelector('#top-rank').innerHTML = '';
+      document.querySelector('#other-ranks').innerHTML = '';
 
       for (const r of rows) {
         const name   = r['NAME'];
         const tmRank = +r['T/M RANK'];
         const lmRank = r['L/M RANK'] ? +r['L/M RANK'] : Infinity;
 
-        // rank text with '=' for all ties
         const isTie     = rankCounts[tmRank] > 1;
         const rankText  = (isTie ? '=' : '') + tmRank;
 
-        // arrow logic (with correct filenames)
         let arrowFile = '';
         if (tmRank < lmRank)      arrowFile = 'Green Arrow.png';
         else if (tmRank > lmRank) arrowFile = 'Red Arrow.png';
 
-        // halo for every rank-1 person
         const isLeader = tmRank === 1;
 
-        // draw face with halo if appropriate
         const iconUrl  = await drawIcon(name, isLeader);
         const faceSize = 64 + (isLeader ? 10 : 0);
 
-        // build row
         const tr = document.createElement('tr');
 
-        // Rank
         const tdRank = document.createElement('td');
         tdRank.classList.add('rank');
         tdRank.textContent = rankText;
         tr.appendChild(tdRank);
 
-        // Face
         const tdFace = document.createElement('td');
         const imgFace = document.createElement('img');
         imgFace.src    = iconUrl;
@@ -175,12 +190,10 @@
         tdFace.appendChild(imgFace);
         tr.appendChild(tdFace);
 
-        // Name
         const tdName = document.createElement('td');
         tdName.textContent = name;
         tr.appendChild(tdName);
 
-        // Change
         const tdCh = document.createElement('td');
         if (arrowFile) {
           const arr = new Image();
@@ -191,13 +204,17 @@
         }
         tr.appendChild(tdCh);
 
-        tbody.appendChild(tr);
+        if (tmRank === 1) {
+          document.querySelector('#top-rank').appendChild(tr);
+        } else {
+          document.querySelector('#other-ranks').appendChild(tr);
+        }
       }
     }
 
     buildTable().catch(e => {
       console.error(e);
-      document.querySelector('#movement-table tbody').innerHTML =
+      document.querySelector('#top-rank').innerHTML =
         '<tr><td colspan="4" style="color:red">Failed to load data.</td></tr>';
     });
   </script>
