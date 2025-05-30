@@ -5,64 +5,90 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Bonus Metres – Current Month’s Leaderboard</title>
   <style>
-    body { font-family: Arial, sans-serif; padding:20px; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
 
-    .logo { text-align:center; margin-bottom:20px; }
-    .logo img { max-width:200px; height:auto; }
+    .logo {
+      text-align: center;
+      margin-top: 20px;
+    }
 
-    h1 { text-align: center; margin-bottom: 1em; }
+    .logo img {
+      max-width: 200px;
+      height: auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 20px 0;
+    }
 
     table {
+      width: 100%;
+      max-width: 600px;
+      margin: auto;
       border-collapse: collapse;
-      width:100%;
-      max-width:600px;
-      margin:auto;
+      table-layout: fixed;
     }
 
     th, td {
-      padding:8px;
-      text-align:center;
+      padding: 8px;
+      text-align: center;
     }
 
-    th { background:#f4f4f4; }
+    th {
+      background: #f4f4f4;
+    }
 
     img.face {
-      border-radius:50%;
-      vertical-align:middle;
+      border-radius: 50%;
+      vertical-align: middle;
     }
 
     td.rank {
       font-weight: bold;
     }
 
-    /* Sticky header section */
     .static-section {
-      position: sticky;
-      top: 0;
-      background: white;
-      z-index: 10;
+      flex-shrink: 0;
     }
 
-    /* Scrollable list from rank 2 onwards */
     .scrollable-section {
-      max-height: 400px;
-      overflow-y: auto;
-      border-top: 1px solid #ccc;
+      flex-grow: 1;
+      overflow: hidden;
+      position: relative;
     }
 
-    .scrollable-section table {
-      margin-top: 0;
+    .scrollable-inner {
+      overflow-y: auto;
+      height: 100%;
+    }
+
+    /* Smooth scroll animation */
+    .scrollable-inner::-webkit-scrollbar {
+      display: none;
+    }
+
+    .scrollable-inner {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
   </style>
 </head>
 <body>
-  <div class="logo">
-    <img src="img/JHB Logo.png" alt="JHB Logo">
-  </div>
-
-  <h1>Bonus Metres – Current Month’s Leaderboard</h1>
-
   <div class="static-section">
+    <div class="logo">
+      <img src="img/JHB Logo.png" alt="JHB Logo">
+    </div>
+
+    <h1>Bonus Metres – Current Month’s Leaderboard</h1>
+
     <table>
       <thead>
         <tr>
@@ -77,9 +103,11 @@
   </div>
 
   <div class="scrollable-section">
-    <table>
-      <tbody id="other-ranks"></tbody>
-    </table>
+    <div class="scrollable-inner" id="scroll-container">
+      <table>
+        <tbody id="other-ranks"></tbody>
+      </table>
+    </div>
   </div>
 
   <script>
@@ -91,132 +119,3 @@
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload  = () => res(img);
-        img.onerror = () => {
-          const c = document.createElement('canvas');
-          c.width = c.height = size;
-          const ctx = c.getContext('2d');
-          ctx.fillStyle = '#ccc';
-          ctx.fillRect(0,0,size,size);
-          res(c);
-        };
-        img.src = src;
-      });
-    }
-
-    async function drawIcon(name, isLeader) {
-      const baseSize = 64;
-      const halo     = isLeader ? 10 : 0;
-      const total    = baseSize + 2*halo;
-      const canvas   = document.createElement('canvas');
-      canvas.width = canvas.height = total;
-      const ctx = canvas.getContext('2d');
-
-      if (isLeader) {
-        ctx.fillStyle = 'gold';
-        ctx.beginPath();
-        ctx.arc(total/2, total/2, baseSize/2 + halo, 0, 2*Math.PI);
-        ctx.arc(total/2, total/2, baseSize/2,       0, 2*Math.PI);
-        ctx.fill('evenodd');
-      }
-
-      const safeName = name.trim();
-      const file     = `${encodeURIComponent(safeName)}_cvface1.png`;
-      const faceImg  = await loadImageElement(IMG_PATH + file, baseSize);
-
-      ctx.drawImage(faceImg, halo, halo, baseSize, baseSize);
-      return canvas.toDataURL('image/png');
-    }
-
-    async function fetchData() {
-      const r = await fetch(CSV_URL, { cache:'no-cache' });
-      if (!r.ok) throw new Error('CSV load error: ' + r.status);
-      const txt = await r.text();
-      const [hdr, ...lines] = txt.trim().split(/\r?\n/);
-      const keys = hdr.split(',').map(h=>h.trim());
-      return lines.map(line => {
-        const cols = line.split(',');
-        return keys.reduce((o,k,i) => {
-          o[k] = (cols[i]||'').trim();
-          return o;
-        }, {});
-      });
-    }
-
-    async function buildTable() {
-      const data = await fetchData();
-
-      const rows = data
-        .filter(r => r['T/M RANK'])
-        .sort((a,b) => +a['T/M RANK'] - +b['T/M RANK']);
-
-      const rankCounts = rows.reduce((acc, r) => {
-        const rk = +r['T/M RANK'];
-        acc[rk] = (acc[rk] || 0) + 1;
-        return acc;
-      }, {});
-
-      document.querySelector('#top-rank').innerHTML = '';
-      document.querySelector('#other-ranks').innerHTML = '';
-
-      for (const r of rows) {
-        const name   = r['NAME'];
-        const tmRank = +r['T/M RANK'];
-        const lmRank = r['L/M RANK'] ? +r['L/M RANK'] : Infinity;
-
-        const isTie     = rankCounts[tmRank] > 1;
-        const rankText  = (isTie ? '=' : '') + tmRank;
-
-        let arrowFile = '';
-        if (tmRank < lmRank)      arrowFile = 'Green Arrow.png';
-        else if (tmRank > lmRank) arrowFile = 'Red Arrow.png';
-
-        const isLeader = tmRank === 1;
-
-        const iconUrl  = await drawIcon(name, isLeader);
-        const faceSize = 64 + (isLeader ? 10 : 0);
-
-        const tr = document.createElement('tr');
-
-        const tdRank = document.createElement('td');
-        tdRank.classList.add('rank');
-        tdRank.textContent = rankText;
-        tr.appendChild(tdRank);
-
-        const tdFace = document.createElement('td');
-        const imgFace = document.createElement('img');
-        imgFace.src    = iconUrl;
-        imgFace.width  = imgFace.height = faceSize;
-        imgFace.classList.add('face');
-        tdFace.appendChild(imgFace);
-        tr.appendChild(tdFace);
-
-        const tdName = document.createElement('td');
-        tdName.textContent = name;
-        tr.appendChild(tdName);
-
-        const tdCh = document.createElement('td');
-        if (arrowFile) {
-          const arr = new Image();
-          arr.crossOrigin = 'anonymous';
-          arr.src    = IMG_PATH + encodeURIComponent(arrowFile);
-          arr.width  = arr.height = 32;
-          tdCh.appendChild(arr);
-        }
-        tr.appendChild(tdCh);
-
-        if (tmRank === 1) {
-          document.querySelector('#top-rank').appendChild(tr);
-        } else {
-          document.querySelector('#other-ranks').appendChild(tr);
-        }
-      }
-    }
-
-    buildTable().catch(e => {
-      console.error(e);
-      document.querySelector('#top-rank').innerHTML =
-        '<tr><td colspan="4" style="color:red">Failed to load data.</td></tr>';
-    });
-  </script>
-</body>
-</html>
