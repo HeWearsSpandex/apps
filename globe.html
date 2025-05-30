@@ -1,1 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bonus Metres Globe</title>
 
+  <!-- Three.js & Three-Globe from CDN -->
+  <script src="https://unpkg.com/three@0.150.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three-globe"></script>
+
+  <style>
+    body { margin:0; overflow:hidden; }
+    #globeViz { position:absolute; top:0; left:0; right:0; bottom:0; }
+    #meterOverlay {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 18px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="globeViz"></div>
+  <div id="meterOverlay">Total Metres: <span id="totalMeters">0</span> m</div>
+
+  <script>
+    // ------- CONFIGURE THIS -------
+    // Your total metres value (could be loaded via fetch from your API/CSV)
+    const totalMetres = 123456;  
+
+    // (Optional) Example arc data: start at HQ, end at some target
+    const arcData = [
+      { startLat: 50.43135, startLng: -3.797092,
+        endLat: 44.4268, endLng: 26.1025,  // Bucharest
+        color: ['#00ff00','#00ff00'] }
+    ];
+    // --------------------------------
+
+    // Update overlay
+    document.getElementById('totalMeters').innerText = totalMetres.toLocaleString();
+
+    // Three.js scene
+    const scene    = new THREE.Scene();
+    const camera   = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias:true });
+    renderer.setSize(innerWidth, innerHeight);
+    document.getElementById('globeViz').appendChild(renderer.domElement);
+
+    // Ambient light
+    scene.add(new THREE.AmbientLight(0xcccccc));
+
+    // Create the globe
+    const Globe = new ThreeGlobe()
+      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
+      .arcsData(arcData)
+      .arcColor('color')
+      .arcDashLength(0.4)
+      .arcDashGap(4)
+      .arcDashInitialGap(() => Math.random() * 5)
+      .arcDashAnimateTime(1000);
+
+    scene.add(Globe);
+    camera.position.z = 200;
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+      renderer.setSize(innerWidth, innerHeight);
+      camera.aspect = innerWidth/innerHeight;
+      camera.updateProjectionMatrix();
+    });
+
+    // Render loop
+    (function animate() {
+      // slowly spin the globe
+      Globe.rotation.y += 0.0005;
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    })();
+  </script>
+</body>
+</html>
