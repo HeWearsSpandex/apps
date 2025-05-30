@@ -46,9 +46,7 @@
     td.rank {
       font-weight: bold;
     }
-    .static-section {
-      flex-shrink: 0;
-    }
+    .static-section { flex-shrink: 0; }
     .scrollable-section {
       flex-grow: 1;
       overflow: hidden;
@@ -104,8 +102,9 @@
         img.onerror = () => {
           const c = document.createElement('canvas');
           c.width = c.height = size;
-          c.getContext('2d').fillStyle = '#ccc';
-          c.getContext('2d').fillRect(0,0,size,size);
+          const ctx = c.getContext('2d');
+          ctx.fillStyle = '#ccc';
+          ctx.fillRect(0,0,size,size);
           res(c);
         };
         img.src = src;
@@ -117,7 +116,6 @@
       const canvas = document.createElement('canvas');
       canvas.width = canvas.height = total;
       const ctx = canvas.getContext('2d');
-
       if (isLeader) {
         ctx.fillStyle = 'gold';
         ctx.beginPath();
@@ -125,7 +123,6 @@
         ctx.arc(total/2, total/2, base/2,       0, 2*Math.PI);
         ctx.fill('evenodd');
       }
-
       const safe = encodeURIComponent(name.trim()) + '_cvface1.png';
       const img = await loadImageElement(IMG_PATH + safe, base);
       ctx.drawImage(img, halo, halo, base, base);
@@ -140,7 +137,7 @@
       const keys  = lines.shift().split(',').map(h=>h.trim());
       return lines.map(l => {
         const cols = l.split(',');
-        return keys.reduce((o,k,i) => (o[k]=cols[i]?.trim()||'', o), {});
+        return keys.reduce((o,k,i) => (o[k] = (cols[i]||'').trim(), o), {});
       });
     }
 
@@ -150,10 +147,9 @@
         .filter(r => r['T/M RANK'])
         .sort((a,b) => +a['T/M RANK'] - +b['T/M RANK']);
 
-      const counts = rows.reduce((acc, r) => {
+      const counts = rows.reduce((a,r) => {
         const rk = +r['T/M RANK'];
-        acc[rk] = (acc[rk]||0) + 1;
-        return acc;
+        a[rk] = (a[rk]||0) + 1; return a;
       }, {});
 
       document.getElementById('top-rank').innerHTML    = '';
@@ -164,7 +160,9 @@
               lm     = +r['L/M RANK'] || Infinity,
               tie    = counts[tm] > 1,
               rankTx = (tie ? '=' : '') + tm,
-              arrow  = tm < lm ? 'Green%20Arrow.png' : tm > lm ? 'Red%20Arrow.png' : '',
+              arrow  = tm < lm ? 'Green%20Arrow.png'
+                     : tm > lm ? 'Red%20Arrow.png'
+                     : '',
               leader = tm === 1,
               icon   = await drawIcon(r['NAME'], leader),
               size   = 64 + (leader ? 10 : 0);
@@ -188,27 +186,41 @@
 
     function startPingPongScroll() {
       const ct      = document.getElementById('scroll-container');
-      const speed   = 0.5;
+      const speed   = 0.5; // px per ms
       let direction = 1;
-      let pauseUntil = 0;
+      let paused    = false;
+      let pauseMs   = 1000;    // pause duration
+      let lastTime  = performance.now();
+      let elapsed   = 0;
 
-      function step() {
-        const now = Date.now();
-        if (now < pauseUntil) {
-          return requestAnimationFrame(step);
-        }
+      function step(now) {
+        const dt = now - lastTime;
+        lastTime = now;
 
-        ct.scrollTop += speed * direction;
+        if (paused) {
+          elapsed += dt;
+          if (elapsed >= pauseMs) {
+            paused = false;
+            elapsed = 0;
+          }
+        } else {
+          // move
+          ct.scrollTop += speed * dt * direction;
 
-        // at top
-        if (ct.scrollTop <= 0) {
-          direction   = 1;
-          pauseUntil  = now + 1000;
-        }
-        // at bottom
-        else if (ct.scrollTop + ct.clientHeight >= ct.scrollHeight) {
-          direction   = -1;
-          pauseUntil  = now + 1000;
+          const maxScroll = ct.scrollHeight - ct.clientHeight;
+
+          // hit bottom
+          if (ct.scrollTop >= maxScroll) {
+            ct.scrollTop = maxScroll;
+            direction = -1;
+            paused    = true;
+          }
+          // hit top
+          else if (ct.scrollTop <= 0) {
+            ct.scrollTop = 0;
+            direction = 1;
+            paused    = true;
+          }
         }
 
         requestAnimationFrame(step);
