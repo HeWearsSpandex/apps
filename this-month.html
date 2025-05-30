@@ -13,7 +13,6 @@
       display: flex;
       flex-direction: column;
     }
-
     .logo {
       text-align: center;
       margin: 20px 0 10px;
@@ -22,12 +21,10 @@
       max-width: 200px;
       height: auto;
     }
-
     h1 {
       text-align: center;
       margin: 0 0 20px;
     }
-
     table {
       width: 100%;
       max-width: 600px;
@@ -35,29 +32,23 @@
       border-collapse: collapse;
       table-layout: fixed;
     }
-
     th, td {
       padding: 8px;
       text-align: center;
     }
-
     th {
       background: #f4f4f4;
     }
-
     img.face {
       border-radius: 50%;
       vertical-align: middle;
     }
-
     td.rank {
       font-weight: bold;
     }
-
     .static-section {
       flex-shrink: 0;
     }
-
     .scrollable-section {
       flex-grow: 1;
       overflow: hidden;
@@ -79,9 +70,7 @@
     <div class="logo">
       <img src="img/JHB Logo.png" alt="JHB Logo">
     </div>
-
     <h1>Bonus Metres – Current Month’s Leaderboard</h1>
-
     <table>
       <thead>
         <tr>
@@ -144,7 +133,7 @@
     }
 
     async function fetchData() {
-      const r = await fetch(CSV_URL, {cache:'no-cache'});
+      const r = await fetch(CSV_URL, { cache:'no-cache' });
       if (!r.ok) throw new Error('Failed CSV: ' + r.status);
       const txt = await r.text();
       const lines = txt.trim().split(/\r?\n/);
@@ -159,30 +148,33 @@
       const data = await fetchData();
       const rows = data
         .filter(r => r['T/M RANK'])
-        .sort((a,b)=>+a['T/M RANK'] - +b['T/M RANK']);
+        .sort((a,b) => +a['T/M RANK'] - +b['T/M RANK']);
 
-      const counts = rows.reduce((a,r) => {
+      const counts = rows.reduce((acc, r) => {
         const rk = +r['T/M RANK'];
-        a[rk] = (a[rk]||0) + 1; return a;
+        acc[rk] = (acc[rk]||0) + 1;
+        return acc;
       }, {});
 
-      document.getElementById('top-rank').innerHTML   = '';
+      document.getElementById('top-rank').innerHTML    = '';
       document.getElementById('other-ranks').innerHTML = '';
 
       for (const r of rows) {
-        const tm = +r['T/M RANK'], lm = +r['L/M RANK']||Infinity;
-        const tie = counts[tm] > 1, txt = (tie?'=':'') + tm;
-        const arr = tm<lm ? 'Green%20Arrow.png' : tm>lm ? 'Red%20Arrow.png' : '';
-        const leader = tm===1;
-        const icon = await drawIcon(r['NAME'], leader);
-        const size = 64 + (leader?10:0);
+        const tm     = +r['T/M RANK'],
+              lm     = +r['L/M RANK'] || Infinity,
+              tie    = counts[tm] > 1,
+              rankTx = (tie ? '=' : '') + tm,
+              arrow  = tm < lm ? 'Green%20Arrow.png' : tm > lm ? 'Red%20Arrow.png' : '',
+              leader = tm === 1,
+              icon   = await drawIcon(r['NAME'], leader),
+              size   = 64 + (leader ? 10 : 0);
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="rank">${txt}</td>
+          <td class="rank">${rankTx}</td>
           <td><img src="${icon}" width="${size}" height="${size}" class="face"></td>
           <td>${r['NAME']}</td>
-          <td>${arr?`<img src="${IMG_PATH+arr}" width="32" height="32">`:''}</td>
+          <td>${arrow ? `<img src="${IMG_PATH+arrow}" width="32" height="32">` : ''}</td>
         `;
         (leader
           ? document.getElementById('top-rank')
@@ -190,31 +182,33 @@
         ).appendChild(tr);
       }
 
-      startPingPongScroll();
+      // start after a 1s initial pause
+      setTimeout(startPingPongScroll, 1000);
     }
 
     function startPingPongScroll() {
-      const ct       = document.getElementById('scroll-container');
-      const speed    = 0.5;
-      let direction  = 1;
+      const ct      = document.getElementById('scroll-container');
+      const speed   = 0.5;
+      let direction = 1;
       let pauseUntil = 0;
 
       function step() {
         const now = Date.now();
-
         if (now < pauseUntil) {
-          requestAnimationFrame(step);
-          return;
+          return requestAnimationFrame(step);
         }
 
         ct.scrollTop += speed * direction;
 
+        // at top
         if (ct.scrollTop <= 0) {
-          direction  = 1;
-          pauseUntil = now + 1000;
-        } else if (ct.scrollTop + ct.clientHeight >= ct.scrollHeight) {
-          direction  = -1;
-          pauseUntil = now + 1000;
+          direction   = 1;
+          pauseUntil  = now + 1000;
+        }
+        // at bottom
+        else if (ct.scrollTop + ct.clientHeight >= ct.scrollHeight) {
+          direction   = -1;
+          pauseUntil  = now + 1000;
         }
 
         requestAnimationFrame(step);
@@ -223,7 +217,7 @@
       requestAnimationFrame(step);
     }
 
-    build().catch(e=>{
+    build().catch(e => {
       console.error(e);
       document.querySelector('#top-rank').innerHTML =
         '<tr><td colspan="4" style="color:red">Error loading leaderboard</td></tr>';
