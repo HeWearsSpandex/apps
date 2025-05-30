@@ -31,7 +31,8 @@
   <script>
     // ------- CONFIG -------
     const totalMetres = 123456; // replace with real total
-    const HQ_COORDS = Cesium.Cartographic.fromDegrees(-3.797092, 50.43135);
+    const HQ_LON = -3.797092;
+    const HQ_LAT = 50.43135;
     // --------------------------------
     document.getElementById('totalMeters').innerText = totalMetres.toLocaleString();
 
@@ -46,14 +47,18 @@
       selectionIndicator: false,
       navigationHelpButton: false,
       shouldAnimate: true,
-      terrainProvider: Cesium.createWorldTerrain()
+      // use OSM imagery instead of Ion terrain (no access token needed)
+      imageryProvider: new Cesium.OpenStreetMapImageryProvider({
+        url: 'https://a.tile.openstreetmap.org/'
+      }),
+      baseLayerPicker: false
     });
 
     // Fly to HQ coords
     viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(
-        Cesium.Math.toDegrees(HQ_COORDS.longitude),
-        Cesium.Math.toDegrees(HQ_COORDS.latitude),
+        HQ_LON,
+        HQ_LAT,
         2000000 // height in meters
       ),
       orientation: {
