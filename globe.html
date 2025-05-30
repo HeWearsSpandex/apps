@@ -13,14 +13,9 @@
     body { margin:0; overflow:hidden; }
     #globeViz { position:absolute; top:0; left:0; right:0; bottom:0; }
     #meterOverlay {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      padding: 8px 12px;
-      background: rgba(0,0,0,0.6);
-      color: white;
-      font-family: Arial, sans-serif;
-      font-size: 18px;
+      position: absolute; top: 20px; left: 20px;
+      padding: 8px 12px; background: rgba(0,0,0,0.6);
+      color: white; font-family: Arial, sans-serif; font-size: 18px;
       border-radius: 4px;
     }
   </style>
@@ -32,29 +27,31 @@
   <script>
     // ------- CONFIGURE THIS -------
     const totalMetres = 123456;  // your total metres value
+    const START_LAT = 50.43135, START_LNG = -3.797092; // JHB UK Ltd HQ coordinates
     const arcData = [
-      { startLat: 50.43135, startLng: -3.797092,
-        endLat: 44.4268, endLng: 26.1025,
+      { startLat: START_LAT, startLng: START_LNG,
+        endLat: 44.4268, endLng: 26.1025, // Bucharest
         color: ['#00ff00','#00ff00'] }
     ];
     // --------------------------------
 
+    // update overlay text
     document.getElementById('totalMeters').innerText = totalMetres.toLocaleString();
 
-    // Three.js scene
+    // Three.js scene setup
     const scene    = new THREE.Scene();
     const camera   = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias:true });
     renderer.setSize(innerWidth, innerHeight);
     document.getElementById('globeViz').appendChild(renderer.domElement);
 
-    // Ambient and directional "sun" light for better illumination
+    // add lights for better illumination
     scene.add(new THREE.AmbientLight(0xffffff, 0.8));
     const sun = new THREE.DirectionalLight(0xffffff, 0.6);
     sun.position.set(50, 50, 50).normalize();
     scene.add(sun);
 
-    // Create the globe with daytime texture
+    // create the globe with daytime texture and arcs
     const Globe = new ThreeGlobe()
       .globeImageUrl('//unpkg.com/three-globe/example/img/earth-day.jpg')
       .arcsData(arcData)
@@ -65,18 +62,22 @@
       .arcDashAnimateTime(1000);
 
     scene.add(Globe);
+
+    // center initial view on JHB UK Ltd longitude
+    Globe.rotation.y = START_LNG * Math.PI/180;
+
     camera.position.z = 200;
 
-    // Handle resize
+    // handle window resize
     window.addEventListener('resize', () => {
       renderer.setSize(innerWidth, innerHeight);
       camera.aspect = innerWidth/innerHeight;
       camera.updateProjectionMatrix();
     });
 
-    // Render loop
+    // animation loop: rotate anticlockwise
     (function animate() {
-      Globe.rotation.y += 0.0005;
+      Globe.rotation.y -= 0.0005;  // negative for anticlockwise
       renderer.render(scene, camera);
       requestAnimationFrame(animate);
     })();
