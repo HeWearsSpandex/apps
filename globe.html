@@ -10,19 +10,30 @@
   <script src="https://unpkg.com/three-globe"></script>
 
   <style>
-    body { margin:0; overflow:hidden; }
-    #globeViz { position:absolute; top:0; left:0; right:0; bottom:0; }
+    body { margin:0; overflow:hidden; font-family: Arial, sans-serif; }
+    /* Header from last-week.html */
+    .logo { text-align: center; margin: 20px 0 10px; }
+    .logo img { max-width: 200px; height: auto; }
+    h1 { text-align: center; margin: 0 0 20px; }
+
+    #globeContainer { position:absolute; top: 120px; left:0; right:0; bottom:0; }
+    #globeViz { width:100%; height:100%; }
     #meterOverlay {
-      position: absolute; top: 20px; left: 20px;
+      position: absolute; top: 140px; left: 20px;
       padding: 8px 12px; background: rgba(0,0,0,0.6);
-      color: white; font-family: Arial, sans-serif; font-size: 18px;
-      border-radius: 4px;
+      color: white; font-size: 18px; border-radius: 4px;
     }
   </style>
 </head>
 <body>
-  <div id="globeViz"></div>
-  <div id="meterOverlay">Total Metres: <span id="totalMeters">0</span> m</div>
+  <!-- Header -->
+  <div class="logo"><img src="img/JHB Logo.png" alt="JHB Logo"></div>
+  <h1>Bonus Metres – Globe View</h1>
+
+  <div id="globeContainer">
+    <div id="globeViz"></div>
+    <div id="meterOverlay">Total Metres: <span id="totalMeters">0</span> m</div>
+  </div>
 
   <script>
     // ------- CONFIGURE THIS -------
@@ -42,7 +53,7 @@
     const scene    = new THREE.Scene();
     const camera   = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias:true });
-    renderer.setSize(innerWidth, innerHeight);
+    renderer.setSize(innerWidth, innerHeight - 120);
     document.getElementById('globeViz').appendChild(renderer.domElement);
 
     // add lights for better illumination
@@ -70,8 +81,8 @@
 
     // handle window resize
     window.addEventListener('resize', () => {
-      renderer.setSize(innerWidth, innerHeight);
-      camera.aspect = innerWidth/innerHeight;
+      renderer.setSize(innerWidth, innerHeight - 120);
+      camera.aspect = innerWidth/ (innerHeight - 120);
       camera.updateProjectionMatrix();
     });
 
