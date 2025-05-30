@@ -74,10 +74,10 @@
 
     scene.add(Globe);
 
-        // orient globe so the start location is at the center of view
+    // center the HQ at the middle vertically (equator) and horizontally
     const latRad = START_LAT * Math.PI/180;
     const lngRad = START_LNG * Math.PI/180;
-    Globe.rotation.x = latRad;
+    Globe.rotation.x = Math.PI/2 - latRad;
     Globe.rotation.y = -lngRad;
 
     camera.position.z = 200;
@@ -85,7 +85,7 @@
     // handle window resize
     window.addEventListener('resize', () => {
       renderer.setSize(innerWidth, innerHeight - 120);
-      camera.aspect = innerWidth/ (innerHeight - 120);
+      camera.aspect = innerWidth/(innerHeight - 120);
       camera.updateProjectionMatrix();
     });
 
