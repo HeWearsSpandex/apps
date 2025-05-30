@@ -197,15 +197,24 @@
       const ct       = document.getElementById('scroll-container');
       const speed    = 0.5;
       let direction  = 1;
+      let pauseUntil = 0;
 
       function step() {
+        const now = Date.now();
+
+        if (now < pauseUntil) {
+          requestAnimationFrame(step);
+          return;
+        }
+
         ct.scrollTop += speed * direction;
 
-        // reverse at top or bottom
         if (ct.scrollTop <= 0) {
-          direction = 1;
+          direction  = 1;
+          pauseUntil = now + 1000;
         } else if (ct.scrollTop + ct.clientHeight >= ct.scrollHeight) {
-          direction = -1;
+          direction  = -1;
+          pauseUntil = now + 1000;
         }
 
         requestAnimationFrame(step);
