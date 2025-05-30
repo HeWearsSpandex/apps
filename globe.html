@@ -31,18 +31,14 @@
 
   <script>
     // ------- CONFIGURE THIS -------
-    // Your total metres value (could be loaded via fetch from your API/CSV)
-    const totalMetres = 123456;  
-
-    // (Optional) Example arc data: start at HQ, end at some target
+    const totalMetres = 123456;  // your total metres value
     const arcData = [
       { startLat: 50.43135, startLng: -3.797092,
-        endLat: 44.4268, endLng: 26.1025,  // Bucharest
+        endLat: 44.4268, endLng: 26.1025,
         color: ['#00ff00','#00ff00'] }
     ];
     // --------------------------------
 
-    // Update overlay
     document.getElementById('totalMeters').innerText = totalMetres.toLocaleString();
 
     // Three.js scene
@@ -52,12 +48,15 @@
     renderer.setSize(innerWidth, innerHeight);
     document.getElementById('globeViz').appendChild(renderer.domElement);
 
-    // Ambient light
-    scene.add(new THREE.AmbientLight(0xcccccc));
+    // Ambient and directional "sun" light for better illumination
+    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.6);
+    sun.position.set(50, 50, 50).normalize();
+    scene.add(sun);
 
-    // Create the globe
+    // Create the globe with daytime texture
     const Globe = new ThreeGlobe()
-      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
+      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-day.jpg')
       .arcsData(arcData)
       .arcColor('color')
       .arcDashLength(0.4)
@@ -77,7 +76,6 @@
 
     // Render loop
     (function animate() {
-      // slowly spin the globe
       Globe.rotation.y += 0.0005;
       renderer.render(scene, camera);
       requestAnimationFrame(animate);
