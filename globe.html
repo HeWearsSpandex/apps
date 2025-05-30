@@ -77,7 +77,7 @@
         // orient globe so the start location is at the center of view
     const latRad = START_LAT * Math.PI/180;
     const lngRad = START_LNG * Math.PI/180;
-    Globe.rotation.x = -latRad;
+    Globe.rotation.x = latRad;
     Globe.rotation.y = -lngRad;
 
     camera.position.z = 200;
