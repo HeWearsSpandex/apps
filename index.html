@@ -29,10 +29,8 @@
     #leaderboard .logo img { max-width: 120px; height: auto; }
     #leaderboard h2 { text-align: center; margin: 4px 0 12px; font-size: 16px; }
     #leaderboard .header-row {
-      display: flex;
-      font-weight: bold;
-      border-bottom: 1px solid #ccc;
-      padding-bottom: 4px;
+      display: flex; font-weight: bold;
+      border-bottom: 1px solid #ccc; padding-bottom: 4px;
       margin-bottom: 8px;
     }
     #leaderboard .header-row span { flex-shrink: 0; }
@@ -43,34 +41,25 @@
     .static-section { flex-shrink: 0; }
     .scrollable-section { flex-grow: 1; overflow: hidden; position: relative; }
     .scrollable-inner {
-      height: 100%;
-      overflow-y: auto;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-      padding-right: 4px;
+      height: 100%; overflow-y: auto;
+      scrollbar-width: none; -ms-overflow-style: none;
+      padding-right:4px;
     }
     .scrollable-inner::-webkit-scrollbar { display: none; }
 
     /* List styles */
     #static-rank1, #other-ranks {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+      list-style:none; padding:0; margin:0;
+      display:flex; flex-direction:column; gap:4px;
     }
     #static-rank1 li, #other-ranks li {
-      display: flex;
-      align-items: center;
+      display:flex; align-items:center;
     }
     #static-rank1 li .col-name,
     #other-ranks li .col-name {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      white-space: nowrap; overflow:hidden; text-overflow:ellipsis;
     }
-    #leaderboard img.face { border-radius: 50%; }
+    img.face { border-radius:50%; }
   </style>
 </head>
 <body>
@@ -88,143 +77,58 @@
   <div id="map"></div>
 
   <script>
-    const IMG_PATH = 'img/';
-    const CSV_URL = './data/actual_distances.csv';
-    const HQ = { lat: 50.43135, lng: -3.797092 };
-    const PEOPLE = [/* ... names ... */];
-    const DESTINATION = 'Bucharest, Romania';
-    const WAYPOINTS = [/* ... waypoints ... */];
+    const IMG_PATH='img/';
+    const CSV_URL='./data/actual_distances.csv';
+    const HQ={lat:50.43135,lng:-3.797092};
+    const PEOPLE=['Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Turnstill','Brendon Kilcullen','Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan','Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks','James Rundle-Jones','James Whiteoak','Jay Dunn','Joe Lambourne-Gillen','John Peters','Jonathan Thompson','Joseph Nixon','Joseph Young','Joshua Powell','Joshua Rowberry','Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Morgan Hemming','Nicholas Kingshott','Richard Clanford','Robert Tamas','Ross Watson','Ryan Breslan','Ryan Manners','Tom Brooks','Tristan Allen','Tyler Webb','David Mahon','Darren Hatfield'];
+    const DESTINATION='Bucharest, Romania';
+    const WAYPOINTS=['Exeter, UK','Bristol, UK','London, UK','Calais, France','Brussels, Belgium','Cologne, Germany','Frankfurt, Germany','Nuremberg, Germany','Vienna, Austria','Budapest, Hungary','Sibiu, Romania'];
 
-    let ACTUAL_METERS = {};
-    async function fetchActualMeters() {
-      const res = await fetch(CSV_URL, { cache: 'no-cache' });
-      if (!res.ok) throw new Error('CSV load failed: ' + res.status);
-      const lines = (await res.text()).trim().split(/\r?\n/);
-      lines.shift();
-      lines.forEach(line => {
-        const [name, meters] = line.split(',');
-        ACTUAL_METERS[name.trim()] = parseFloat(meters) || 0;
-      });
+    let ACTUAL_METERS={};
+    async function fetchActualMeters(){
+      const r=await fetch(CSV_URL,{cache:'no-cache'});
+      if(!r.ok)throw Error(r.status);
+      const lines=(await r.text()).trim().split(/\r?\n/); lines.shift();
+      for(const l of lines){const [n,m]=l.split(',');ACTUAL_METERS[n.trim()]=parseFloat(m)||0;}
     }
 
-    async function loadImage(src) {
-      return new Promise(res => {
-        const img = new Image(); img.crossOrigin = 'anonymous';
-        img.onload = () => res(img);
-        img.onerror = () => { const c=document.createElement('canvas'); c.width=c.height=64; const ctx=c.getContext('2d'); ctx.fillStyle='#ccc'; ctx.fillRect(0,0,64,64); res(c); };
-        img.src = src;
-      });
-    }
+    async function loadImage(src){return new Promise(res=>{const img=new Image();img.crossOrigin='anonymous';img.onload=()=>res(img);img.onerror=()=>{const c=document.createElement('canvas');c.width=c.height=64;const ctx=c.getContext('2d');ctx.fillStyle='#ccc';ctx.fillRect(0,0,64,64);res(c);} ;img.src=src;});}
 
-    async function drawIcon(name, haloColor, faceSize = 32, haloThickness = haloColor ? 5 : 0) {
-      const total = faceSize + haloThickness * 2;
-      const canvas = document.createElement('canvas'); canvas.width = canvas.height = total;
-      const ctx = canvas.getContext('2d');
-      if (haloColor) {
-        ctx.fillStyle = haloColor;
-        ctx.beginPath();
-        ctx.arc(total/2, total/2, faceSize/2 + haloThickness, 0, 2*Math.PI);
-        ctx.arc(total/2, total/2, faceSize/2, 0, 2*Math.PI);
-        ctx.fill('evenodd');
-      }
-      const safeName = encodeURIComponent(name.trim());
-      const img = await loadImage(`${IMG_PATH}${safeName}_cvface1.png`);
-      ctx.drawImage(img, haloThickness, haloThickness, faceSize, faceSize);
+    async function drawIcon(name,haloColor,faceSize=32,halo=haloColor?5:0){
+      const total=faceSize+halo*2,canvas=document.createElement('canvas');canvas.width=canvas.height=total;const ctx=canvas.getContext('2d');
+      if(haloColor){ctx.fillStyle=haloColor;ctx.beginPath();ctx.arc(total/2,total/2,faceSize/2+halo,0,2*Math.PI);ctx.arc(total/2,total/2,faceSize/2,0,2*Math.PI);ctx.fill('evenodd');}
+      const safe=encodeURIComponent(name.trim());
+      const img=await loadImage(`${IMG_PATH}${safe}_cvface1.png`);
+      ctx.drawImage(img,halo,halo,faceSize,faceSize);
       return canvas.toDataURL();
     }
 
-    async function initLeaderboard(participants) {
-      const staticUl = document.getElementById('static-rank1');
-      const otherUl = document.getElementById('other-ranks');
-      staticUl.innerHTML = '';
-      otherUl.innerHTML = '';
-
-      // compute display ranks and halos
-      let lastBonus = null, displayRank = 0, count = 0;
-      participants.forEach(p => {
-        count++;
-        if (p.bonus !== lastBonus) { displayRank = count; lastBonus = p.bonus; }
-        p.displayRank = displayRank;
-        if (displayRank === 1) p.haloColor = 'gold';
-        else if (displayRank === 2) p.haloColor = 'silver';
-        else if (displayRank === 3) p.haloColor = '#cd7f32'; // bronze
-        else p.haloColor = null;
-      });
-
+    async function initLeaderboard(participants){
+      const sU=document.getElementById('static-rank1'),oU=document.getElementById('other-ranks');sU.innerHTML='';oU.innerHTML='';
+      // compute ranks & halos
+      let last=null,display=0,c=0;
+      for(const p of participants){c++;if(p.bonus!==last){display=c;last=p.bonus;}p.r=display; p.halo=p.r===1?'gold':p.r===2?'silver':p.r===3?'#cd7f32':null;}
       // render
-      for (const p of participants) {
-        const li = document.createElement('li');
-        const rankText = (participants.filter(x=>x.bonus===p.bonus).length > 1 ? '=' : '') + p.displayRank;
-        const size = 32 + (p.haloColor ? 5 : 0);
-        const iconUrl = await drawIcon(p.name, p.haloColor, 32, p.haloColor ? 5 : 0);
-        li.innerHTML =
-          `<span class="col-rank">${rankText}</span>` +
-          `<img class="face col-face" src="${iconUrl}" width="${size}" height="${size}">` +
-          `<span class="col-name">${p.name}</span>`;
-        if (p.displayRank === 1) staticUl.appendChild(li);
-        else otherUl.appendChild(li);
+      for(const p of participants){
+        const eq=participants.filter(x=>x.bonus===p.bonus).length>1?'=':'';
+        const rankTxt=`${eq}${p.r}`;
+        const size=32+(p.halo?5:0);
+        const iconUrl=await drawIcon(p.name,p.halo,32,p.halo?5:0);
+        const li=document.createElement('li');
+        li.innerHTML=`<span class="col-rank">${rankTxt}</span><img class="face col-face" src="${iconUrl}" width="${size}" height="${size}"><span class="col-name">${p.name}</span>`;
+        if(p.r===1) sU.appendChild(li); else oU.appendChild(li);
       }
-
-      setTimeout(startPingPongScroll, 1000);
+      setTimeout(startPingPongScroll,1000);
     }
 
-    function startPingPongScroll() {
-      const ct = document.getElementById('scroll-container');
-      const speed = 0.05, pause = 1000;
-      let direction = 1, paused = false;
-      let lastTime = performance.now(), elapsed = 0;
-      function step(now) {
-        const dt = now - lastTime; lastTime = now;
-        if (paused) { elapsed += dt; if (elapsed >= pause) { paused = false; elapsed = 0; } }
-        else {
-          ct.scrollTop += speed * dt * direction;
-          const maxScroll = ct.scrollHeight - ct.clientHeight;
-          if (ct.scrollTop >= maxScroll) { ct.scrollTop = maxScroll; direction = -1; paused = true; }
-          else if (ct.scrollTop <= 0) { ct.scrollTop = 0; direction = 1; paused = true; }
-        }
-        requestAnimationFrame(step);
-      }
-      requestAnimationFrame(step);
+    function startPingPongScroll(){
+      const ct=document.getElementById('scroll-container');const speed=0.05,pause=1000;let dir=1,paused=false,last=performance.now(),e=0;
+      function step(now){const dt=now-last;last=now; if(paused){e+=dt;if(e>=pause){paused=false;e=0;}}else{ct.scrollTop+=speed*dt*dir;const max=ct.scrollHeight-ct.clientHeight;if(ct.scrollTop>=max){ct.scrollTop=max;dir=-1;paused=true;}else if(ct.scrollTop<=0){ct.scrollTop=0;dir=1;paused=true;}}requestAnimationFrame(step);}requestAnimationFrame(step);
     }
 
-    async function initMap() {
-      await fetchActualMeters().catch(console.error);
-      const map = new google.maps.Map(document.getElementById('map'), { padding: { top: 70, right: 10, bottom: 10, left: 10 } });
-      window.map = map;
-      new google.maps.Marker({ map, position: HQ, icon: { url: `${IMG_PATH}JHB Logo.png`, scaledSize: new google.maps.Size(115, 64), anchor: new google.maps.Point(57, 32) } });
-      new google.maps.DirectionsService().route({ origin: HQ, destination: DESTINATION, waypoints: WAYPOINTS.map(loc => ({ location: loc })), travelMode: google.maps.TravelMode.DRIVING }, (res, status) => { if (status === 'OK') animateRoute(res.routes[0].overview_path); else console.error('Directions error:', status); });
-    }
+    async function initMap(){await fetchActualMeters();const map=new google.maps.Map(document.getElementById('map'),{padding:{top:70,right:10,bottom:10,left:10}});window.map=map;new google.maps.Marker({map,position:HQ,icon:{url:`${IMG_PATH}JHB Logo.png`,scaledSize:new google.maps.Size(115,64),anchor:new google.maps.Point(57,32)}});new google.maps.DirectionsService().route({origin:HQ,destination:DESTINATION,waypoints:WAYPOINTS.map(l=>({location:l})),travelMode:google.maps.TravelMode.DRIVING},(res,s)=>{if(s==='OK')animateRoute(res.routes[0].overview_path);else console.error(s);});}
 
-    async function animateRoute(path) {
-      const map = window.map;
-      const distances = path.slice(0, -1).map((_, i) => google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1]));
-      const cum = distances.reduce((a, d) => (a.push((a.slice(-1)[0]||0) + d), a), []);
-      const participants = await Promise.all(PEOPLE.map(async name => {
-        const bonus = ACTUAL_METERS[name] || 0;
-        let idx = cum.findIndex(d => bonus <= d);
-        if (idx < 0) idx = cum.length - 1;
-        const prev = cum[idx-1] || 0;
-        const frac = distances[idx] ? (bonus - prev)/distances[idx] : 0;
-        const p0 = path[idx], p1 = path[idx+1] || p0;
-        return { name, bonus, target: { lat: p0.lat() + (p1.lat()-p0.lat())*frac, lng: p0.lng() + (p1.lng()-p0.lng())*frac } };
-      }));
-      participants.sort((a,b) => b.bonus - a.bonus);
-      for (const p of participants) {
-        const iconUrl = await drawIcon(p.name, null, 64, 0);
-        p.marker = new google.maps.Marker({ map, position: HQ, icon: { url: iconUrl, scaledSize: new google.maps.Size(64, 64), anchor: new google.maps.Point(32, 32) } });
-      }
-      const bounds = new google.maps.LatLngBounds(); participants.forEach(p=>bounds.extend(p.target)); bounds.extend(HQ); map.fitBounds(bounds);
-      for (const p of participants) {
-        const start = performance.now(), dur = 5000;
-        (function stepAnim(now) {
-          const t = Math.min((now - start)/dur,1);
-          p.marker.setPosition({ lat: HQ.lat + (p.target.lat-HQ.lat)*t, lng: HQ.lng + (p.target.lng-HQ.lng)*t });
-          if (t<1) requestAnimationFrame(stepAnim);
-        })(start);
-      }
-      initLeaderboard(participants);
-    }
-  </script>
+    async function animateRoute(path){const map=window.map;const dist=path.slice(0,-1).map((_,i)=>google.maps.geometry.spherical.computeDistanceBetween(path[i],path[i+1]));const cum=dist.reduce((a,d)=>(a.push((a.slice(-1)[0]||0)+d),a),[]);const parts=await Promise.all(PEOPLE.map(async name=>{const b=ACTUAL_METERS[name]||0;let idx=cum.findIndex(d=>b<=d);if(idx<0)idx=cum.length-1;const prev=cum[idx-1]||0;const frac=dist[idx]?(b-prev)/dist[idx]:0;const p0=path[idx],p1=path[idx+1]||p0;return{name,bonus:b,target:{lat:p0.lat()+(p1.lat()-p0.lat())*frac,lng:p0.lng()+(p1.lng()-p0.lng())*frac}}));parts.sort((a,b)=>b.bonus-a.bonus);for(const p of parts){const iconUrl=await drawIcon(p.name,null,64,0);p.marker=new google.maps.Marker({map,position:HQ,icon:{url:iconUrl,scaledSize:new google.maps.Size(64,64),anchor:new google.maps.Point(32,32)}});}const bounds=new google.maps.LatLngBounds();parts.forEach(p=>bounds.extend(p.target));bounds.extend(HQ);map.fitBounds(bounds);for(const p of parts){const start=performance.now(),dur=5000;(function step(now){const t=Math.min((now-start)/dur,1);p.marker.setPosition({lat:HQ.lat+(p.target.lat-HQ.lat)*t,lng:HQ.lng+(p.target.lng-HQ.lng)*t});if(t<1)requestAnimationFrame(step);} )(start);}initLeaderboard(parts);}  </script>
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap"></script>
 </body>
 </html>
