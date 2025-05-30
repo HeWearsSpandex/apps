@@ -55,28 +55,28 @@
   </div>
 
   <script>
-    // ------- CONFIGURE THIS -------
-    const totalMetres = 123456;  // your total metres value
-    const START_LAT = 50.43135, START_LNG = -3.797092; // JHB UK Ltd HQ coordinates
+    // ------- CONFIGURE -------
+    const totalMetres = 123456;  // your total metres
+    const START_LAT = 50.43135, START_LNG = -3.797092; // HQ coords
     const arcData = [
       { startLat: START_LAT, startLng: START_LNG,
         endLat: 44.4268, endLng: 26.1025, // Bucharest
         color: ['#00ff00','#00ff00'] }
     ];
-    // --------------------------------
+    // --------------------------
 
     document.getElementById('totalMeters').innerText = totalMetres.toLocaleString();
 
-    // Scene & camera setup
-    const scene    = new THREE.Scene();
-    const camera   = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+    // Scene & camera
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
 
-    // attach to container
+    // Attach renderer
     const container = document.getElementById('globeContainer');
     document.getElementById('globeViz').appendChild(renderer.domElement);
 
-    // sizing function
+    // Resize handling
     function resize() {
       const w = container.clientWidth;
       const h = container.clientHeight;
@@ -87,13 +87,13 @@
     window.addEventListener('resize', resize);
     resize();
 
-    // lighting
+    // Lighting
     scene.add(new THREE.AmbientLight(0xffffff, 0.8));
     const sun = new THREE.DirectionalLight(0xffffff, 0.6);
     sun.position.set(50, 50, 50).normalize();
     scene.add(sun);
 
-    // globe with daytime texture
+    // Globe
     const Globe = new ThreeGlobe()
       .globeImageUrl('//unpkg.com/three-globe/example/img/earth-day.jpg')
       .arcsData(arcData)
@@ -104,19 +104,17 @@
       .arcDashAnimateTime(1000);
     scene.add(Globe);
 
-    // center the HQ
+    // Center HQ at viewport middle
     const latRad = START_LAT * Math.PI/180;
     const lngRad = START_LNG * Math.PI/180;
-    // tilt globe so HQ is on equator-center and rotated horizontally
     Globe.rotation.x = Math.PI/2 - latRad;
     Globe.rotation.y = -lngRad;
-    // apply Earth's tilt
-    const earthTilt = 23.5 * Math.PI/180;
-    Globe.rotation.z = earthTilt;
+    // remove any additional tilt
+    Globe.rotation.z = 0;
 
     camera.position.z = 200;
 
-    // animate: rotate around Earth's axis (anticlockwise)
+    // Animate rotation around vertical axis
     (function animate() {
       Globe.rotation.y -= 0.0005;
       renderer.render(scene, camera);
