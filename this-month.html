@@ -13,18 +13,9 @@
       display: flex;
       flex-direction: column;
     }
-    .logo {
-      text-align: center;
-      margin: 20px 0 10px;
-    }
-    .logo img {
-      max-width: 200px;
-      height: auto;
-    }
-    h1 {
-      text-align: center;
-      margin: 0 0 20px;
-    }
+    .logo { text-align: center; margin: 20px 0 10px; }
+    .logo img { max-width: 200px; height: auto; }
+    h1 { text-align: center; margin: 0 0 20px; }
     table {
       width: 100%;
       max-width: 600px;
@@ -32,35 +23,17 @@
       border-collapse: collapse;
       table-layout: fixed;
     }
-    th, td {
-      padding: 8px;
-      text-align: center;
-    }
-    th {
-      background: #f4f4f4;
-    }
-    img.face {
-      border-radius: 50%;
-      vertical-align: middle;
-    }
-    td.rank {
-      font-weight: bold;
-    }
+    th, td { padding: 8px; text-align: center; }
+    th { background: #f4f4f4; }
+    img.face { border-radius: 50%; vertical-align: middle; }
+    td.rank { font-weight: bold; }
     .static-section { flex-shrink: 0; }
-    .scrollable-section {
-      flex-grow: 1;
-      overflow: hidden;
-      position: relative;
-    }
+    .scrollable-section { flex-grow: 1; overflow: hidden; position: relative; }
     .scrollable-inner {
-      height: 100%;
-      overflow-y: auto;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
+      height: 100%; overflow-y: auto;
+      scrollbar-width: none; -ms-overflow-style: none;
     }
-    .scrollable-inner::-webkit-scrollbar {
-      display: none;
-    }
+    .scrollable-inner::-webkit-scrollbar { display: none; }
   </style>
 </head>
 <body>
@@ -72,10 +45,7 @@
     <table>
       <thead>
         <tr>
-          <th>Rank</th>
-          <th>Face</th>
-          <th>Name</th>
-          <th>Positional Change</th>
+          <th>Rank</th><th>Face</th><th>Name</th><th>Positional Change</th>
         </tr>
       </thead>
       <tbody id="top-rank"></tbody>
@@ -102,9 +72,8 @@
         img.onerror = () => {
           const c = document.createElement('canvas');
           c.width = c.height = size;
-          const ctx = c.getContext('2d');
-          ctx.fillStyle = '#ccc';
-          ctx.fillRect(0,0,size,size);
+          c.getContext('2d').fillStyle = '#ccc';
+          c.getContext('2d').fillRect(0,0,size,size);
           res(c);
         };
         img.src = src;
@@ -180,18 +149,17 @@
         ).appendChild(tr);
       }
 
-      // start after a 1s initial pause
       setTimeout(startPingPongScroll, 1000);
     }
 
     function startPingPongScroll() {
-      const ct      = document.getElementById('scroll-container');
-      const speed   = 0.5; // px per ms
-      let direction = 1;
-      let paused    = false;
-      let pauseMs   = 1000;    // pause duration
-      let lastTime  = performance.now();
-      let elapsed   = 0;
+      const ct       = document.getElementById('scroll-container');
+      const speed    = 0.05;   // <-- SLOW SCROLL: 0.05 px per ms
+      let direction  = 1;
+      let paused     = false;
+      const pauseMs  = 1000;
+      let lastTime   = performance.now();
+      let elapsed    = 0;
 
       function step(now) {
         const dt = now - lastTime;
@@ -204,19 +172,13 @@
             elapsed = 0;
           }
         } else {
-          // move
           ct.scrollTop += speed * dt * direction;
-
           const maxScroll = ct.scrollHeight - ct.clientHeight;
-
-          // hit bottom
           if (ct.scrollTop >= maxScroll) {
             ct.scrollTop = maxScroll;
             direction = -1;
             paused    = true;
-          }
-          // hit top
-          else if (ct.scrollTop <= 0) {
+          } else if (ct.scrollTop <= 0) {
             ct.scrollTop = 0;
             direction = 1;
             paused    = true;
