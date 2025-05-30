@@ -16,9 +16,8 @@
 
     .logo {
       text-align: center;
-      margin-top: 20px;
+      margin: 20px 0 10px;
     }
-
     .logo img {
       max-width: 200px;
       height: auto;
@@ -26,7 +25,7 @@
 
     h1 {
       text-align: center;
-      margin: 20px 0;
+      margin: 0 0 20px;
     }
 
     table {
@@ -55,29 +54,26 @@
       font-weight: bold;
     }
 
+    /* STATIC top block */
     .static-section {
       flex-shrink: 0;
     }
 
+    /* SCROLLING block fills remaining space */
     .scrollable-section {
       flex-grow: 1;
       overflow: hidden;
       position: relative;
     }
-
     .scrollable-inner {
-      overflow-y: auto;
       height: 100%;
+      overflow-y: auto;
+      /* hide scrollbar for a clean look */
+      scrollbar-width: none;
+      -ms-overflow-style: none;
     }
-
-    /* Smooth scroll animation */
     .scrollable-inner::-webkit-scrollbar {
       display: none;
-    }
-
-    .scrollable-inner {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
     }
   </style>
 </head>
@@ -111,7 +107,8 @@
   </div>
 
   <script>
-    const CSV_URL  = 'https://raw.githubusercontent.com/HeWearsSpandex/animated-map/main/data/actual_distances.csv';
+    // now pulling from your GH-Pages–served CSV, which should be newline-correct
+    const CSV_URL  = './data/actual_distances.csv';
     const IMG_PATH = 'img/';
 
     async function loadImageElement(src, size) {
@@ -119,3 +116,98 @@
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload  = () => res(img);
+        img.onerror = () => {
+          const c = document.createElement('canvas');
+          c.width = c.height = size;
+          c.getContext('2d').fillStyle = '#ccc';
+          c.getContext('2d').fillRect(0,0,size,size);
+          res(c);
+        };
+        img.src = src;
+      });
+    }
+
+    async function drawIcon(name, isLeader) {
+      const base = 64, halo = isLeader ? 10 : 0, total = base + 2*halo;
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = total;
+      const ctx = canvas.getContext('2d');
+
+      if (isLeader) {
+        ctx.fillStyle = 'gold';
+        ctx.beginPath();
+        ctx.arc(total/2, total/2, base/2 + halo, 0, 2*Math.PI);
+        ctx.arc(total/2, total/2, base/2,       0, 2*Math.PI);
+        ctx.fill('evenodd');
+      }
+
+      const safe = encodeURIComponent(name.trim()) + '_cvface1.png';
+      const img = await loadImageElement(IMG_PATH + safe, base);
+      ctx.drawImage(img, halo, halo, base, base);
+      return canvas.toDataURL();
+    }
+
+    async function fetchData() {
+      const r = await fetch(CSV_URL, {cache:'no-cache'});
+      if (!r.ok) throw new Error('Failed CSV: ' + r.status);
+      const txt = await r.text();
+      const lines = txt.trim().split(/\r?\n/);
+      const keys  = lines.shift().split(',').map(h=>h.trim());
+      return lines.map(l => {
+        const cols = l.split(',');
+        return keys.reduce((o,k,i) => (o[k]=cols[i]?.trim()||'', o), {});
+      });
+    }
+
+    async function build() {
+      const data = await fetchData();
+      const rows = data
+        .filter(r => r['T/M RANK'])
+        .sort((a,b)=>+a['T/M RANK'] - +b['T/M RANK']);
+
+      const counts = rows.reduce((a,r) => {
+        const rk = +r['T/M RANK'];
+        a[rk] = (a[rk]||0) + 1; return a;
+      }, {});
+
+      document.getElementById('top-rank').innerHTML   = '';
+      document.getElementById('other-ranks').innerHTML = '';
+
+      for (const r of rows) {
+        const tm = +r['T/M RANK'], lm = +r['L/M RANK']||Infinity;
+        const tie = counts[tm] > 1, txt = (tie?'=':'') + tm;
+        const arr = tm<lm ? 'Green%20Arrow.png' : tm>lm ? 'Red%20Arrow.png' : '';
+        const leader = tm===1;
+        const icon = await drawIcon(r['NAME'], leader);
+        const size = 64 + (leader?10:0);
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="rank">${txt}</td>
+          <td><img src="${icon}" width="${size}" height="${size}" class="face"></td>
+          <td>${r['NAME']}</td>
+          <td>${arr?`<img src="${IMG_PATH+arr}" width="32" height="32">`:''}</td>
+        `;
+        (leader
+          ? document.getElementById('top-rank')
+          : document.getElementById('other-ranks')
+        ).appendChild(tr);
+      }
+
+      // start smooth, looping scroll
+      const ct = document.getElementById('scroll-container');
+      const speed = 0.5;
+      (function step(){
+        ct.scrollTop = (ct.scrollTop + speed) % ct.scrollHeight;
+        requestAnimationFrame(step);
+      })();
+    }
+
+    build().catch(e=>{
+      console.error(e);
+      document.querySelector('#top-rank').innerHTML =
+        '<tr><td colspan="4" style="color:red">Error loading leaderboard</td></tr>';
+    });
+  </script>
+</body>
+</html>
