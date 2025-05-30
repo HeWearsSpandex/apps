@@ -88,45 +88,51 @@
     async function initMap(){await fetchActualMeters();const map=new google.maps.Map(document.getElementById('map'),{padding:{top:70,right:10,bottom:10,left:10}});window.map=map;new google.maps.Marker({map,position:HQ,icon:{url:`${IMG_PATH}JHB Logo.png`,scaledSize:new google.maps.Size(115,64),anchor:new google.maps.Point(57,32)}});new google.maps.DirectionsService().route({origin:HQ,destination:DESTINATION,waypoints:WAYPOINTS.map(l=>({location:l})),travelMode:google.maps.TravelMode.DRIVING},(res,s)=>{if(s==='OK')animateRoute(res.routes[0].overview_path);});}
     async function animateRoute(path) {
       const map = window.map;
-
+      
       // compute distances & cumulative
-      const distances = path.slice(0, -1)
-        .map((_, i) => google.maps.geometry.spherical
-          .computeDistanceBetween(path[i], path[i+1])
-        );
-      const cum = distances.reduce((a, d) => (a.push((a.slice(-1)[0]||0) + d), a), []);
+      const distances = path.slice(0, -1).map((_, i) =>
+        google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
+      );
+      const cum = distances.reduce((arr, d) => {
+        arr.push((arr.slice(-1)[0] || 0) + d);
+        return arr;
+      }, []);
 
       // build participants array
-      const parts = await Promise.all(PEOPLE.map(async name => {
-        const bonus = ACTUAL_METERS[name] || 0;
-        let idx = cum.findIndex(d => bonus <= d);
-        if (idx < 0) idx = cum.length - 1;
-        const prev = cum[idx - 1] || 0;
-        const frac = distances[idx] ? (bonus - prev) / distances[idx] : 0;
-        const p0 = path[idx], p1 = path[idx+1] || p0;
-        return {
-          name,
-          bonus,
-          target: {
-            lat: p0.lat() + (p1.lat() - p0.lat()) * frac,
-            lng: p0.lng() + (p1.lng() - p0.lng()) * frac
-          }
-        };
-      }));  // ← this closing paren and bracket were misaligned
+      const parts = await Promise.all(
+        PEOPLE.map(async name => {
+          const bonus = ACTUAL_METERS[name] || 0;
+          let idx = cum.findIndex(d => bonus <= d);
+          if (idx < 0) idx = cum.length - 1;
+          const prev = cum[idx - 1] || 0;
+          const frac = distances[idx] ? (bonus - prev) / distances[idx] : 0;
+          const p0 = path[idx];
+          const p1 = path[idx + 1] || p0;
+          return {
+            name,
+            bonus,
+            target: {
+              lat: p0.lat() + (p1.lat() - p0.lat()) * frac,
+              lng: p0.lng() + (p1.lng() - p0.lng()) * frac
+            }
+          };
+        })
+      );
 
-      parts.sort((a,b) => b.bonus - a.bonus);
-
-      // assign ranks & halo colors
-      let last = null, display = 0, count = 0;
-      for (const p of parts) {
-        count++;
-        if (p.bonus !== last) { display = count; last = p.bonus; }
+      // sort and assign halos and ranks
+      parts.sort((a, b) => b.bonus - a.bonus);
+      let last = null, display = 0;
+      parts.forEach((p, i) => {
+        if (p.bonus !== last) {
+          display = i + 1;
+          last = p.bonus;
+        }
         p.rank = display;
         p.halo = p.rank === 1 ? 'gold'
-               : p.rank === 2 ? 'silver'
-               : p.rank === 3 ? '#cd7f32'
-               : null;
-      }
+                : p.rank === 2 ? 'silver'
+                : p.rank === 3 ? '#cd7f32'
+                : null;
+      });
 
       // create map markers with halos
       for (const p of parts) {
@@ -148,7 +154,6 @@
       parts.forEach(p => bounds.extend(p.target));
       bounds.extend(HQ);
       map.fitBounds(bounds);
-
       parts.forEach(p => {
         const start = performance.now(), dur = 5000;
         (function move(now) {
@@ -161,10 +166,8 @@
         })(start);
       });
 
-      // finally build the leaderboard overlay
+      // build leaderboard
       initLeaderboard(parts);
-    }
-
     }
   </script>
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap"></script>
