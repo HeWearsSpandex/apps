@@ -24,73 +24,25 @@
       display: flex;
       flex-direction: column;
     }
-    #leaderboard .logo {
-      text-align: center;
-      margin-bottom: 8px;
-    }
-    #leaderboard .logo img {
-      max-width: 120px;
-      height: auto;
-    }
-    #leaderboard h2 {
-      text-align: center;
-      margin: 4px 0 12px;
-      font-size: 16px;
-    }
-    #leaderboard .header-row {
-      display: flex;
-      font-weight: bold;
-      border-bottom: 1px solid #ccc;
-      padding-bottom: 4px;
-      margin-bottom: 8px;
-    }
-    #leaderboard .header-row span {
-      flex-shrink: 0;
-    }
+    #leaderboard .logo { text-align: center; margin-bottom: 8px; }
+    #leaderboard .logo img { max-width: 120px; height: auto; }
+    #leaderboard h2 { text-align: center; margin: 4px 0 12px; font-size: 16px; }
+    #leaderboard .header-row { display: flex; font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-bottom: 8px; }
+    #leaderboard .header-row span { flex-shrink: 0; }
     .col-rank { width: 30px; text-align: center; }
     .col-face { width: 32px; margin: 0 8px; }
     .col-name { flex: 1; }
 
-    .static-section {
-      flex-shrink: 0;
-    }
-    .scrollable-section {
-      flex-grow: 1;
-      overflow: hidden;
-      position: relative;
-    }
-    .scrollable-inner {
-      height: 100%;
-      overflow-y: auto;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-      padding-right: 8px;
-    }
+    .static-section { flex-shrink: 0; }
+    .scrollable-section { flex-grow: 1; overflow: hidden; position: relative; }
+    .scrollable-inner { height: 100%; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; padding-right: 8px; }
     .scrollable-inner::-webkit-scrollbar { display: none; }
 
     /* List styles */
-    #static-rank1, #other-ranks {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    #static-rank1 li, #other-ranks li {
-      display: flex;
-      align-items: center;
-    }
-    #static-rank1 li .col-name,
-    #other-ranks li .col-name {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    #leaderboard img.face {
-      border-radius:50%;
-      display:inline-block;
-    }
+    #static-rank1, #other-ranks { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+    #static-rank1 li, #other-ranks li { display: flex; align-items: center; }
+    #static-rank1 li .col-name, #other-ranks li .col-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #leaderboard img.face { border-radius:50%; display:inline-block; }
   </style>
 </head>
 <body>
@@ -108,10 +60,10 @@
   <div id="map"></div>
 
   <script>
-    const IMG_PATH    = 'img/';
-    const CSV_URL     = './data/actual_distances.csv';
-    const HQ          = { lat: 50.43135, lng: -3.797092 };
-    const PEOPLE      = [
+    const IMG_PATH = 'img/';
+    const CSV_URL = './data/actual_distances.csv';
+    const HQ = { lat: 50.43135, lng: -3.797092 };
+    const PEOPLE = [
       'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Turnstill','Brendon Kilcullen',
       'Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan',
       'Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks',
@@ -122,23 +74,19 @@
       'Ryan Breslan','Ryan Manners','Tom Brooks','Tristan Allen','Tyler Webb','David Mahon','Darren Hatfield'
     ];
     const DESTINATION = 'Bucharest, Romania';
-    const WAYPOINTS   = [
+    const WAYPOINTS = [
       'Exeter, UK','Bristol, UK','London, UK','Calais, France','Brussels, Belgium',
       'Cologne, Germany','Frankfurt, Germany','Nuremberg, Germany',
       'Vienna, Austria','Budapest, Hungary','Sibiu, Romania'
     ];
 
     let ACTUAL_METERS = {};
-
     async function fetchActualMeters() {
-      const res = await fetch(CSV_URL, { cache:'no-cache' });
+      const res = await fetch(CSV_URL, { cache: 'no-cache' });
       if (!res.ok) throw new Error('CSV load failed: ' + res.status);
       const lines = (await res.text()).trim().split(/\r?\n/);
-      lines.shift(); // drop header
-      lines.forEach(line => {
-        const [name, meters] = line.split(',');
-        ACTUAL_METERS[name.trim()] = parseFloat(meters) || 0;
-      });
+      lines.shift();
+      lines.forEach(line => { const [name, meters] = line.split(','); ACTUAL_METERS[name.trim()] = parseFloat(meters) || 0; });
     }
 
     async function loadImage(src) {
@@ -159,8 +107,7 @@
       const canvas = document.createElement('canvas'); canvas.width = canvas.height = total;
       const ctx = canvas.getContext('2d');
       if (isLeader) {
-        ctx.fillStyle = 'gold';
-        ctx.beginPath();
+        ctx.fillStyle = 'gold'; ctx.beginPath();
         ctx.arc(total/2, total/2, faceSize/2 + halo, 0, 2*Math.PI);
         ctx.arc(total/2, total/2, faceSize/2, 0, 2*Math.PI);
         ctx.fill('evenodd');
@@ -173,22 +120,22 @@
 
     async function initLeaderboard(participants) {
       const staticUl = document.getElementById('static-rank1');
-      const otherUl  = document.getElementById('other-ranks');
+      const otherUl = document.getElementById('other-ranks');
       staticUl.innerHTML = '';
-      otherUl.innerHTML  = '';
+      otherUl.innerHTML = '';
 
-      participants.forEach((p, i) => {
+      for (let i = 0; i < participants.length; i++) {
+        const p = participants[i];
         const isLeader = i === 0;
         const iconUrl = await drawIcon(p.name, isLeader);
         const li = document.createElement('li');
         li.innerHTML =
-          `<span class="col-rank">${i+1}</span>` +
+          `<span class="col-rank">${i + 1}</span>` +
           `<img class="face col-face" src="${iconUrl}" width="${32 + (isLeader ? 10 : 0)}" height="${32 + (isLeader ? 10 : 0)}">` +
           `<span class="col-name">${p.name}</span>`;
         (isLeader ? staticUl : otherUl).appendChild(li);
-      });
+      }
 
-      // start scroll after build
       setTimeout(startPingPongScroll, 1000);
     }
 
@@ -197,32 +144,21 @@
       const speed = 0.05;
       const pause = 1000;
       let direction = 1;
-      let paused    = false;
-      let lastTime  = performance.now();
-      let elapsed   = 0;
+      let paused = false;
+      let lastTime = performance.now();
+      let elapsed = 0;
 
       function step(now) {
-        const dt = now - lastTime;
-        lastTime = now;
+        const dt = now - lastTime; lastTime = now;
 
         if (paused) {
           elapsed += dt;
-          if (elapsed >= pause) {
-            paused = false;
-            elapsed = 0;
-          }
+          if (elapsed >= pause) { paused = false; elapsed = 0; }
         } else {
           ct.scrollTop += speed * dt * direction;
           const maxScroll = ct.scrollHeight - ct.clientHeight;
-          if (ct.scrollTop >= maxScroll) {
-            ct.scrollTop = maxScroll;
-            direction = -1;
-            paused = true;
-          } else if (ct.scrollTop <= 0) {
-            ct.scrollTop = 0;
-            direction = 1;
-            paused = true;
-          }
+          if (ct.scrollTop >= maxScroll) { ct.scrollTop = maxScroll; direction = -1; paused = true; }
+          else if (ct.scrollTop <= 0) { ct.scrollTop = 0; direction = 1; paused = true; }
         }
 
         requestAnimationFrame(step);
@@ -238,24 +174,9 @@
       });
       window.map = map;
 
-      // HQ marker
-      new google.maps.Marker({
-        map,
-        position: HQ,
-        icon: {
-          url: `${IMG_PATH}JHB Logo.png`,
-          scaledSize: new google.maps.Size(115, 64),
-          anchor: new google.maps.Point(57, 32)
-        }
-      });
+      new google.maps.Marker({ map, position: HQ, icon: { url: `${IMG_PATH}JHB Logo.png`, scaledSize: new google.maps.Size(115, 64), anchor: new google.maps.Point(57, 32) } });
 
-      // Route
-      new google.maps.DirectionsService().route({
-        origin: HQ,
-        destination: DESTINATION,
-        waypoints: WAYPOINTS.map(loc => ({ location: loc })),
-        travelMode: google.maps.TravelMode.DRIVING
-      }, (res, status) => {
+      new google.maps.DirectionsService().route({ origin: HQ, destination: DESTINATION, waypoints: WAYPOINTS.map(loc => ({ location: loc })), travelMode: google.maps.TravelMode.DRIVING }, (res, status) => {
         if (status === 'OK') animateRoute(res.routes[0].overview_path);
         else console.error('Directions error:', status);
       });
@@ -263,75 +184,36 @@
 
     async function animateRoute(path) {
       const map = window.map;
-
-      // compute segment distances
-      const distances = path.slice(0, -1).map((_, i) =>
-        google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
-      );
-
-      // cumulative
+      const distances = path.slice(0, -1).map((_, i) => google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1]));
       const cum = distances.reduce((arr, d) => (arr.push((arr.slice(-1)[0]||0) + d), arr), []);
-
-      // map participants to positions
-      const participants = await Promise.all(
-        PEOPLE.map(async name => {
-          const bonus = ACTUAL_METERS[name] || 0;
-          let idx = cum.findIndex(d => bonus <= d);
-          if (idx < 0) idx = cum.length - 1;
-          const prev = cum[idx-1] || 0;
-          const frac = distances[idx] ? (bonus - prev)/distances[idx] : 0;
-          const p0 = path[idx], p1 = path[idx+1] || p0;
-          return {
-            name,
-            bonus,
-            target: {
-              lat: p0.lat() + (p1.lat()-p0.lat())*frac,
-              lng: p0.lng() + (p1.lng()-p0.lng())*frac
-            }
-          };
-        })
-      );
-
-      // sort
-      participants.sort((a,b) => b.bonus - a.bonus);
-
-      // create markers
+      const participants = await Promise.all(PEOPLE.map(async name => {
+        const bonus = ACTUAL_METERS[name] || 0;
+        let idx = cum.findIndex(d => bonus <= d);
+        if (idx < 0) idx = cum.length - 1;
+        const prev = cum[idx - 1] || 0;
+        const frac = distances[idx] ? (bonus - prev) / distances[idx] : 0;
+        const p0 = path[idx], p1 = path[idx + 1] || p0;
+        return { name, bonus, target: { lat: p0.lat() + (p1.lat()-p0.lat())*frac, lng: p0.lng() + (p1.lng()-p0.lng())*frac } };
+      }));
+      participants.sort((a, b) => b.bonus - a.bonus);
       for (const p of participants) {
         const isLeader = p === participants[0];
         const iconUrl = await drawIcon(p.name, isLeader, 64, isLeader ? 10 : 0);
         const size = 64 + (isLeader ? 20 : 0);
-        p.marker = new google.maps.Marker({
-          map,
-          position: HQ,
-          icon: {
-            url: iconUrl,
-            scaledSize: new google.maps.Size(size, size),
-            anchor: new google.maps.Point(size/2, size/2)
-          }
-        });
+        p.marker = new google.maps.Marker({ map, position: HQ, icon: { url: iconUrl, scaledSize: new google.maps.Size(size, size), anchor: new google.maps.Point(size/2, size/2) } });
       }
-
-      // fit viewport
       const bounds = new google.maps.LatLngBounds();
       participants.forEach(p => bounds.extend(p.target));
       bounds.extend(HQ);
       map.fitBounds(bounds);
-
-      // animate each marker along route
       for (const p of participants) {
-        const start = performance.now();
-        const dur = 5000;
+        const start = performance.now(), dur = 5000;
         (function stepAnim(now) {
           const t = Math.min((now - start)/dur, 1);
-          p.marker.setPosition({
-            lat: HQ.lat + (p.target.lat - HQ.lat)*t,
-            lng: HQ.lng + (p.target.lng - HQ.lng)*t
-          });
+          p.marker.setPosition({ lat: HQ.lat + (p.target.lat-HQ.lat)*t, lng: HQ.lng + (p.target.lng-HQ.lng)*t });
           if (t < 1) requestAnimationFrame(stepAnim);
         })(start);
       }
-
-      // build leaderboard overlay
       initLeaderboard(participants);
     }
   </script>
