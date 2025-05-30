@@ -72,27 +72,34 @@
         img.onerror = () => {
           const c = document.createElement('canvas');
           c.width = c.height = size;
-          c.getContext('2d').fillStyle = '#ccc';
-          c.getContext('2d').fillRect(0,0,size,size);
+          const ctx = c.getContext('2d');
+          ctx.fillStyle = '#ccc';
+          ctx.fillRect(0,0,size,size);
           res(c);
         };
         img.src = src;
       });
     }
 
-    async function drawIcon(name, isLeader) {
-      const base = 64, halo = isLeader ? 10 : 0, total = base + 2*halo;
-      const canvas = document.createElement('canvas');
+    // now takes haloColor ('gold','silver','#cd7f32') or null
+    async function drawIcon(name, haloColor) {
+      const base = 64,
+            halo = haloColor ? 10 : 0,
+            total = base + 2*halo,
+            canvas = document.createElement('canvas'),
+            ctx = canvas.getContext('2d'),
+            safe = encodeURIComponent(name.trim()) + '_cvface1.png';
+
       canvas.width = canvas.height = total;
-      const ctx = canvas.getContext('2d');
-      if (isLeader) {
-        ctx.fillStyle = 'gold';
+
+      if (haloColor) {
+        ctx.fillStyle = haloColor;
         ctx.beginPath();
         ctx.arc(total/2, total/2, base/2 + halo, 0, 2*Math.PI);
-        ctx.arc(total/2, total/2, base/2,       0, 2*Math.PI);
+        ctx.arc(total/2, total/2, base/2, 0, 2*Math.PI);
         ctx.fill('evenodd');
       }
-      const safe = encodeURIComponent(name.trim()) + '_cvface1.png';
+
       const img = await loadImageElement(IMG_PATH + safe, base);
       ctx.drawImage(img, halo, halo, base, base);
       return canvas.toDataURL();
@@ -103,7 +110,7 @@
       if (!r.ok) throw new Error('Failed CSV: ' + r.status);
       const txt = await r.text();
       const lines = txt.trim().split(/\r?\n/);
-      const keys  = lines.shift().split(',').map(h=>h.trim());
+      const keys  = lines.shift().split(',').map(h => h.trim());
       return lines.map(l => {
         const cols = l.split(',');
         return keys.reduce((o,k,i) => (o[k] = (cols[i]||'').trim(), o), {});
@@ -116,78 +123,84 @@
         .filter(r => r['T/M RANK'])
         .sort((a,b) => +a['T/M RANK'] - +b['T/M RANK']);
 
+      // count ties
       const counts = rows.reduce((a,r) => {
         const rk = +r['T/M RANK'];
-        a[rk] = (a[rk]||0) + 1; return a;
+        a[rk] = (a[rk]||0) + 1;
+        return a;
       }, {});
 
-      document.getElementById('top-rank').innerHTML    = '';
-      document.getElementById('other-ranks').innerHTML = '';
+      const topEl   = document.getElementById('top-rank');
+      const otherEl = document.getElementById('other-ranks');
+      topEl.innerHTML    = '';
+      otherEl.innerHTML  = '';
+
+      // assign display rank & halo color
+      let lastRankValue = null, displayRank = 0;
+      rows.forEach((r, idx) => {
+        const val = +r['T/M RANK'];
+        if (val !== lastRankValue) {
+          displayRank = idx + 1;
+          lastRankValue = val;
+        }
+        r._display = displayRank;
+      });
 
       for (const r of rows) {
-        const tm     = +r['T/M RANK'],
-              lm     = +r['L/M RANK'] || Infinity,
-              tie    = counts[tm] > 1,
-              rankTx = (tie ? '=' : '') + tm,
-              arrow  = tm < lm ? 'Green%20Arrow.png'
-                     : tm > lm ? 'Red%20Arrow.png'
-                     : '',
-              leader = tm === 1,
-              icon   = await drawIcon(r['NAME'], leader),
-              size   = 64 + (leader ? 10 : 0);
+        const tm      = +r['T/M RANK'],
+              lm      = +r['L/M RANK'] || Infinity,
+              tie     = counts[tm] > 1,
+              rankTxt = (tie ? '=' : '') + r._display,
+              // choose halo color
+              haloColor = r._display === 1 ? 'gold'
+                         : r._display === 2 ? 'silver'
+                         : r._display === 3 ? '#cd7f32'
+                         : null,
+              icon     = await drawIcon(r['NAME'], haloColor),
+              size     = 64 + (haloColor ? 10 : 0),
+              arrow    = tm < lm ? 'Green%20Arrow.png'
+                       : tm > lm ? 'Red%20Arrow.png'
+                       : '';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="rank">${rankTx}</td>
+          <td class="rank">${rankTxt}</td>
           <td><img src="${icon}" width="${size}" height="${size}" class="face"></td>
           <td>${r['NAME']}</td>
-          <td>${arrow ? `<img src="${IMG_PATH+arrow}" width="32" height="32">` : ''}</td>
+          <td>${arrow
+            ? `<img src="${IMG_PATH+arrow}" width="32" height="32">`
+            : ''
+          }</td>
         `;
-        (leader
-          ? document.getElementById('top-rank')
-          : document.getElementById('other-ranks')
-        ).appendChild(tr);
+        if (r._display === 1) topEl.appendChild(tr);
+        else otherEl.appendChild(tr);
       }
 
       setTimeout(startPingPongScroll, 1000);
     }
 
     function startPingPongScroll() {
-      const ct       = document.getElementById('scroll-container');
-      const speed    = 0.05;   // <-- SLOW SCROLL: 0.05 px per ms
-      let direction  = 1;
-      let paused     = false;
-      const pauseMs  = 1000;
-      let lastTime   = performance.now();
-      let elapsed    = 0;
+      const ct = document.getElementById('scroll-container');
+      const speed = 0.05, pauseMs = 1000;
+      let dir = 1, paused = false;
+      let last = performance.now(), elapsed = 0;
 
       function step(now) {
-        const dt = now - lastTime;
-        lastTime = now;
-
+        const dt = now - last; last = now;
         if (paused) {
           elapsed += dt;
-          if (elapsed >= pauseMs) {
-            paused = false;
-            elapsed = 0;
-          }
+          if (elapsed >= pauseMs) { paused = false; elapsed = 0; }
         } else {
-          ct.scrollTop += speed * dt * direction;
-          const maxScroll = ct.scrollHeight - ct.clientHeight;
-          if (ct.scrollTop >= maxScroll) {
-            ct.scrollTop = maxScroll;
-            direction = -1;
-            paused    = true;
+          ct.scrollTop += speed * dt * dir;
+          const max = ct.scrollHeight - ct.clientHeight;
+          if (ct.scrollTop >= max) {
+            ct.scrollTop = max; dir = -1; paused = true;
           } else if (ct.scrollTop <= 0) {
-            ct.scrollTop = 0;
-            direction = 1;
-            paused    = true;
+            ct.scrollTop = 0; dir = 1; paused = true;
           }
         }
-
         requestAnimationFrame(step);
       }
-
       requestAnimationFrame(step);
     }
 
