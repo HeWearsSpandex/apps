@@ -12,31 +12,52 @@
     #leaderboard {
       position: absolute;
       top: 10px;
-      left: 10px;
       right: 10px;
+      width: 300px;
       background: #fff;
       padding: 16px;
       border-radius: 10px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
       z-index: 1002;
       font-family: Arial, sans-serif;
-      font-size: 16px;
+      font-size: 14px;
       display: flex;
       flex-direction: column;
     }
-    #leaderboard > strong {
+    #leaderboard .logo {
       text-align: center;
+      margin-bottom: 8px;
     }
-    /* static header + rank1 container */
+    #leaderboard .logo img {
+      max-width: 120px;
+      height: auto;
+    }
+    #leaderboard h2 {
+      text-align: center;
+      margin: 4px 0 12px;
+      font-size: 16px;
+    }
+    #leaderboard .header-row {
+      display: flex;
+      font-weight: bold;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+    }
+    #leaderboard .header-row span {
+      flex-shrink: 0;
+    }
+    .col-rank { width: 30px; text-align: center; }
+    .col-face { width: 32px; margin: 0 8px; }
+    .col-name { flex: 1; }
+
     .static-section {
       flex-shrink: 0;
     }
-    /* scrollable list container */
     .scrollable-section {
       flex-grow: 1;
       overflow: hidden;
       position: relative;
-      margin-top: 8px;
     }
     .scrollable-inner {
       height: 100%;
@@ -48,55 +69,72 @@
     .scrollable-inner::-webkit-scrollbar { display: none; }
 
     /* List styles */
-    #leaderboard-list, #other-ranks {
+    #static-rank1, #other-ranks {
       list-style: none;
       padding: 0;
       margin: 0;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 4px;
     }
-
-    #static-rank1 {
-      list-style: none;
-      padding: 0;
-      margin: 8px 0 0;
+    #static-rank1 li, #other-ranks li {
       display: flex;
       align-items: center;
-      gap: 8px;
     }
-    #leaderboard img { border-radius:50%; display:inline-block; }
+    #static-rank1 li .col-name,
+    #other-ranks li .col-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #leaderboard img.face {
+      border-radius:50%;
+      display:inline-block;
+    }
   </style>
 </head>
 <body>
   <div id="leaderboard">
-    <strong>Leaderboard</strong>
-    <div class="static-section">
-      <ul id="static-rank1"></ul>
+    <div class="logo"><img src="img/JHB%20Logo.png" alt="Logo"></div>
+    <h2>Bonus Metres Leaderboard</h2>
+    <div class="header-row">
+      <span class="col-rank">#</span>
+      <span class="col-face"></span>
+      <span class="col-name">Name</span>
     </div>
-    <div class="scrollable-section">
-      <div class="scrollable-inner" id="scroll-container">
-        <ul id="other-ranks"></ul>
-      </div>
-    </div>
+    <div class="static-section"><ul id="static-rank1"></ul></div>
+    <div class="scrollable-section"><div class="scrollable-inner" id="scroll-container"><ul id="other-ranks"></ul></div></div>
   </div>
   <div id="map"></div>
 
   <script>
-    const IMG_PATH   = 'img/';
-    const CSV_URL    = './data/actual_distances.csv'; // or your GH-Pages path
-    const HQ         = { lat:50.43135, lng:-3.797092 };
-    const PEOPLE     = [ /* names... */ ];
+    const IMG_PATH    = 'img/';
+    const CSV_URL     = './data/actual_distances.csv';
+    const HQ          = { lat: 50.43135, lng: -3.797092 };
+    const PEOPLE      = [
+      'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Turnstill','Brendon Kilcullen',
+      'Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan',
+      'Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks',
+      'James Rundle-Jones','James Whiteoak','Jay Dunn','Joe Lambourne-Gillen','John Peters',
+      'Jonathan Thompson','Joseph Nixon','Joseph Young','Joshua Powell','Joshua Rowberry',
+      'Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Morgan Hemming',
+      'Nicholas Kingshott','Richard Clanford','Robert Tamas','Ross Watson',
+      'Ryan Breslan','Ryan Manners','Tom Brooks','Tristan Allen','Tyler Webb','David Mahon','Darren Hatfield'
+    ];
     const DESTINATION = 'Bucharest, Romania';
-    const WAYPOINTS   = [ /* waypoints... */ ];
+    const WAYPOINTS   = [
+      'Exeter, UK','Bristol, UK','London, UK','Calais, France','Brussels, Belgium',
+      'Cologne, Germany','Frankfurt, Germany','Nuremberg, Germany',
+      'Vienna, Austria','Budapest, Hungary','Sibiu, Romania'
+    ];
 
     let ACTUAL_METERS = {};
 
     async function fetchActualMeters() {
-      const res = await fetch(CSV_URL,{ cache: 'no-cache'});
+      const res = await fetch(CSV_URL, { cache:'no-cache' });
       if (!res.ok) throw new Error('CSV load failed: ' + res.status);
       const lines = (await res.text()).trim().split(/\r?\n/);
-      const header = lines.shift();
+      lines.shift(); // drop header
       lines.forEach(line => {
         const [name, meters] = line.split(',');
         ACTUAL_METERS[name.trim()] = parseFloat(meters) || 0;
@@ -105,32 +143,31 @@
 
     async function loadImage(src) {
       return new Promise(res => {
-        const img = new Image(); img.crossOrigin='anonymous';
+        const img = new Image(); img.crossOrigin = 'anonymous';
         img.onload = () => res(img);
         img.onerror = () => {
-          const c = document.createElement('canvas');
-          c.width = c.height = 64;
-          const ctx = c.getContext('2d'); ctx.fillStyle='#ccc'; ctx.fillRect(0,0,64,64);
+          const c = document.createElement('canvas'); c.width = c.height = 64;
+          const ctx = c.getContext('2d'); ctx.fillStyle = '#ccc'; ctx.fillRect(0,0,64,64);
           res(c);
         };
         img.src = src;
       });
     }
 
-    async function drawIcon(name, isLeader, faceSize=32, halo= isLeader?5:0) {
-      const total = faceSize + halo*2;
-      const canvas = document.createElement('canvas'); canvas.width=canvas.height=total;
+    async function drawIcon(name, isLeader, faceSize = 32, halo = isLeader ? 5 : 0) {
+      const total = faceSize + halo * 2;
+      const canvas = document.createElement('canvas'); canvas.width = canvas.height = total;
       const ctx = canvas.getContext('2d');
       if (isLeader) {
-        ctx.fillStyle='gold';
+        ctx.fillStyle = 'gold';
         ctx.beginPath();
-        ctx.arc(total/2,total/2,faceSize/2+halo,0,2*Math.PI);
-        ctx.arc(total/2,total/2,faceSize/2,0,2*Math.PI);
+        ctx.arc(total/2, total/2, faceSize/2 + halo, 0, 2*Math.PI);
+        ctx.arc(total/2, total/2, faceSize/2, 0, 2*Math.PI);
         ctx.fill('evenodd');
       }
       const safeName = encodeURIComponent(name.trim());
-      const img = await loadImage(IMG_PATH + `${safeName}_cvface1.png`);
-      ctx.drawImage(img, halo,halo, faceSize, faceSize);
+      const img = await loadImage(`${IMG_PATH}${safeName}_cvface1.png`);
+      ctx.drawImage(img, halo, halo, faceSize, faceSize);
       return canvas.toDataURL();
     }
 
@@ -140,60 +177,161 @@
       staticUl.innerHTML = '';
       otherUl.innerHTML  = '';
 
-      for (let i=0;i<participants.length;i++) {
-        const p = participants[i];
-        const isLeader = i===0;
+      participants.forEach((p, i) => {
+        const isLeader = i === 0;
         const iconUrl = await drawIcon(p.name, isLeader);
         const li = document.createElement('li');
-        li.style.display='flex'; li.style.alignItems='center';
-        const img = document.createElement('img');
-        img.src = iconUrl; img.width=img.height=32 + (isLeader?10:0);
-        li.appendChild(img);
-        li.appendChild(document.createTextNode(` ${p.name} – ${Math.round(p.bonus)} m`));
-        if (isLeader) staticUl.appendChild(li);
-        else otherUl.appendChild(li);
-      }
+        li.innerHTML =
+          `<span class="col-rank">${i+1}</span>` +
+          `<img class="face col-face" src="${iconUrl}" width="${32 + (isLeader ? 10 : 0)}" height="${32 + (isLeader ? 10 : 0)}">` +
+          `<span class="col-name">${p.name}</span>`;
+        (isLeader ? staticUl : otherUl).appendChild(li);
+      });
+
       // start scroll after build
-      setTimeout(startPingPongScroll,1000);
+      setTimeout(startPingPongScroll, 1000);
     }
 
     function startPingPongScroll() {
       const ct = document.getElementById('scroll-container');
-      const speed=0.05; // px/ms
-      const pause=1000; let dir=1, paused=false, last=performance.now(), elapsed=0;
+      const speed = 0.05;
+      const pause = 1000;
+      let direction = 1;
+      let paused    = false;
+      let lastTime  = performance.now();
+      let elapsed   = 0;
+
       function step(now) {
-        const dt = now - last; last=now;
+        const dt = now - lastTime;
+        lastTime = now;
+
         if (paused) {
           elapsed += dt;
-          if (elapsed>=pause) { paused=false; elapsed=0; }
+          if (elapsed >= pause) {
+            paused = false;
+            elapsed = 0;
+          }
         } else {
-          ct.scrollTop += speed*dt*dir;
-          const max = ct.scrollHeight - ct.clientHeight;
-          if (ct.scrollTop>=max) { ct.scrollTop=max; dir=-1; paused=true; }
-          else if (ct.scrollTop<=0) { ct.scrollTop=0; dir=1; paused=true; }
+          ct.scrollTop += speed * dt * direction;
+          const maxScroll = ct.scrollHeight - ct.clientHeight;
+          if (ct.scrollTop >= maxScroll) {
+            ct.scrollTop = maxScroll;
+            direction = -1;
+            paused = true;
+          } else if (ct.scrollTop <= 0) {
+            ct.scrollTop = 0;
+            direction = 1;
+            paused = true;
+          }
         }
+
         requestAnimationFrame(step);
       }
+
       requestAnimationFrame(step);
     }
 
     async function initMap() {
       await fetchActualMeters().catch(console.error);
-      const map = new google.maps.Map(document.getElementById('map'),{ padding:{top:70,right:10,bottom:10,left:10} });
+      const map = new google.maps.Map(document.getElementById('map'), {
+        padding: { top: 70, right: 10, bottom: 10, left: 10 }
+      });
       window.map = map;
-      new google.maps.Marker({ map, position: HQ, icon:{ url:IMG_PATH+'JHB%20Logo.png', scaledSize:new google.maps.Size(115,64), anchor:new google.maps.Point(57,32) }});
 
-      const ds = new google.maps.DirectionsService();
-      ds.route({ origin: HQ, destination: DESTINATION,
-        waypoints: WAYPOINTS.map(l=>({location:l})), travelMode:'DRIVING'
-      }, (res,status)=>{ if(status==='OK') animateRoute(res.routes[0].overview_path); else console.error(status); });
+      // HQ marker
+      new google.maps.Marker({
+        map,
+        position: HQ,
+        icon: {
+          url: `${IMG_PATH}JHB Logo.png`,
+          scaledSize: new google.maps.Size(115, 64),
+          anchor: new google.maps.Point(57, 32)
+        }
+      });
+
+      // Route
+      new google.maps.DirectionsService().route({
+        origin: HQ,
+        destination: DESTINATION,
+        waypoints: WAYPOINTS.map(loc => ({ location: loc })),
+        travelMode: google.maps.TravelMode.DRIVING
+      }, (res, status) => {
+        if (status === 'OK') animateRoute(res.routes[0].overview_path);
+        else console.error('Directions error:', status);
+      });
     }
 
     async function animateRoute(path) {
-      // ... existing map animation logic ...
-      // After computing participants array with {name,bonus,target}
-      // call initLeaderboard(participants);
-      // For brevity, assume participants computed above
+      const map = window.map;
+
+      // compute segment distances
+      const distances = path.slice(0, -1).map((_, i) =>
+        google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
+      );
+
+      // cumulative
+      const cum = distances.reduce((arr, d) => (arr.push((arr.slice(-1)[0]||0) + d), arr), []);
+
+      // map participants to positions
+      const participants = await Promise.all(
+        PEOPLE.map(async name => {
+          const bonus = ACTUAL_METERS[name] || 0;
+          let idx = cum.findIndex(d => bonus <= d);
+          if (idx < 0) idx = cum.length - 1;
+          const prev = cum[idx-1] || 0;
+          const frac = distances[idx] ? (bonus - prev)/distances[idx] : 0;
+          const p0 = path[idx], p1 = path[idx+1] || p0;
+          return {
+            name,
+            bonus,
+            target: {
+              lat: p0.lat() + (p1.lat()-p0.lat())*frac,
+              lng: p0.lng() + (p1.lng()-p0.lng())*frac
+            }
+          };
+        })
+      );
+
+      // sort
+      participants.sort((a,b) => b.bonus - a.bonus);
+
+      // create markers
+      for (const p of participants) {
+        const isLeader = p === participants[0];
+        const iconUrl = await drawIcon(p.name, isLeader, 64, isLeader ? 10 : 0);
+        const size = 64 + (isLeader ? 20 : 0);
+        p.marker = new google.maps.Marker({
+          map,
+          position: HQ,
+          icon: {
+            url: iconUrl,
+            scaledSize: new google.maps.Size(size, size),
+            anchor: new google.maps.Point(size/2, size/2)
+          }
+        });
+      }
+
+      // fit viewport
+      const bounds = new google.maps.LatLngBounds();
+      participants.forEach(p => bounds.extend(p.target));
+      bounds.extend(HQ);
+      map.fitBounds(bounds);
+
+      // animate each marker along route
+      for (const p of participants) {
+        const start = performance.now();
+        const dur = 5000;
+        (function stepAnim(now) {
+          const t = Math.min((now - start)/dur, 1);
+          p.marker.setPosition({
+            lat: HQ.lat + (p.target.lat - HQ.lat)*t,
+            lng: HQ.lng + (p.target.lng - HQ.lng)*t
+          });
+          if (t < 1) requestAnimationFrame(stepAnim);
+        })(start);
+      }
+
+      // build leaderboard overlay
       initLeaderboard(participants);
     }
   </script>
