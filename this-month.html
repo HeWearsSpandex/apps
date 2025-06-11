@@ -148,7 +148,7 @@
 
       for (const r of rows) {
         const tm      = +r['T/M RANK'],
-              lm      = +r['L/M RANK'] || Infinity,
+              lm      = +r['T/M LAST RANK'] || Infinity,
               tie     = counts[tm] > 1,
               rankTxt = (tie ? '=' : '') + r._display,
               // choose halo color
