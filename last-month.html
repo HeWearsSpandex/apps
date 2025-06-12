@@ -139,13 +139,13 @@
     async function build() {
       const data = await fetchData();
       const rows = data
-        .filter(r => r['TOTAL METERS'])
-        .sort((a,b) => Number(b['TOTAL METERS']) - Number(a['TOTAL METERS']));
+        .filter(r => r['LAST MONTH'])
+        .sort((a,b) => Number(b['LAST MONTH']) - Number(a['LAST MONTH']));
 
       // assign competition ranks with ties sharing
       let lastM = null, ctr = 0, rank = 0;
       rows.forEach(r => {
-        const m = Number(r['TOTAL METERS']);
+        const m = Number(r['LAST MONTH']);
         ctr++;
         if (m !== lastM) { rank = ctr; lastM = m; }
         r._rank = rank;
