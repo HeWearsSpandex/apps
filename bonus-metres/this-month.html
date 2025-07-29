@@ -39,7 +39,7 @@
 <body>
   <div class="static-section">
     <div class="logo">
-      <img src="img/JHB Logo.png" alt="JHB Logo">
+      <img src="/img/JHB Logo.png" alt="JHB Logo">
     </div>
     <h1>Bonus Metres – Current Month’s Leaderboard</h1>
     <table>
@@ -61,8 +61,8 @@
   </div>
 
   <script>
-    const CSV_URL  = './data/actual_distances.csv';
-    const IMG_PATH = 'img/';
+    const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
+    const IMG_PATH = '/img/';
 
     async function loadImageElement(src, size) {
       return new Promise(res => {
