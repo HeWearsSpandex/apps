@@ -23,7 +23,7 @@
   </style>
 </head>
 <body>
-  <div class="logo"><img src="img/JHB Logo.png" alt="JHB Logo"></div>
+  <div class="logo"><img src="/img/JHB Logo.png" alt="JHB Logo"></div>
   <h1>Bonus Metres – Globe View</h1>
   <div id="cesiumContainer"></div>
   <div id="meterOverlay">Total Metres: <span id="totalMeters">0</span> m</div>
@@ -72,8 +72,8 @@
     // Add a label at HQ
     viewer.entities.add({
       position: Cesium.Cartesian3.fromDegrees(
-        Cesium.Math.toDegrees(HQ_COORDS.longitude),
-        Cesium.Math.toDegrees(HQ_COORDS.latitude),
+        HQ_LON,
+        HQ_LAT,
         0
       ),
       label: {
