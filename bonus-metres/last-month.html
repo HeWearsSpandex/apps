@@ -27,6 +27,12 @@
     img.face { border-radius: 50%; vertical-align: middle; }
     td.rank { font-weight: bold; }
     .static-section { flex-shrink: 0; }
+    .scrollable-section { flex-grow: 1; overflow: hidden; position: relative; }
+    .scrollable-inner {
+      height: 100%; overflow-y: auto;
+      scrollbar-width: none; -ms-overflow-style: none;
+    }
+    .scrollable-inner::-webkit-scrollbar { display: none; }
   </style>
 </head>
 <body>
@@ -35,7 +41,6 @@
       <img src="/img/JHB Logo.png" alt="JHB Logo">
     </div>
     <h1>Bonus Metres – Last Month’s Leaderboard</h1>
-    <!-- Leader (top rank) table -->
     <table>
       <thead>
         <tr>
@@ -48,10 +53,14 @@
       </thead>
       <tbody id="top-rank"></tbody>
     </table>
-    <!-- Other ranks table -->
-    <table>
-      <tbody id="other-ranks"></tbody>
-    </table>
+  </div>
+
+  <div class="scrollable-section">
+    <div class="scrollable-inner" id="scroll-container">
+      <table>
+        <tbody id="other-ranks"></tbody>
+      </table>
+    </div>
   </div>
 
   <script>
@@ -121,8 +130,6 @@
         .filter(r => r['L/M RANK'] && PEOPLE.includes(r['NAME']))
         .sort((a, b) => +a['L/M RANK'] - +b['L/M RANK']);
 
-      if (!rows.length) return;
-
       const leaderValue = parseFloat(rows[0]['LAST MONTH']?.replace(/,/g, '') || '0');
       const counts = rows.reduce((a, r) => {
         const rk = +r['L/M RANK'];
@@ -130,7 +137,11 @@
         return a;
       }, {});
 
-      // Assign display ranks for everyone before splitting
+      const topEl = document.getElementById('top-rank');
+      const otherEl = document.getElementById('other-ranks');
+      topEl.innerHTML = '';
+      otherEl.innerHTML = '';
+
       let lastRankValue = null, displayRank = 0;
       rows.forEach((r, idx) => {
         const val = +r['L/M RANK'];
@@ -144,14 +155,7 @@
         r._diff = leaderValue - value;
       });
 
-      const topEl = document.getElementById('top-rank');
-      const otherEl = document.getElementById('other-ranks');
-      topEl.innerHTML = '';
-      otherEl.innerHTML = '';
-
-      // Show the LEADER (first row) in the top table only
-      {
-        const r = rows[0];
+      for (const r of rows) {
         const tie = counts[+r['L/M RANK']] > 1;
         const rankTxt = (tie ? '=' : '') + r._display;
         const haloColor = r._display === 1 ? 'gold'
@@ -170,33 +174,32 @@
           <td>${metresTxt}</td>
           <td>${diffTxt}</td>
         `;
-        topEl.appendChild(tr);
+        (r._display === 1 ? topEl : otherEl).appendChild(tr);
       }
 
-      // Show everyone else below (start at i=1)
-      for (let i = 1; i < rows.length; i++) {
-        const r = rows[i];
-        const tie = counts[+r['L/M RANK']] > 1;
-        const rankTxt = (tie ? '=' : '') + r._display;
-        const haloColor = r._display === 1 ? 'gold'
-                          : r._display === 2 ? 'silver'
-                          : r._display === 3 ? '#cd7f32' : null;
-        drawIcon(r['NAME'], haloColor).then(icon => {
-          const size = 64 + (haloColor ? 10 : 0);
-          const metresTxt = r._value.toLocaleString() + 'm';
-          const diffTxt = r._diff === 0 ? 'Leader' : `-${r._diff.toLocaleString()}m`;
+      setTimeout(startPingPongScroll, 1000);
+    }
 
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td class="rank">${rankTxt}</td>
-            <td><img src="${icon}" width="${size}" height="${size}" class="face"></td>
-            <td>${r['NAME']}</td>
-            <td>${metresTxt}</td>
-            <td>${diffTxt}</td>
-          `;
-          otherEl.appendChild(tr);
-        });
+    function startPingPongScroll() {
+      const ct = document.getElementById('scroll-container');
+      const speed = 0.05, pauseMs = 1000;
+      let dir = 1, paused = false, last = performance.now(), elapsed = 0;
+
+      function step(now) {
+        const dt = now - last; last = now;
+        if (paused) {
+          elapsed += dt;
+          if (elapsed >= pauseMs) { paused = false; elapsed = 0; }
+        } else {
+          ct.scrollTop += speed * dt * dir;
+          const max = ct.scrollHeight - ct.clientHeight;
+          if (ct.scrollTop >= max) { ct.scrollTop = max; dir = -1; paused = true; }
+          else if (ct.scrollTop <= 0) { ct.scrollTop = 0; dir = 1; paused = true; }
+        }
+        requestAnimationFrame(step);
       }
+
+      requestAnimationFrame(step);
     }
 
     build().catch(e => {
