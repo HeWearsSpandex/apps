@@ -121,6 +121,8 @@
         .filter(r => r['L/M RANK'] && PEOPLE.includes(r['NAME']))
         .sort((a, b) => +a['L/M RANK'] - +b['L/M RANK']);
 
+      if (!rows.length) return;
+
       const leaderValue = parseFloat(rows[0]['LAST MONTH']?.replace(/,/g, '') || '0');
       const counts = rows.reduce((a, r) => {
         const rk = +r['L/M RANK'];
@@ -146,8 +148,8 @@
         r._diff = leaderValue - value;
       });
 
-      // Add only the leader to the top table
-      if (rows.length) {
+      // Add the leader to the top table
+      {
         const r = rows[0];
         const tie = counts[+r['L/M RANK']] > 1;
         const rankTxt = (tie ? '=' : '') + r._display;
@@ -178,20 +180,21 @@
         const haloColor = r._display === 1 ? 'gold'
                           : r._display === 2 ? 'silver'
                           : r._display === 3 ? '#cd7f32' : null;
-        const icon = await drawIcon(r['NAME'], haloColor);
-        const size = 64 + (haloColor ? 10 : 0);
-        const metresTxt = r._value.toLocaleString() + 'm';
-        const diffTxt = r._diff === 0 ? 'Leader' : `-${r._diff.toLocaleString()}m`;
+        drawIcon(r['NAME'], haloColor).then(icon => {
+          const size = 64 + (haloColor ? 10 : 0);
+          const metresTxt = r._value.toLocaleString() + 'm';
+          const diffTxt = r._diff === 0 ? 'Leader' : `-${r._diff.toLocaleString()}m`;
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="rank">${rankTxt}</td>
-          <td><img src="${icon}" width="${size}" height="${size}" class="face"></td>
-          <td>${r['NAME']}</td>
-          <td>${metresTxt}</td>
-          <td>${diffTxt}</td>
-        `;
-        otherEl.appendChild(tr);
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="rank">${rankTxt}</td>
+            <td><img src="${icon}" width="${size}" height="${size}" class="face"></td>
+            <td>${r['NAME']}</td>
+            <td>${metresTxt}</td>
+            <td>${diffTxt}</td>
+          `;
+          otherEl.appendChild(tr);
+        });
       }
     }
 
