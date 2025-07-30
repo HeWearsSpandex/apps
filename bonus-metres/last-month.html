@@ -123,7 +123,7 @@
       if (!r.ok) throw new Error('Failed CSV: ' + r.status);
       const txt = await r.text();
       const lines = txt.trim().split(/\r?\n/);
-      const keys  = lines.shift().split('\t').map(h=>h.trim());
+      const keys  = lines.shift().split(',').map(h=>h.trim());
       return lines.map(l => {
         const cols = l.split('\t');
         return keys.reduce((o,k,i) => (o[k] = (cols[i]||'').trim(), o), {});
