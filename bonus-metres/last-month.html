@@ -83,6 +83,17 @@
   <script>
     const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
     const IMG_PATH = '/img/';
+    const PEOPLE = [
+      'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Turnstill',
+      'Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan',
+      'Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks',
+      'James Rundle-Jones','James Whiteoak','Joe Lambourne-Gillen',
+      'Jonathan Thompson','Joseph Nixon','Joseph Young','Joshua Powell','Joshua Rowberry',
+      'Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Morgan Hemming',
+      'Nicholas Kingshott','Richard Clanford','Robert Tamas',
+      'Ryan Breslan','Ryan Manners','Tom Brooks','Tristan Allen','Tyler Webb',
+      'David Mahon','Darren Hatfield','Sam Brooks','Jason Bligh','Rhys Grant','Ross Wills','Connor Miles'
+    ];
 
     async function loadImage(src, size) {
       return new Promise(res => {
@@ -101,7 +112,6 @@
       });
     }
 
-    // now takes a haloColor string (e.g. 'gold','silver','#cd7f32') or null
     async function drawIcon(name, haloColor) {
       const faceSize = 64,
             halo     = haloColor ? 10 : 0,
@@ -139,10 +149,9 @@
     async function build() {
       const data = await fetchData();
       const rows = data
-        .filter(r => r['LAST MONTH'])
+        .filter(r => r['LAST MONTH'] && PEOPLE.includes(r['NAME']))
         .sort((a,b) => Number(b['LAST MONTH']) - Number(a['LAST MONTH']));
 
-      // assign competition ranks with ties sharing
       let lastM = null, ctr = 0, rank = 0;
       rows.forEach(r => {
         const m = Number(r['LAST MONTH']);
@@ -151,7 +160,6 @@
         r._rank = rank;
       });
 
-      // count ties
       const counts = rows.reduce((a,r) => { a[r._rank] = (a[r._rank]||0) + 1; return a; }, {});
 
       const topEl   = document.getElementById('top-rank');
@@ -160,16 +168,15 @@
       otherEl.innerHTML = '';
 
       for (const r of rows) {
-        const isLeader = r._rank === 1,
-              tie      = counts[r._rank] > 1,
-              rankTxt  = (tie ? '=' : '') + r._rank,
-              // choose halo color
+        const isLeader  = r._rank === 1,
+              tie       = counts[r._rank] > 1,
+              rankTxt   = (tie ? '=' : '') + r._rank,
               haloColor = r._rank === 1 ? 'gold'
-                         : r._rank === 2 ? 'silver'
-                         : r._rank === 3 ? '#cd7f32'
-                         : null,
-              iconURL  = await drawIcon(r['NAME'], haloColor),
-              size     = 64 + (haloColor ? 10 : 0);
+                        : r._rank === 2 ? 'silver'
+                        : r._rank === 3 ? '#cd7f32'
+                        : null,
+              iconURL   = await drawIcon(r['NAME'], haloColor),
+              size      = 64 + (haloColor ? 10 : 0);
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -177,8 +184,7 @@
           <td><img src="${iconURL}" width="${size}" height="${size}" class="face"></td>
           <td>${r['NAME']}</td>
         `;
-        if (isLeader) topEl.appendChild(tr);
-        else otherEl.appendChild(tr);
+        (isLeader ? topEl : otherEl).appendChild(tr);
       }
 
       setTimeout(startPingPongScroll, 1000);
