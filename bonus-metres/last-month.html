@@ -1,3 +1,4 @@
+<!-- Save as: last-month.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,12 +7,10 @@
   <title>Bonus Metres – Last Month’s Leaderboard</title>
   <style>
     html, body {
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
       height: 100%;
       font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
+      display: flex; flex-direction: column;
     }
     .logo { text-align: center; margin: 20px 0 10px; }
     .logo img { max-width: 200px; height: auto; }
@@ -48,6 +47,7 @@
           <th>Rank</th>
           <th>Face</th>
           <th>Name</th>
+          <th>Bonus Metres</th>
           <th>Diff. from Leader</th>
         </tr>
       </thead>
@@ -67,15 +67,14 @@
     const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
     const IMG_PATH = '/img/';
     const PEOPLE = [
-      'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Turnstill',
-      'Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan',
-      'Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks',
-      'James Rundle-Jones','James Whiteoak','Joe Lambourne-Gillen',
-      'Jonathan Thompson','Joseph Nixon','Joseph Young','Joshua Powell','Joshua Rowberry',
-      'Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Morgan Hemming',
-      'Nicholas Kingshott','Richard Clanford','Robert Tamas',
-      'Ryan Breslan','Ryan Manners','Tom Brooks','Tristan Allen','Tyler Webb',
-      'David Mahon','Darren Hatfield','Sam Brooks','Jason Bligh','Rhys Grant','Ross Wills'
+      'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Turnstill','Byron Claridge',
+      'Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan','Edward Shanley',
+      'Gary Mounce','George Norris','James Hickman','James Hodge-Brooks','James Rundle-Jones',
+      'James Whiteoak','Joe Lambourne-Gillen','Jonathan Thompson','Joseph Nixon','Joseph Young',
+      'Joshua Powell','Joshua Rowberry','Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap',
+      'Morgan Hemming','Nicholas Kingshott','Richard Clanford','Robert Tamas','Ryan Breslan',
+      'Ryan Manners','Tom Brooks','Tristan Allen','Tyler Webb','David Mahon','Darren Hatfield',
+      'Sam Brooks','Jason Bligh','Rhys Grant','Ross Wills'
     ];
 
     async function loadImageElement(src, size) {
@@ -88,7 +87,7 @@
           c.width = c.height = size;
           const ctx = c.getContext('2d');
           ctx.fillStyle = '#ccc';
-          ctx.fillRect(0,0,size,size);
+          ctx.fillRect(0, 0, size, size);
           res(c);
         };
         img.src = src;
@@ -104,8 +103,8 @@
       if (haloColor) {
         ctx.fillStyle = haloColor;
         ctx.beginPath();
-        ctx.arc(total/2, total/2, base/2 + halo, 0, 2*Math.PI);
-        ctx.arc(total/2, total/2, base/2, 0, 2*Math.PI);
+        ctx.arc(total/2, total/2, base/2 + halo, 0, 2 * Math.PI);
+        ctx.arc(total/2, total/2, base/2, 0, 2 * Math.PI);
         ctx.fill('evenodd');
       }
       const img = await loadImageElement(IMG_PATH + safe, base);
@@ -114,14 +113,14 @@
     }
 
     async function fetchData() {
-      const r = await fetch(CSV_URL, { cache:'no-cache' });
+      const r = await fetch(CSV_URL, { cache: 'no-cache' });
       if (!r.ok) throw new Error('Failed CSV: ' + r.status);
       const txt = await r.text();
       const lines = txt.trim().split(/\r?\n/);
-      const keys  = lines.shift().split(',').map(h=>h.trim()); // fixed here
+      const keys = lines.shift().split(',').map(h => h.trim());
       return lines.map(l => {
         const cols = l.split(',');
-        return keys.reduce((o,k,i) => (o[k] = (cols[i]||'').trim(), o), {});
+        return keys.reduce((o, k, i) => (o[k] = (cols[i] || '').trim(), o), {});
       });
     }
 
@@ -129,18 +128,19 @@
       const data = await fetchData();
       const rows = data
         .filter(r => r['L/M RANK'] && PEOPLE.includes(r['NAME']))
-        .sort((a,b) => +a['L/M RANK'] - +b['L/M RANK']);
+        .sort((a, b) => +a['L/M RANK'] - +b['L/M RANK']);
 
-      const leaderValue = +rows[0]['LAST MONTH'] || 0;
-      const counts = rows.reduce((a,r) => {
+      const leaderValue = parseFloat(rows[0]['LAST MONTH']?.replace(/,/g, '') || '0');
+      const counts = rows.reduce((a, r) => {
         const rk = +r['L/M RANK'];
-        a[rk] = (a[rk]||0) + 1;
+        a[rk] = (a[rk] || 0) + 1;
         return a;
       }, {});
 
       const topEl = document.getElementById('top-rank');
       const otherEl = document.getElementById('other-ranks');
-      topEl.innerHTML = ''; otherEl.innerHTML = '';
+      topEl.innerHTML = '';
+      otherEl.innerHTML = '';
 
       let lastRankValue = null, displayRank = 0;
       rows.forEach((r, idx) => {
@@ -149,26 +149,29 @@
           displayRank = idx + 1;
           lastRankValue = val;
         }
+        const value = parseFloat(r['LAST MONTH']?.replace(/,/g, '') || '0');
         r._display = displayRank;
-        r._diff = leaderValue - (+r['LAST MONTH'] || 0);
+        r._value = value;
+        r._diff = leaderValue - value;
       });
 
       for (const r of rows) {
-        const tie       = counts[+r['L/M RANK']] > 1;
-        const rankTxt   = (tie ? '=' : '') + r._display;
+        const tie = counts[+r['L/M RANK']] > 1;
+        const rankTxt = (tie ? '=' : '') + r._display;
         const haloColor = r._display === 1 ? 'gold'
-                         : r._display === 2 ? 'silver'
-                         : r._display === 3 ? '#cd7f32'
-                         : null;
-        const iconURL   = await drawIcon(r['NAME'], haloColor);
-        const size      = 64 + (haloColor ? 10 : 0);
-        const diffTxt   = r._diff === 0 ? 'Leader' : `-${r._diff.toLocaleString()}m`;
+                          : r._display === 2 ? 'silver'
+                          : r._display === 3 ? '#cd7f32' : null;
+        const icon = await drawIcon(r['NAME'], haloColor);
+        const size = 64 + (haloColor ? 10 : 0);
+        const metresTxt = r._value.toLocaleString() + 'm';
+        const diffTxt = r._diff === 0 ? 'Leader' : `-${r._diff.toLocaleString()}m`;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="rank">${rankTxt}</td>
-          <td><img src="${iconURL}" width="${size}" height="${size}" class="face"></td>
+          <td><img src="${icon}" width="${size}" height="${size}" class="face"></td>
           <td>${r['NAME']}</td>
+          <td>${metresTxt}</td>
           <td>${diffTxt}</td>
         `;
         (r._display === 1 ? topEl : otherEl).appendChild(tr);
@@ -195,13 +198,14 @@
         }
         requestAnimationFrame(step);
       }
+
       requestAnimationFrame(step);
     }
 
     build().catch(e => {
       console.error(e);
       document.querySelector('#top-rank').innerHTML =
-        '<tr><td colspan="4" style="color:red">Error loading leaderboard</td></tr>';
+        '<tr><td colspan="5" style="color:red">Error loading leaderboard</td></tr>';
     });
   </script>
 </body>
