@@ -130,11 +130,7 @@
         return a;
       }, {});
 
-      const topEl = document.getElementById('top-rank');
-      const otherEl = document.getElementById('other-ranks');
-      topEl.innerHTML = '';
-      otherEl.innerHTML = '';
-
+      // Assign display ranks for everyone before splitting
       let lastRankValue = null, displayRank = 0;
       rows.forEach((r, idx) => {
         const val = +r['L/M RANK'];
@@ -148,7 +144,12 @@
         r._diff = leaderValue - value;
       });
 
-      // Add the leader to the top table
+      const topEl = document.getElementById('top-rank');
+      const otherEl = document.getElementById('other-ranks');
+      topEl.innerHTML = '';
+      otherEl.innerHTML = '';
+
+      // Show the LEADER (first row) in the top table only
       {
         const r = rows[0];
         const tie = counts[+r['L/M RANK']] > 1;
@@ -172,7 +173,7 @@
         topEl.appendChild(tr);
       }
 
-      // Add all other ranks to the bottom table
+      // Show everyone else below (start at i=1)
       for (let i = 1; i < rows.length; i++) {
         const r = rows[i];
         const tie = counts[+r['L/M RANK']] > 1;
