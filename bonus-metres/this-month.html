@@ -18,7 +18,7 @@
     h1 { text-align: center; margin: 0 0 20px; }
     table {
       width: 100%;
-      max-width: 600px;
+      max-width: 750px;
       margin: auto;
       border-collapse: collapse;
       table-layout: fixed;
@@ -45,7 +45,11 @@
     <table>
       <thead>
         <tr>
-          <th>Rank</th><th>Face</th><th>Name</th><th>Positional Change</th>
+          <th>Rank</th>
+          <th>Face</th>
+          <th>Name</th>
+          <th>Positional Change</th>
+          <th>Diff. from Leader</th>
         </tr>
       </thead>
       <tbody id="top-rank"></tbody>
@@ -120,9 +124,9 @@
       if (!r.ok) throw new Error('Failed CSV: ' + r.status);
       const txt = await r.text();
       const lines = txt.trim().split(/\r?\n/);
-      const keys  = lines.shift().split(',').map(h=>h.trim());
+      const keys  = lines.shift().split('\t').map(h=>h.trim());
       return lines.map(l => {
-        const cols = l.split(',');
+        const cols = l.split('\t');
         return keys.reduce((o,k,i) => (o[k] = (cols[i]||'').trim(), o), {});
       });
     }
@@ -132,6 +136,8 @@
       const rows = data
         .filter(r => r['T/M RANK'] && PEOPLE.includes(r['NAME']))
         .sort((a,b) => +a['T/M RANK'] - +b['T/M RANK']);
+
+      const leaderValue = +rows[0]['THIS MONTH'] || 0;
 
       const counts = rows.reduce((a,r) => {
         const rk = +r['T/M RANK'];
@@ -152,6 +158,7 @@
           lastRankValue = val;
         }
         r._display = displayRank;
+        r._diff = leaderValue - (+r['THIS MONTH'] || 0);
       });
 
       for (const r of rows) {
@@ -169,12 +176,15 @@
                        : tm > lm ? 'Red%20Arrow.png'
                        : '';
 
+        const diffTxt = r._diff === 0 ? 'Leader' : `-${r._diff.toLocaleString()}m`;
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="rank">${rankTxt}</td>
           <td><img src="${icon}" width="${size}" height="${size}" class="face"></td>
           <td>${r['NAME']}</td>
           <td>${arrow ? `<img src="${IMG_PATH+arrow}" width="32" height="32">` : ''}</td>
+          <td>${diffTxt}</td>
         `;
         (r._display === 1 ? topEl : otherEl).appendChild(tr);
       }
@@ -210,7 +220,7 @@
     build().catch(e => {
       console.error(e);
       document.querySelector('#top-rank').innerHTML =
-        '<tr><td colspan="4" style="color:red">Error loading leaderboard</td></tr>';
+        '<tr><td colspan="5" style="color:red">Error loading leaderboard</td></tr>';
     });
   </script>
 </body>
