@@ -6,56 +6,34 @@
   <title>Bonus Metres – Last Month’s Leaderboard</title>
   <style>
     html, body {
-      margin: 0; padding: 0;
+      margin: 0;
+      padding: 0;
       height: 100%;
       font-family: Arial, sans-serif;
-      display: flex; flex-direction: column;
+      display: flex;
+      flex-direction: column;
     }
-
-    .logo {
-      text-align: center; margin: 20px 0 10px;
-    }
-    .logo img {
-      max-width: 200px; height: auto;
-    }
-
-    h1 {
-      text-align: center; margin: 0 0 20px;
-    }
-
+    .logo { text-align: center; margin: 20px 0 10px; }
+    .logo img { max-width: 200px; height: auto; }
+    h1 { text-align: center; margin: 0 0 20px; }
     table {
       width: 100%;
-      max-width: 600px;
+      max-width: 750px;
       margin: auto;
       border-collapse: collapse;
       table-layout: fixed;
     }
-    th, td {
-      padding: 8px 12px; text-align: left;
-    }
-    th {
-      background: #f4f4f4;
-    }
-    img.face {
-      border-radius: 50%; vertical-align: middle;
-    }
-    td.rank {
-      font-size: inherit; font-weight: bold;
-    }
-
-    .static-section {
-      flex-shrink: 0;
-    }
-    .scrollable-section {
-      flex-grow: 1; overflow: hidden; position: relative;
-    }
+    th, td { padding: 8px; text-align: center; }
+    th { background: #f4f4f4; }
+    img.face { border-radius: 50%; vertical-align: middle; }
+    td.rank { font-weight: bold; }
+    .static-section { flex-shrink: 0; }
+    .scrollable-section { flex-grow: 1; overflow: hidden; position: relative; }
     .scrollable-inner {
       height: 100%; overflow-y: auto;
       scrollbar-width: none; -ms-overflow-style: none;
     }
-    .scrollable-inner::-webkit-scrollbar {
-      display: none;
-    }
+    .scrollable-inner::-webkit-scrollbar { display: none; }
   </style>
 </head>
 <body>
@@ -66,7 +44,12 @@
     <h1>Bonus Metres – Last Month’s Leaderboard</h1>
     <table>
       <thead>
-        <tr><th>Rank</th><th>Face</th><th>Name</th></tr>
+        <tr>
+          <th>Rank</th>
+          <th>Face</th>
+          <th>Name</th>
+          <th>Diff. from Leader</th>
+        </tr>
       </thead>
       <tbody id="top-rank"></tbody>
     </table>
@@ -92,10 +75,10 @@
       'Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Morgan Hemming',
       'Nicholas Kingshott','Richard Clanford','Robert Tamas',
       'Ryan Breslan','Ryan Manners','Tom Brooks','Tristan Allen','Tyler Webb',
-      'David Mahon','Darren Hatfield','Sam Brooks','Jason Bligh','Rhys Grant','Ross Wills','Connor Miles'
+      'David Mahon','Darren Hatfield','Sam Brooks','Jason Bligh','Rhys Grant','Ross Wills'
     ];
 
-    async function loadImage(src, size) {
+    async function loadImageElement(src, size) {
       return new Promise(res => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
@@ -113,35 +96,36 @@
     }
 
     async function drawIcon(name, haloColor) {
-      const faceSize = 64,
-            halo     = haloColor ? 10 : 0,
-            total    = faceSize + 2*halo,
-            canvas   = document.createElement('canvas'),
-            ctx      = canvas.getContext('2d'),
-            safe     = encodeURIComponent(name.trim()) + '_cvface1.png';
+      const base = 64,
+            halo = haloColor ? 10 : 0,
+            total = base + 2*halo,
+            canvas = document.createElement('canvas'),
+            ctx = canvas.getContext('2d'),
+            safe = encodeURIComponent(name.trim()) + '_cvface1.png';
 
       canvas.width = canvas.height = total;
 
       if (haloColor) {
         ctx.fillStyle = haloColor;
         ctx.beginPath();
-        ctx.arc(total/2, total/2, faceSize/2 + halo, 0, 2*Math.PI);
-        ctx.arc(total/2, total/2, faceSize/2, 0, 2*Math.PI);
+        ctx.arc(total/2, total/2, base/2 + halo, 0, 2*Math.PI);
+        ctx.arc(total/2, total/2, base/2, 0, 2*Math.PI);
         ctx.fill('evenodd');
       }
 
-      const img = await loadImage(IMG_PATH + safe, faceSize);
-      ctx.drawImage(img, halo, halo, faceSize, faceSize);
+      const img = await loadImageElement(IMG_PATH + safe, base);
+      ctx.drawImage(img, halo, halo, base, base);
       return canvas.toDataURL();
     }
 
     async function fetchData() {
-      const res  = await fetch(CSV_URL, {cache:'no-cache'});
-      const text = await res.text();
-      const lines = text.trim().split(/\r?\n/);
-      const keys  = lines.shift().split(',').map(h=>h.trim());
+      const r = await fetch(CSV_URL, { cache:'no-cache' });
+      if (!r.ok) throw new Error('Failed CSV: ' + r.status);
+      const txt = await r.text();
+      const lines = txt.trim().split(/\r?\n/);
+      const keys  = lines.shift().split('\t').map(h=>h.trim());
       return lines.map(l => {
-        const cols = l.split(',');
+        const cols = l.split('\t');
         return keys.reduce((o,k,i) => (o[k] = (cols[i]||'').trim(), o), {});
       });
     }
@@ -149,67 +133,68 @@
     async function build() {
       const data = await fetchData();
       const rows = data
-        .filter(r => r['LAST MONTH'] && PEOPLE.includes(r['NAME']))
-        .sort((a,b) => Number(b['LAST MONTH']) - Number(a['LAST MONTH']));
+        .filter(r => r['L/M RANK'] && PEOPLE.includes(r['NAME']))
+        .sort((a,b) => +a['L/M RANK'] - +b['L/M RANK']);
 
-      let lastM = null, ctr = 0, rank = 0;
-      rows.forEach(r => {
-        const m = Number(r['LAST MONTH']);
-        ctr++;
-        if (m !== lastM) { rank = ctr; lastM = m; }
-        r._rank = rank;
-      });
+      const leaderValue = +rows[0]['LAST MONTH'] || 0;
 
-      const counts = rows.reduce((a,r) => { a[r._rank] = (a[r._rank]||0) + 1; return a; }, {});
+      const counts = rows.reduce((a,r) => {
+        const rk = +r['L/M RANK'];
+        a[rk] = (a[rk]||0) + 1;
+        return a;
+      }, {});
 
       const topEl   = document.getElementById('top-rank');
       const otherEl = document.getElementById('other-ranks');
       topEl.innerHTML = '';
       otherEl.innerHTML = '';
 
+      let lastRankValue = null, displayRank = 0;
+      rows.forEach((r, idx) => {
+        const val = +r['L/M RANK'];
+        if (val !== lastRankValue) {
+          displayRank = idx + 1;
+          lastRankValue = val;
+        }
+        r._display = displayRank;
+        r._diff = leaderValue - (+r['LAST MONTH'] || 0);
+      });
+
       for (const r of rows) {
-        const isLeader  = r._rank === 1,
-              tie       = counts[r._rank] > 1,
-              rankTxt   = (tie ? '=' : '') + r._rank,
-              haloColor = r._rank === 1 ? 'gold'
-                        : r._rank === 2 ? 'silver'
-                        : r._rank === 3 ? '#cd7f32'
-                        : null,
+        const tie       = counts[+r['L/M RANK']] > 1,
+              rankTxt   = (tie ? '=' : '') + r._display,
+              haloColor = r._display === 1 ? 'gold'
+                         : r._display === 2 ? 'silver'
+                         : r._display === 3 ? '#cd7f32'
+                         : null,
               iconURL   = await drawIcon(r['NAME'], haloColor),
-              size      = 64 + (haloColor ? 10 : 0);
+              size      = 64 + (haloColor ? 10 : 0),
+              diffTxt   = r._diff === 0 ? 'Leader' : `-${r._diff.toLocaleString()}m`;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="rank">${rankTxt}</td>
           <td><img src="${iconURL}" width="${size}" height="${size}" class="face"></td>
           <td>${r['NAME']}</td>
+          <td>${diffTxt}</td>
         `;
-        (isLeader ? topEl : otherEl).appendChild(tr);
+        (r._display === 1 ? topEl : otherEl).appendChild(tr);
       }
 
       setTimeout(startPingPongScroll, 1000);
     }
 
     function startPingPongScroll() {
-      const ct      = document.getElementById('scroll-container'),
-            speed   = 0.05,
-            pauseMs = 1000;
-
-      let dir      = 1,
-          paused   = false,
-          lastTime = performance.now(),
-          elapsed  = 0;
+      const ct = document.getElementById('scroll-container');
+      const speed = 0.05, pauseMs = 1000;
+      let dir = 1, paused = false;
+      let last = performance.now(), elapsed = 0;
 
       function step(now) {
-        const dt = now - lastTime;
-        lastTime = now;
-
+        const dt = now - last; last = now;
         if (paused) {
           elapsed += dt;
-          if (elapsed >= pauseMs) {
-            paused = false;
-            elapsed = 0;
-          }
+          if (elapsed >= pauseMs) { paused = false; elapsed = 0; }
         } else {
           ct.scrollTop += speed * dt * dir;
           const max = ct.scrollHeight - ct.clientHeight;
@@ -219,17 +204,15 @@
             ct.scrollTop = 0; dir = 1; paused = true;
           }
         }
-
         requestAnimationFrame(step);
       }
-
       requestAnimationFrame(step);
     }
 
-    build().catch(err => {
-      console.error(err);
+    build().catch(e => {
+      console.error(e);
       document.querySelector('#top-rank').innerHTML =
-        '<tr><td colspan="3" style="color:red">Error loading data</td></tr>';
+        '<tr><td colspan="4" style="color:red">Error loading leaderboard</td></tr>';
     });
   </script>
 </body>
