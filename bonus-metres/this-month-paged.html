@@ -1,0 +1,222 @@
+<!-- Save as: this-month.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Bonus Metres – Current Month’s Leaderboard</title>
+
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      display: flex; flex-direction: column;
+    }
+    h1 { text-align: center; margin: 20px 0; }
+    table {
+      width: 100%;
+      max-width: 750px;
+      margin: auto;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    th, td { padding: 8px; text-align: center; }
+    th { background: #f4f4f4; }
+    img.face { border-radius: 50%; vertical-align: middle; }
+    td.rank { font-weight: bold; }
+
+    .static-section { flex-shrink: 0; }
+    .scrollable-section { flex-grow: 1; overflow: hidden; position: relative; }
+    .scrollable-inner {
+      height: 100%; overflow-y: auto;
+      scrollbar-width: none; -ms-overflow-style: none;
+    }
+    .scrollable-inner::-webkit-scrollbar { display: none; }
+  </style>
+
+</head>
+<body>
+
+  <div class="static-section">
+    <h1 id="title">Bonus Metres – Current Month’s Leaderboard</h1>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Face</th>
+          <th>Name</th>
+          <th>Positional Change</th>
+          <th>Bonus Metres</th>
+          <th>Diff. from Leader</th>
+        </tr>
+      </thead>
+      <tbody id="top-rank"></tbody>
+    </table>
+  </div>
+
+  <div class="scrollable-section">
+    <div class="scrollable-inner" id="scroll-container">
+      <table>
+        <tbody id="other-ranks"></tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
+const IMG_PATH = '/img/';
+const ITEMS_PER_PAGE = 10;
+
+const PEOPLE = [
+  'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Turnstill','Byron Claridge',
+  'Callum Evans','Cameron Gill','Christopher Scourfield','Connor Miles','Craig Dolan',
+  'Darren Hatfield','David Mahon','Edward Shanley','Gary Mounce','George Norris',
+  'James Hickman','James Hodge-Brooks','James Whiteoak','Jason Bligh',
+  'Joe Lambourne-Gillen','Jonathan Thompson','Joseph Nixon','Joseph Young','Joshua Powell',
+  'Joshua Rowberry','Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap',
+  'Morgan Hemming','Nicholas Kingshott','Rhys Grant','Richard Clanford','Robert Tamas',
+  'Ross Wills','Ryan Breslan','Ryan Manners','Sam Brooks','Tom Brooks',
+  'Tristan Allen','Tyler Webb','Ross Striplin','Jordan Reynolds','Mark Stafford'
+];
+
+function getPage() {
+  const found = new URLSearchParams(location.search).get("page");
+  const p = parseInt(found, 10);
+  return (Number.isInteger(p) && p > 0) ? p : 1;
+}
+
+async function loadImageElement(src, size) {
+  return new Promise(res => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => res(img);
+    img.onerror = () => {
+      const c = document.createElement('canvas');
+      c.width = c.height = size;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#ccc';
+      ctx.fillRect(0, 0, size, size);
+      res(c);
+    };
+    img.src = src;
+  });
+}
+
+async function drawIcon(name, haloColor) {
+  const base = 64, halo = haloColor ? 10 : 0, total = base + 2*halo;
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const safe = encodeURIComponent(name.trim()) + '_cvface1.png';
+
+  canvas.width = canvas.height = total;
+
+  if (haloColor) {
+    ctx.fillStyle = haloColor;
+    ctx.beginPath();
+    ctx.arc(total/2, total/2, base/2 + halo, 0, 2*Math.PI);
+    ctx.arc(total/2, total/2, base/2, 0, 2*Math.PI);
+    ctx.fill('evenodd');
+  }
+
+  const img = await loadImageElement(IMG_PATH + safe, base);
+  ctx.drawImage(img, halo, halo, base, base);
+  return canvas.toDataURL();
+}
+
+async function fetchData() {
+  const r = await fetch(CSV_URL, { cache: 'no-cache' });
+  const txt = await r.text();
+  const lines = txt.trim().split(/\r?\n/);
+  const keys = lines.shift().split(',').map(h => h.trim());
+  return lines.map(l => {
+    const cols = l.split(',');
+    return keys.reduce((o, k, i) => (o[k] = (cols[i]||'').trim(), o), {});
+  });
+}
+
+async function build() {
+  const data = await fetchData();
+  const rows = data
+    .filter(r => r['T/M RANK'] && PEOPLE.includes(r['NAME']))
+    .sort((a,b) => +a['T/M RANK'] - +b['T/M RANK']);
+
+  if (!rows.length) return;
+
+  const leaderValue = parseFloat((rows[0]['THIS MONTH']||'0').replace(/,/g,'')) || 0;
+
+  let lastRank = null, displayRank = 0;
+  rows.forEach((r, idx) => {
+    const v = +r['T/M RANK'];
+    if (v !== lastRank) {
+      displayRank = idx + 1;
+      lastRank = v;
+    }
+    r._display = displayRank;
+    r._value = parseFloat((r['THIS MONTH']||'0').replace(/,/g,'')) || 0;
+    r._diff = leaderValue - r._value;
+  });
+
+  // ---- PAGE LOGIC ----
+  const page = getPage();
+  const start = (page-1) * ITEMS_PER_PAGE;
+  const end = start + ITEMS_PER_PAGE;
+  const pageRows = rows.slice(start, end);
+
+  // Update title
+  const startPos = start + 1;
+  const endPos = Math.min(end, rows.length);
+  document.getElementById("title").textContent =
+    `Bonus Metres – Positions ${startPos}–${endPos}`;
+
+  const topEl = document.getElementById('top-rank');
+  const otherEl = document.getElementById('other-ranks');
+  topEl.innerHTML = '';
+  otherEl.innerHTML = '';
+
+  // We keep EXACT structure: top-rank gets only rank #1 if on page 1
+  for (const r of pageRows) {
+    const halo =
+      r._display === 1 ? 'gold' :
+      r._display === 2 ? 'silver' :
+      r._display === 3 ? '#cd7f32' : null;
+
+    const icon = await drawIcon(r['NAME'], halo);
+    const size = 64 + (halo ? 10 : 0);
+
+    const tm = +r['T/M RANK'];
+    const lm = +r['T/M LAST RANK'] || Infinity;
+    const arrow =
+      tm < lm ? 'Green%20Arrow.png' :
+      tm > lm ? 'Red%20Arrow.png' :
+      '';
+
+    const rowHTML = `
+      <td class="rank">${r._display}</td>
+      <td><img src="${icon}" width="${size}" height="${size}" class="face"></td>
+      <td>${r['NAME']}</td>
+      <td>${arrow ? `<img src="${IMG_PATH}${arrow}" width="32" height="32">` : ''}</td>
+      <td>${r._value.toLocaleString()}m</td>
+      <td>${r._diff === 0 ? 'Leader' : `-${r._diff.toLocaleString()}m`}</td>
+    `;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = rowHTML;
+
+    if (r._display === 1 && page === 1) {
+      topEl.appendChild(tr);
+    } else {
+      otherEl.appendChild(tr);
+    }
+  }
+}
+
+build().catch(err => {
+  console.error(err);
+  document.querySelector('#top-rank').innerHTML =
+    '<tr><td colspan="6" style="color:red">Error loading leaderboard</td></tr>';
+});
+</script>
+</body>
+</html>
