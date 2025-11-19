@@ -39,7 +39,7 @@
 <body>
 
   <div class="static-section">
-    <!-- STATIC TITLE – JS no longer changes this -->
+    <!-- Static title, no JS messing with it -->
     <h1>Bonus Metres – Current Month’s Leaderboard</h1>
 
     <table>
@@ -152,7 +152,8 @@ async function build() {
     return;
   }
 
-  const leaderValue = parseFloat((rows[0]['THIS MONTH'] || '0').replace(/,/g,'')) || 0;
+  const leaderValue =
+    parseFloat((rows[0]['THIS MONTH'] || '0').replace(/,/g,'')) || 0;
 
   let lastRank = null;
   let displayRank = 0;
@@ -194,17 +195,22 @@ async function build() {
       tm > lm ? 'Red%20Arrow.png' :
       '';
 
+    const metresTxt = r._value.toLocaleString() + 'm';
+    const diffTxt   = r._diff === 0
+      ? 'Leader'
+      : '-' + r._diff.toLocaleString() + 'm';
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="rank">${r._display}</td>
       <td><img src="${icon}" width="${size}" height="${size}" class="face"></td>
       <td>${r['NAME']}</td>
       <td>${arrow ? `<img src="${IMG_PATH}${arrow}" width="32" height="32">` : ''}</td>
-      <td>${r._value.toLocaleString()}m</td>
-      <td>${r._diff === 0 ? 'Leader' : \`-\${r._diff.toLocaleString()}m\`}</td>
+      <td>${metresTxt}</td>
+      <td>${diffTxt}</td>
     `;
 
-    // Keep same structure: top section shows only rank 1 on page 1
+    // Same structure as before: rank 1 in top section on page 1 only
     if (r._display === 1 && page === 1) {
       topEl.appendChild(tr);
     } else {
