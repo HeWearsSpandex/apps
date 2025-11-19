@@ -55,7 +55,6 @@
 <body>
 
   <div class="static-section">
-
     <!-- TWO-LINE TITLE -->
     <div class="title-block">
       <div class="title-main">Bonus Metres – Current Month’s Leaderboard</div>
@@ -90,7 +89,7 @@
 
 const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
 const IMG_PATH = '/img/';
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 8;   // blocks of 8 now
 
 const PEOPLE = [
   'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Turnstill','Byron Claridge',
@@ -178,6 +177,13 @@ async function build() {
 
   const leaderValue = parseFloat((rows[0]['THIS MONTH'] || '0').replace(/,/g,'')) || 0;
 
+  // Count how many share each T/M RANK (for "=" on ties)
+  const counts = rows.reduce((acc, r) => {
+    const rk = +r['T/M RANK'];
+    acc[rk] = (acc[rk] || 0) + 1;
+    return acc;
+  }, {});
+
   // Display-rank calculation
   let lastRank = null;
   let displayRank = 0;
@@ -230,9 +236,13 @@ async function build() {
     const metresTxt = r._value.toLocaleString() + 'm';
     const diffTxt   = r._diff === 0 ? 'Leader' : '-' + r._diff.toLocaleString() + 'm';
 
+    // tie detection for rank display
+    const isTie = counts[tm] > 1;
+    const rankTxt = (isTie ? '=' : '') + r._display;
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="rank">${r._display}</td>
+      <td class="rank">${rankTxt}</td>
       <td><img src="${icon}" width="${size}" height="${size}" class="face"></td>
       <td>${r['NAME']}</td>
       <td>${arrow ? `<img src="${IMG_PATH}${arrow}" width="32" height="32">` : ''}</td>
@@ -240,7 +250,7 @@ async function build() {
       <td>${diffTxt}</td>
     `;
 
-    // EXACT SAME STRUCTURE YOU HAD
+    // Same top/other logic as before
     if (r._display === 1 && page === 1) {
       topEl.appendChild(tr);
     } else {
