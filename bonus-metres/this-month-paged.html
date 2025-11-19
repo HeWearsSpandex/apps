@@ -13,7 +13,22 @@
       font-family: Arial, sans-serif;
       display: flex; flex-direction: column;
     }
-    h1 { text-align: center; margin: 20px 0; }
+
+    /* --- TITLE BLOCK (2 lines) --- */
+    .title-block {
+      text-align: center;
+      margin: 20px 0 10px;
+    }
+    .title-main {
+      font-size: 32px;
+      font-weight: bold;
+    }
+    .title-sub {
+      font-size: 18px;
+      margin-top: 6px;
+      color: #444;
+    }
+
     table {
       width: 100%;
       max-width: 750px;
@@ -21,6 +36,7 @@
       border-collapse: collapse;
       table-layout: fixed;
     }
+
     th, td { padding: 8px; text-align: center; }
     th { background: #f4f4f4; }
     img.face { border-radius: 50%; vertical-align: middle; }
@@ -34,13 +50,17 @@
     }
     .scrollable-inner::-webkit-scrollbar { display: none; }
   </style>
-
 </head>
+
 <body>
 
   <div class="static-section">
-    <!-- Static title, no JS messing with it -->
-    <h1>Bonus Metres – Current Month’s Leaderboard</h1>
+
+    <!-- TWO-LINE TITLE -->
+    <div class="title-block">
+      <div class="title-main">Bonus Metres – Current Month’s Leaderboard</div>
+      <div class="title-sub" id="title-sub">Positions</div>
+    </div>
 
     <table>
       <thead>
@@ -66,6 +86,8 @@
   </div>
 
 <script>
+/* -------------------- CONFIG -------------------- */
+
 const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
 const IMG_PATH = '/img/';
 const ITEMS_PER_PAGE = 10;
@@ -81,6 +103,8 @@ const PEOPLE = [
   'Ross Wills','Ryan Breslan','Ryan Manners','Sam Brooks','Tom Brooks',
   'Tristan Allen','Tyler Webb','Ross Striplin','Jordan Reynolds','Mark Stafford'
 ];
+
+/* -------------------- UTILITIES -------------------- */
 
 function getPage() {
   const params = new URLSearchParams(location.search);
@@ -128,9 +152,11 @@ async function drawIcon(name, haloColor) {
   return canvas.toDataURL();
 }
 
+/* -------------------- CSV LOAD -------------------- */
+
 async function fetchData() {
   const r = await fetch(CSV_URL, { cache: 'no-cache' });
-  if (!r.ok) throw new Error('Failed CSV: ' + r.status);
+  if (!r.ok) throw new Error('CSV failed: ' + r.status);
   const txt = await r.text();
   const lines = txt.trim().split(/\r?\n/);
   const keys = lines.shift().split(',').map(h => h.trim());
@@ -140,21 +166,19 @@ async function fetchData() {
   });
 }
 
+/* -------------------- MAIN BUILD -------------------- */
+
 async function build() {
   const data = await fetchData();
   const rows = data
     .filter(r => r['T/M RANK'] && PEOPLE.includes(r['NAME']))
     .sort((a,b) => +a['T/M RANK'] - +b['T/M RANK']);
 
-  if (!rows.length) {
-    document.getElementById('top-rank').innerHTML =
-      '<tr><td colspan="6">No data</td></tr>';
-    return;
-  }
+  if (!rows.length) return;
 
-  const leaderValue =
-    parseFloat((rows[0]['THIS MONTH'] || '0').replace(/,/g,'')) || 0;
+  const leaderValue = parseFloat((rows[0]['THIS MONTH'] || '0').replace(/,/g,'')) || 0;
 
+  // Display-rank calculation
   let lastRank = null;
   let displayRank = 0;
 
@@ -166,17 +190,25 @@ async function build() {
     }
     r._display = displayRank;
     r._value = parseFloat((r['THIS MONTH'] || '0').replace(/,/g,'')) || 0;
-    r._diff = leaderValue - r._value;
+    r._diff  = leaderValue - r._value;
   });
 
-  const page = getPage();
+  // Page slicing
+  const page  = getPage();
   const start = (page - 1) * ITEMS_PER_PAGE;
   const end   = start + ITEMS_PER_PAGE;
   const pageRows = rows.slice(start, end);
 
+  // Update subtitle
+  const startPos = start + 1;
+  const endPos   = Math.min(end, rows.length);
+  document.getElementById("title-sub").textContent =
+    `Positions ${startPos}–${endPos}`;
+
+  // Output rows
   const topEl   = document.getElementById('top-rank');
   const otherEl = document.getElementById('other-ranks');
-  topEl.innerHTML = '';
+  topEl.innerHTML   = '';
   otherEl.innerHTML = '';
 
   for (const r of pageRows) {
@@ -196,9 +228,7 @@ async function build() {
       '';
 
     const metresTxt = r._value.toLocaleString() + 'm';
-    const diffTxt   = r._diff === 0
-      ? 'Leader'
-      : '-' + r._diff.toLocaleString() + 'm';
+    const diffTxt   = r._diff === 0 ? 'Leader' : '-' + r._diff.toLocaleString() + 'm';
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -210,7 +240,7 @@ async function build() {
       <td>${diffTxt}</td>
     `;
 
-    // Same structure as before: rank 1 in top section on page 1 only
+    // EXACT SAME STRUCTURE YOU HAD
     if (r._display === 1 && page === 1) {
       topEl.appendChild(tr);
     } else {
@@ -221,9 +251,10 @@ async function build() {
 
 build().catch(err => {
   console.error(err);
-  document.querySelector('#top-rank').innerHTML =
+  document.getElementById('top-rank').innerHTML =
     '<tr><td colspan="6" style="color:red">Error loading leaderboard</td></tr>';
 });
 </script>
+
 </body>
 </html>
