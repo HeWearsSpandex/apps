@@ -39,7 +39,8 @@
 <body>
 
   <div class="static-section">
-    <h1 id="title">Bonus Metres – Current Month’s Leaderboard</h1>
+    <!-- STATIC TITLE – JS no longer changes this -->
+    <h1>Bonus Metres – Current Month’s Leaderboard</h1>
 
     <table>
       <thead>
@@ -82,9 +83,9 @@ const PEOPLE = [
 ];
 
 function getPage() {
-  const found = new URLSearchParams(location.search).get("page");
-  const p = parseInt(found, 10);
-  return (Number.isInteger(p) && p > 0) ? p : 1;
+  const params = new URLSearchParams(location.search);
+  const p = parseInt(params.get("page"), 10);
+  return Number.isInteger(p) && p > 0 ? p : 1;
 }
 
 async function loadImageElement(src, size) {
@@ -105,7 +106,9 @@ async function loadImageElement(src, size) {
 }
 
 async function drawIcon(name, haloColor) {
-  const base = 64, halo = haloColor ? 10 : 0, total = base + 2*halo;
+  const base = 64;
+  const halo = haloColor ? 10 : 0;
+  const total = base + 2 * halo;
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   const safe = encodeURIComponent(name.trim()) + '_cvface1.png';
@@ -127,12 +130,13 @@ async function drawIcon(name, haloColor) {
 
 async function fetchData() {
   const r = await fetch(CSV_URL, { cache: 'no-cache' });
+  if (!r.ok) throw new Error('Failed CSV: ' + r.status);
   const txt = await r.text();
   const lines = txt.trim().split(/\r?\n/);
   const keys = lines.shift().split(',').map(h => h.trim());
   return lines.map(l => {
     const cols = l.split(',');
-    return keys.reduce((o, k, i) => (o[k] = (cols[i]||'').trim(), o), {});
+    return keys.reduce((o, k, i) => (o[k] = (cols[i] || '').trim(), o), {});
   });
 }
 
@@ -142,11 +146,17 @@ async function build() {
     .filter(r => r['T/M RANK'] && PEOPLE.includes(r['NAME']))
     .sort((a,b) => +a['T/M RANK'] - +b['T/M RANK']);
 
-  if (!rows.length) return;
+  if (!rows.length) {
+    document.getElementById('top-rank').innerHTML =
+      '<tr><td colspan="6">No data</td></tr>';
+    return;
+  }
 
-  const leaderValue = parseFloat((rows[0]['THIS MONTH']||'0').replace(/,/g,'')) || 0;
+  const leaderValue = parseFloat((rows[0]['THIS MONTH'] || '0').replace(/,/g,'')) || 0;
 
-  let lastRank = null, displayRank = 0;
+  let lastRank = null;
+  let displayRank = 0;
+
   rows.forEach((r, idx) => {
     const v = +r['T/M RANK'];
     if (v !== lastRank) {
@@ -154,28 +164,20 @@ async function build() {
       lastRank = v;
     }
     r._display = displayRank;
-    r._value = parseFloat((r['THIS MONTH']||'0').replace(/,/g,'')) || 0;
+    r._value = parseFloat((r['THIS MONTH'] || '0').replace(/,/g,'')) || 0;
     r._diff = leaderValue - r._value;
   });
 
-  // ---- PAGE LOGIC ----
   const page = getPage();
-  const start = (page-1) * ITEMS_PER_PAGE;
-  const end = start + ITEMS_PER_PAGE;
+  const start = (page - 1) * ITEMS_PER_PAGE;
+  const end   = start + ITEMS_PER_PAGE;
   const pageRows = rows.slice(start, end);
 
-  // Update title
-  const startPos = start + 1;
-  const endPos = Math.min(end, rows.length);
-  document.getElementById("title").textContent =
-    `Bonus Metres – Positions ${startPos}–${endPos}`;
-
-  const topEl = document.getElementById('top-rank');
+  const topEl   = document.getElementById('top-rank');
   const otherEl = document.getElementById('other-ranks');
   topEl.innerHTML = '';
   otherEl.innerHTML = '';
 
-  // We keep EXACT structure: top-rank gets only rank #1 if on page 1
   for (const r of pageRows) {
     const halo =
       r._display === 1 ? 'gold' :
@@ -192,18 +194,17 @@ async function build() {
       tm > lm ? 'Red%20Arrow.png' :
       '';
 
-    const rowHTML = `
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
       <td class="rank">${r._display}</td>
       <td><img src="${icon}" width="${size}" height="${size}" class="face"></td>
       <td>${r['NAME']}</td>
       <td>${arrow ? `<img src="${IMG_PATH}${arrow}" width="32" height="32">` : ''}</td>
       <td>${r._value.toLocaleString()}m</td>
-      <td>${r._diff === 0 ? 'Leader' : `-${r._diff.toLocaleString()}m`}</td>
+      <td>${r._diff === 0 ? 'Leader' : \`-\${r._diff.toLocaleString()}m\`}</td>
     `;
 
-    const tr = document.createElement('tr');
-    tr.innerHTML = rowHTML;
-
+    // Keep same structure: top section shows only rank 1 on page 1
     if (r._display === 1 && page === 1) {
       topEl.appendChild(tr);
     } else {
