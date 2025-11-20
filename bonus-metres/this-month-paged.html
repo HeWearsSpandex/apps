@@ -29,6 +29,27 @@
       color: #444;
     }
 
+    /* --- PAGE NAV (ARROWS) --- */
+    .page-nav {
+      margin-top: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 18px;
+      font-size: 14px;
+      color: #555;
+    }
+    .page-indicator {
+      font-size: 14px;
+    }
+    .nav-arrow {
+      cursor: pointer;
+      font-size: 24px;
+      user-select: none;
+      padding: 2px 10px;
+      line-height: 1;
+    }
+
     table {
       width: 100%;
       max-width: 750px;
@@ -59,6 +80,9 @@
     <div class="title-block">
       <div class="title-main">Bonus Metres – Current Month’s Leaderboard</div>
       <div class="title-sub" id="title-sub">Positions</div>
+
+      <!-- ARROW NAVIGATION -->
+      <div class="page-nav" id="page-nav"></div>
     </div>
 
     <table>
@@ -201,6 +225,7 @@ async function build() {
 
   // Page slicing
   const page  = getPage();
+  const totalPages = Math.ceil(rows.length / ITEMS_PER_PAGE);
   const start = (page - 1) * ITEMS_PER_PAGE;
   const end   = start + ITEMS_PER_PAGE;
   const pageRows = rows.slice(start, end);
@@ -210,6 +235,32 @@ async function build() {
   const endPos   = Math.min(end, rows.length);
   document.getElementById("title-sub").textContent =
     `Positions ${startPos}–${endPos}`;
+
+  // Update page navigation (arrows + page indicator)
+  const navEl = document.getElementById('page-nav');
+  let navHtml = '';
+
+  if (page > 1) {
+    navHtml += `<span class="nav-arrow" data-target="${page - 1}">&#8592;</span>`;
+  }
+
+  navHtml += `<span class="page-indicator">Page ${page} of ${totalPages}</span>`;
+
+  if (page < totalPages) {
+    navHtml += `<span class="nav-arrow" data-target="${page + 1}">&#8594;</span>`;
+  }
+
+  navEl.innerHTML = navHtml;
+
+  // Single click handler for arrows
+  navEl.addEventListener('click', function(e) {
+    const target = e.target.closest('.nav-arrow');
+    if (!target) return;
+    const newPage = target.getAttribute('data-target');
+    const params = new URLSearchParams(location.search);
+    params.set('page', newPage);
+    location.search = params.toString();  // reload with new ?page=
+  }, { once: true });
 
   // Output rows
   const topEl   = document.getElementById('top-rank');
