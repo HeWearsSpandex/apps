@@ -104,6 +104,12 @@
       scrollbar-width: none; -ms-overflow-style: none;
     }
     .scrollable-inner::-webkit-scrollbar { display: none; }
+
+    /* --- HIGHLIGHTED RESULT ROW --- */
+    .highlight-row {
+      background-color: #fff7c2;
+      transition: background-color 1s ease;
+    }
   </style>
 </head>
 
@@ -185,9 +191,19 @@ function getPage() {
   return Number.isInteger(p) && p > 0 ? p : 1;
 }
 
-function gotoPage(newPage) {
+function getHighlightName() {
+  const params = new URLSearchParams(location.search);
+  return params.get('highlight') || null;
+}
+
+function gotoPage(newPage, highlightName) {
   const params = new URLSearchParams(location.search);
   params.set('page', newPage);
+  if (highlightName) {
+    params.set('highlight', highlightName);
+  } else {
+    params.delete('highlight');
+  }
   location.search = params.toString();
 }
 
@@ -297,6 +313,8 @@ async function renderCurrentPage() {
   const start = (page - 1) * ITEMS_PER_PAGE;
   const end   = Math.min(start + ITEMS_PER_PAGE, rows.length);
 
+  const highlightName = getHighlightName();
+
   // Subtitle Positions X–Y
   const startPos = start + 1;
   const endPos   = end;
@@ -311,10 +329,10 @@ async function renderCurrentPage() {
   nextArrow.style.visibility = page === totalPages ? "hidden" : "visible";
 
   prevArrow.onclick = () => {
-    if (page > 1) gotoPage(page - 1);
+    if (page > 1) gotoPage(page - 1); // drop highlight on manual paging
   };
   nextArrow.onclick = () => {
-    if (page < totalPages) gotoPage(page + 1);
+    if (page < totalPages) gotoPage(page + 1); // drop highlight on manual paging
   };
 
   // Fill tables
@@ -347,6 +365,7 @@ async function renderCurrentPage() {
     const rankTxt = (r._isTie ? '=' : '') + r._display;
 
     const tr = document.createElement('tr');
+    tr.dataset.name = r['NAME'];  // for highlighting
     tr.innerHTML = `
       <td class="rank">${rankTxt}</td>
       <td><img src="${icon}" width="${size}" height="${size}" class="face"></td>
@@ -363,9 +382,46 @@ async function renderCurrentPage() {
       otherEl.appendChild(tr);
     }
   }
+
+  // Apply highlight if requested and visible on this page
+  if (highlightName) {
+    const allTrs = [
+      ...topEl.querySelectorAll('tr'),
+      ...otherEl.querySelectorAll('tr')
+    ];
+    const match = allTrs.find(tr => tr.dataset.name === highlightName);
+    if (match) {
+      match.classList.add('highlight-row');
+      // Optionally auto-scroll within the scrollable area if not in the top table
+      if (otherEl.contains(match)) {
+        const container = document.getElementById('scroll-container');
+        const rect = match.getBoundingClientRect();
+        const crect = container.getBoundingClientRect();
+        if (rect.top < crect.top || rect.bottom > crect.bottom) {
+          container.scrollTop = match.offsetTop - 20;
+        }
+      }
+    }
+  }
 }
 
 /* -------------------- SEARCH WITH DROPDOWN + JUMP -------------------- */
+
+function clearHighlightState() {
+  // Remove highlight class from any row
+  const highlighted = document.querySelector('.highlight-row');
+  if (highlighted) {
+    highlighted.classList.remove('highlight-row');
+  }
+  // Remove highlight param from URL without reloading
+  const params = new URLSearchParams(location.search);
+  if (params.has('highlight')) {
+    params.delete('highlight');
+    const newQuery = params.toString();
+    const newUrl = window.location.pathname + (newQuery ? '?' + newQuery : '');
+    history.replaceState(null, '', newUrl);
+  }
+}
 
 function setupSearch() {
   const input = document.getElementById('searchBox');
@@ -377,6 +433,11 @@ function setupSearch() {
     dropdown.style.display = 'none';
     dropdown.innerHTML = '';
   }
+
+  // When user clicks back into the search box, drop any existing highlight
+  input.addEventListener('focus', () => {
+    clearHighlightState();
+  });
 
   input.addEventListener('input', () => {
     const query = input.value.trim().toLowerCase();
@@ -427,7 +488,8 @@ function setupSearch() {
     closeDropdown();
     input.blur();
 
-    gotoPage(page); // reload with ?page=N so their row is visible
+    // Navigate and request highlight on that name
+    gotoPage(page, name);
   });
 
   // Close dropdown when clicking outside
