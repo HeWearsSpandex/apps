@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Bonus Metres – Current Month’s Leaderboard</title>
+  <title>Bonus Metres – Current Month's Leaderboard</title>
 
   <style>
     html, body {
@@ -14,7 +14,6 @@
       display: flex; flex-direction: column;
     }
 
-    /* --- TITLE BLOCK (2 lines) --- */
     .title-block {
       text-align: center;
       margin: 20px 0 10px;
@@ -27,6 +26,9 @@
       font-size: 18px;
       color: #444;
     }
+
+    .logo { text-align: center; margin: 20px 0 10px; }
+    .logo img { max-width: 200px; height: auto; }
 
     .nav-row {
       display: flex;
@@ -41,7 +43,6 @@
       user-select: none;
     }
 
-    /* --- SEARCH UI --- */
     .search-container {
       position: relative;
       margin-top: 10px;
@@ -76,13 +77,8 @@
       text-align: left;
       font-size: 14px;
     }
-    .search-item:hover {
-      background: #f0f0f0;
-    }
-    .search-item.disabled {
-      cursor: default;
-      color: #999;
-    }
+    .search-item:hover { background: #f0f0f0; }
+    .search-item.disabled { cursor: default; color: #999; }
 
     table {
       width: 100%;
@@ -91,7 +87,6 @@
       border-collapse: collapse;
       table-layout: fixed;
     }
-
     th, td { padding: 8px; text-align: center; }
     th { background: #f4f4f4; }
     img.face { border-radius: 50%; vertical-align: middle; }
@@ -105,7 +100,6 @@
     }
     .scrollable-inner::-webkit-scrollbar { display: none; }
 
-    /* --- HIGHLIGHTED RESULT ROW --- */
     .highlight-row {
       background-color: #fff7c2;
       transition: background-color 1s ease;
@@ -116,25 +110,19 @@
 <body>
 
   <div class="static-section">
-    <!-- TWO-LINE TITLE -->
-    <div class="title-block">
-      <div class="title-main">Bonus Metres – Current Month’s Leaderboard</div>
+    <div class="logo">
+      <img src="/img/JHB Logo.png" alt="JHB Logo">
+    </div>
 
-      <!-- Arrows either side of subtitle -->
+    <div class="title-block">
+      <div class="title-main">Bonus Metres – Current Month's Leaderboard</div>
       <div class="nav-row">
         <span class="nav-arrow" id="nav-prev">&#8592;</span>
         <div class="title-sub" id="title-sub">Positions</div>
         <span class="nav-arrow" id="nav-next">&#8594;</span>
       </div>
-
-      <!-- SEARCH BAR + DROPDOWN -->
       <div class="search-container">
-        <input
-          id="searchBox"
-          class="search-input"
-          type="text"
-          placeholder="Search for a name…"
-        />
+        <input id="searchBox" class="search-input" type="text" placeholder="Search for a name…" />
         <div id="searchDropdown" class="search-dropdown"></div>
       </div>
     </div>
@@ -162,352 +150,241 @@
     </div>
   </div>
 
-<script>
-/* -------------------- CONFIG -------------------- */
+  <!-- Shared people list -->
+  <script src="/js/people.js"></script>
+  <script>
+    const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
+    const IMG_PATH = '/img/';
+    const ITEMS_PER_PAGE = 8;
 
-const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
-const IMG_PATH = '/img/';
-const ITEMS_PER_PAGE = 8;   // blocks of 8
+    let ALL_ROWS = [];
 
-const PEOPLE = [
-      'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Turnstill',
-      'Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan',
-      'Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks',
-      'James Whiteoak',
-      'Jonathan Thompson','Joseph Nixon','Joshua Powell','Joshua Rowberry',
-      'Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Morgan Hemming',
-      'Nicholas Kingshott','Richard Clanford','Robert Tamas',
-      'Ryan Breslan','Ryan Manners','Tom Brooks','Tristan Allen','Tyler Webb','David Mahon','Jason Bligh','Rhys Grant','Ross Wills','Ross Striplin','Jordan Reynolds','Mark Stafford',
-      'William Garratt','Chris Voisey','Ryan Turnstil','Jenna Turvey','Archie Beckett','Colby Mathews'
-];
-
-let ALL_ROWS = [];
-
-/* -------------------- UTILITIES -------------------- */
-
-function getPage() {
-  const params = new URLSearchParams(location.search);
-  const p = parseInt(params.get("page"), 10);
-  return Number.isInteger(p) && p > 0 ? p : 1;
-}
-
-function getHighlightName() {
-  const params = new URLSearchParams(location.search);
-  return params.get('highlight') || null;
-}
-
-function gotoPage(newPage, highlightName) {
-  const params = new URLSearchParams(location.search);
-  params.set('page', newPage);
-  if (highlightName) {
-    params.set('highlight', highlightName);
-  } else {
-    params.delete('highlight');
-  }
-  location.search = params.toString();
-}
-
-async function loadImageElement(src, size) {
-  return new Promise(res => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => res(img);
-    img.onerror = () => {
-      const c = document.createElement('canvas');
-      c.width = c.height = size;
-      const ctx = c.getContext('2d');
-      ctx.fillStyle = '#ccc';
-      ctx.fillRect(0, 0, size, size);
-      res(c);
-    };
-    img.src = src;
-  });
-}
-
-async function drawIcon(name, haloColor) {
-  const base = 64;
-  const halo = haloColor ? 10 : 0;
-  const total = base + 2 * halo;
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  const safe = encodeURIComponent(name.trim()) + '_cvface1.png';
-
-  canvas.width = canvas.height = total;
-
-  if (haloColor) {
-    ctx.fillStyle = haloColor;
-    ctx.beginPath();
-    ctx.arc(total/2, total/2, base/2 + halo, 0, 2*Math.PI);
-    ctx.arc(total/2, total/2, base/2, 0, 2*Math.PI);
-    ctx.fill('evenodd');
-  }
-
-  const img = await loadImageElement(IMG_PATH + safe, base);
-  ctx.drawImage(img, halo, halo, base, base);
-  return canvas.toDataURL();
-}
-
-/* -------------------- CSV LOAD -------------------- */
-
-async function fetchData() {
-  const r = await fetch(CSV_URL, { cache: 'no-cache' });
-  if (!r.ok) throw new Error('CSV failed: ' + r.status);
-  const txt = await r.text();
-  const lines = txt.trim().split(/\r?\n/);
-  const keys = lines.shift().split(',').map(h => h.trim());
-  return lines.map(l => {
-    const cols = l.split(',');
-    return keys.reduce((o, k, i) => (o[k] = (cols[i] || '').trim(), o), {});
-  });
-}
-
-/* -------------------- MAIN BUILD -------------------- */
-
-async function build() {
-  const data = await fetchData();
-  const rows = data
-    .filter(r => r['T/M RANK'] && PEOPLE.includes(r['NAME']))
-    .sort((a,b) => +a['T/M RANK'] - +b['T/M RANK']);
-
-  if (!rows.length) return;
-
-  const leaderValue = parseFloat((rows[0]['THIS MONTH'] || '0').replace(/,/g,'')) || 0;
-
-  // Count how many share each T/M RANK (for "=" on ties)
-  const counts = rows.reduce((acc, r) => {
-    const rk = +r['T/M RANK'];
-    acc[rk] = (acc[rk] || 0) + 1;
-    return acc;
-  }, {});
-
-  // Display-rank calculation
-  let lastRank = null;
-  let displayRank = 0;
-
-  rows.forEach((r, idx) => {
-    const v = +r['T/M RANK'];
-    if (v !== lastRank) {
-      displayRank = idx + 1;
-      lastRank = v;
+    function getPage() {
+      const params = new URLSearchParams(location.search);
+      const p = parseInt(params.get('page'), 10);
+      return Number.isInteger(p) && p > 0 ? p : 1;
     }
-    r._display = displayRank;
-    r._value = parseFloat((r['THIS MONTH'] || '0').replace(/,/g,'')) || 0;
-    r._diff  = leaderValue - r._value;
-    r._isTie = counts[v] > 1;
-  });
 
-  ALL_ROWS = rows;
-
-  setupSearch();
-  await renderCurrentPage();
-}
-
-/* -------------------- RENDER CURRENT PAGE -------------------- */
-
-async function renderCurrentPage() {
-  const rows = ALL_ROWS;
-  if (!rows.length) return;
-
-  const page  = getPage();
-  const totalPages = Math.ceil(rows.length / ITEMS_PER_PAGE);
-  const start = (page - 1) * ITEMS_PER_PAGE;
-  const end   = Math.min(start + ITEMS_PER_PAGE, rows.length);
-
-  const highlightName = getHighlightName();
-
-  // Subtitle Positions X–Y
-  const startPos = start + 1;
-  const endPos   = end;
-  document.getElementById("title-sub").textContent =
-    `Positions ${startPos}–${endPos}`;
-
-  // Arrows visibility + behaviour
-  const prevArrow = document.getElementById("nav-prev");
-  const nextArrow = document.getElementById("nav-next");
-
-  prevArrow.style.visibility = page === 1 ? "hidden" : "visible";
-  nextArrow.style.visibility = page === totalPages ? "hidden" : "visible";
-
-  prevArrow.onclick = () => {
-    if (page > 1) gotoPage(page - 1); // drop highlight on manual paging
-  };
-  nextArrow.onclick = () => {
-    if (page < totalPages) gotoPage(page + 1); // drop highlight on manual paging
-  };
-
-  // Fill tables
-  const topEl   = document.getElementById('top-rank');
-  const otherEl = document.getElementById('other-ranks');
-  topEl.innerHTML   = '';
-  otherEl.innerHTML = '';
-
-  for (let i = start; i < end; i++) {
-    const r = rows[i];
-
-    const halo =
-      r._display === 1 ? 'gold' :
-      r._display === 2 ? 'silver' :
-      r._display === 3 ? '#cd7f32' : null;
-
-    const icon = await drawIcon(r['NAME'], halo);
-    const size = 64 + (halo ? 10 : 0);
-
-    const tm = +r['T/M RANK'];
-    const lm = +r['T/M LAST RANK'] || Infinity;
-    const arrowImg =
-      tm < lm ? 'Green%20Arrow.png' :
-      tm > lm ? 'Red%20Arrow.png' :
-      '';
-
-    const metresTxt = r._value.toLocaleString() + 'm';
-    const diffTxt   = r._diff === 0 ? 'Leader' : '-' + r._diff.toLocaleString() + 'm';
-
-    const rankTxt = (r._isTie ? '=' : '') + r._display;
-
-    const tr = document.createElement('tr');
-    tr.dataset.name = r['NAME'];  // for highlighting
-    tr.innerHTML = `
-      <td class="rank">${rankTxt}</td>
-      <td><img src="${icon}" width="${size}" height="${size}" class="face"></td>
-      <td>${r['NAME']}</td>
-      <td>${arrowImg ? `<img src="${IMG_PATH}${arrowImg}" width="32" height="32">` : ''}</td>
-      <td>${metresTxt}</td>
-      <td>${diffTxt}</td>
-    `;
-
-    // Leader on first page goes in the top table; others in scrollable table
-    if (r._display === 1 && page === 1) {
-      topEl.appendChild(tr);
-    } else {
-      otherEl.appendChild(tr);
+    function getHighlightName() {
+      return new URLSearchParams(location.search).get('highlight') || null;
     }
-  }
 
-  // Apply highlight if requested and visible on this page
-  if (highlightName) {
-    const allTrs = [
-      ...topEl.querySelectorAll('tr'),
-      ...otherEl.querySelectorAll('tr')
-    ];
-    const match = allTrs.find(tr => tr.dataset.name === highlightName);
-    if (match) {
-      match.classList.add('highlight-row');
-      // Optionally auto-scroll within the scrollable area if not in the top table
-      if (otherEl.contains(match)) {
-        const container = document.getElementById('scroll-container');
-        const rect = match.getBoundingClientRect();
-        const crect = container.getBoundingClientRect();
-        if (rect.top < crect.top || rect.bottom > crect.bottom) {
-          container.scrollTop = match.offsetTop - 20;
+    function gotoPage(newPage, highlightName) {
+      const params = new URLSearchParams(location.search);
+      params.set('page', newPage);
+      if (highlightName) { params.set('highlight', highlightName); }
+      else { params.delete('highlight'); }
+      location.search = params.toString();
+    }
+
+    async function loadImageElement(src, size) {
+      return new Promise(res => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => res(img);
+        img.onerror = () => {
+          const c = document.createElement('canvas');
+          c.width = c.height = size;
+          const ctx = c.getContext('2d');
+          ctx.fillStyle = '#ccc';
+          ctx.fillRect(0, 0, size, size);
+          res(c);
+        };
+        img.src = src;
+      });
+    }
+
+    async function drawIcon(name, haloColor) {
+      const base = 64, halo = haloColor ? 10 : 0, total = base + 2 * halo;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = canvas.height = total;
+      if (haloColor) {
+        ctx.fillStyle = haloColor;
+        ctx.beginPath();
+        ctx.arc(total/2, total/2, base/2 + halo, 0, 2*Math.PI);
+        ctx.arc(total/2, total/2, base/2, 0, 2*Math.PI);
+        ctx.fill('evenodd');
+      }
+      const img = await loadImageElement(IMG_PATH + encodeURIComponent(name.trim()) + '_cvface1.png', base);
+      ctx.drawImage(img, halo, halo, base, base);
+      return canvas.toDataURL();
+    }
+
+    async function fetchData() {
+      const r = await fetch(CSV_URL, { cache: 'no-cache' });
+      if (!r.ok) throw new Error('CSV failed: ' + r.status);
+      const txt = await r.text();
+      const lines = txt.trim().split(/\r?\n/);
+      const keys = lines.shift().split(',').map(h => h.trim());
+      return lines.map(l => {
+        const cols = l.split(',');
+        return keys.reduce((o, k, i) => (o[k] = (cols[i] || '').trim(), o), {});
+      });
+    }
+
+    async function build() {
+      const data = await fetchData();
+      const rows = data
+        .filter(r => r['T/M RANK'] && PEOPLE.includes(r['NAME']))
+        .sort((a, b) => +a['T/M RANK'] - +b['T/M RANK']);
+
+      if (!rows.length) return;
+
+      const leaderValue = parseFloat((rows[0]['THIS MONTH'] || '0').replace(/,/g, '')) || 0;
+      const counts = rows.reduce((acc, r) => {
+        const rk = +r['T/M RANK'];
+        acc[rk] = (acc[rk] || 0) + 1;
+        return acc;
+      }, {});
+
+      let lastRank = null, displayRank = 0;
+      rows.forEach((r, idx) => {
+        const v = +r['T/M RANK'];
+        if (v !== lastRank) { displayRank = idx + 1; lastRank = v; }
+        r._display = displayRank;
+        r._value = parseFloat((r['THIS MONTH'] || '0').replace(/,/g, '')) || 0;
+        r._diff  = leaderValue - r._value;
+        r._isTie = counts[v] > 1;
+      });
+
+      ALL_ROWS = rows;
+      setupSearch();
+      await renderCurrentPage();
+    }
+
+    async function renderCurrentPage() {
+      const rows = ALL_ROWS;
+      if (!rows.length) return;
+
+      const page       = getPage();
+      const totalPages = Math.ceil(rows.length / ITEMS_PER_PAGE);
+      const start      = (page - 1) * ITEMS_PER_PAGE;
+      const end        = Math.min(start + ITEMS_PER_PAGE, rows.length);
+      const highlightName = getHighlightName();
+
+      document.getElementById('title-sub').textContent = `Positions ${start + 1}–${end}`;
+
+      const prevArrow = document.getElementById('nav-prev');
+      const nextArrow = document.getElementById('nav-next');
+      prevArrow.style.visibility = page === 1 ? 'hidden' : 'visible';
+      nextArrow.style.visibility = page === totalPages ? 'hidden' : 'visible';
+      prevArrow.onclick = () => { if (page > 1) gotoPage(page - 1); };
+      nextArrow.onclick = () => { if (page < totalPages) gotoPage(page + 1); };
+
+      const topEl   = document.getElementById('top-rank');
+      const otherEl = document.getElementById('other-ranks');
+      topEl.innerHTML = otherEl.innerHTML = '';
+
+      for (let i = start; i < end; i++) {
+        const r = rows[i];
+        const halo = r._display === 1 ? 'gold' : r._display === 2 ? 'silver' : r._display === 3 ? '#cd7f32' : null;
+        const icon = await drawIcon(r['NAME'], halo);
+        const size = 64 + (halo ? 10 : 0);
+        const tm = +r['T/M RANK'];
+        const lm = +r['T/M LAST RANK'] || Infinity;
+        const arrowImg = tm < lm ? 'Green%20Arrow.png' : tm > lm ? 'Red%20Arrow.png' : '';
+        const rankTxt  = (r._isTie ? '=' : '') + r._display;
+        const metresTxt = r._value.toLocaleString() + 'm';
+        const diffTxt   = r._diff === 0 ? 'Leader' : '-' + r._diff.toLocaleString() + 'm';
+
+        const tr = document.createElement('tr');
+        tr.dataset.name = r['NAME'];
+        tr.innerHTML = `
+          <td class="rank">${rankTxt}</td>
+          <td><img src="${icon}" width="${size}" height="${size}" class="face"></td>
+          <td>${r['NAME']}</td>
+          <td>${arrowImg ? `<img src="${IMG_PATH}${arrowImg}" width="32" height="32">` : ''}</td>
+          <td>${metresTxt}</td>
+          <td>${diffTxt}</td>
+        `;
+        (r._display === 1 && page === 1 ? topEl : otherEl).appendChild(tr);
+      }
+
+      if (highlightName) {
+        const match = [...topEl.querySelectorAll('tr'), ...otherEl.querySelectorAll('tr')]
+          .find(tr => tr.dataset.name === highlightName);
+        if (match) {
+          match.classList.add('highlight-row');
+          if (otherEl.contains(match)) {
+            const ct = document.getElementById('scroll-container');
+            const rect = match.getBoundingClientRect();
+            const crect = ct.getBoundingClientRect();
+            if (rect.top < crect.top || rect.bottom > crect.bottom) {
+              ct.scrollTop = match.offsetTop - 20;
+            }
+          }
         }
       }
     }
-  }
-}
 
-/* -------------------- SEARCH WITH DROPDOWN + JUMP -------------------- */
-
-function clearHighlightState() {
-  // Remove highlight class from any row
-  const highlighted = document.querySelector('.highlight-row');
-  if (highlighted) {
-    highlighted.classList.remove('highlight-row');
-  }
-  // Remove highlight param from URL without reloading
-  const params = new URLSearchParams(location.search);
-  if (params.has('highlight')) {
-    params.delete('highlight');
-    const newQuery = params.toString();
-    const newUrl = window.location.pathname + (newQuery ? '?' + newQuery : '');
-    history.replaceState(null, '', newUrl);
-  }
-}
-
-function setupSearch() {
-  const input = document.getElementById('searchBox');
-  const dropdown = document.getElementById('searchDropdown');
-
-  if (!input || !dropdown) return;
-
-  function closeDropdown() {
-    dropdown.style.display = 'none';
-    dropdown.innerHTML = '';
-  }
-
-  // When user clicks back into the search box, drop any existing highlight
-  input.addEventListener('focus', () => {
-    clearHighlightState();
-  });
-
-  input.addEventListener('input', () => {
-    const query = input.value.trim().toLowerCase();
-    dropdown.innerHTML = '';
-
-    if (!query) {
-      closeDropdown();
-      return;
+    function clearHighlightState() {
+      const highlighted = document.querySelector('.highlight-row');
+      if (highlighted) highlighted.classList.remove('highlight-row');
+      const params = new URLSearchParams(location.search);
+      if (params.has('highlight')) {
+        params.delete('highlight');
+        const q = params.toString();
+        history.replaceState(null, '', window.location.pathname + (q ? '?' + q : ''));
+      }
     }
 
-    const matches = ALL_ROWS.filter(r =>
-      r['NAME'].toLowerCase().includes(query)
-    );
+    function setupSearch() {
+      const input    = document.getElementById('searchBox');
+      const dropdown = document.getElementById('searchDropdown');
+      if (!input || !dropdown) return;
 
-    if (!matches.length) {
-      dropdown.innerHTML = '<div class="search-item disabled">No matches</div>';
-      dropdown.style.display = 'block';
-      return;
+      const closeDropdown = () => { dropdown.style.display = 'none'; dropdown.innerHTML = ''; };
+
+      input.addEventListener('focus', clearHighlightState);
+
+      input.addEventListener('input', () => {
+        const query = input.value.trim().toLowerCase();
+        dropdown.innerHTML = '';
+        if (!query) { closeDropdown(); return; }
+
+        const matches = ALL_ROWS.filter(r => r['NAME'].toLowerCase().includes(query));
+        if (!matches.length) {
+          dropdown.innerHTML = '<div class="search-item disabled">No matches</div>';
+          dropdown.style.display = 'block';
+          return;
+        }
+
+        const frag = document.createDocumentFragment();
+        matches.forEach(r => {
+          const div = document.createElement('div');
+          div.className = 'search-item';
+          div.textContent = r['NAME'];
+          div.dataset.name = r['NAME'];
+          frag.appendChild(div);
+        });
+        dropdown.appendChild(frag);
+        dropdown.style.display = 'block';
+      });
+
+      dropdown.addEventListener('click', e => {
+        const item = e.target.closest('.search-item');
+        if (!item || item.classList.contains('disabled')) return;
+        const name = item.dataset.name;
+        if (!name) return;
+        const index = ALL_ROWS.findIndex(r => r['NAME'] === name);
+        if (index === -1) return;
+        closeDropdown();
+        input.blur();
+        gotoPage(Math.floor(index / ITEMS_PER_PAGE) + 1, name);
+      });
+
+      document.addEventListener('click', e => {
+        if (!e.target.closest('.search-container')) closeDropdown();
+      });
     }
 
-    // Build dropdown items (one per match)
-    const frag = document.createDocumentFragment();
-    matches.forEach(r => {
-      const div = document.createElement('div');
-      div.className = 'search-item';
-      div.textContent = r['NAME'];
-      div.dataset.name = r['NAME'];
-      frag.appendChild(div);
+    build().catch(err => {
+      console.error(err);
+      document.getElementById('top-rank').innerHTML =
+        '<tr><td colspan="6" style="color:red">Error loading leaderboard</td></tr>';
     });
-
-    dropdown.appendChild(frag);
-    dropdown.style.display = 'block';
-  });
-
-  dropdown.addEventListener('click', (e) => {
-    const item = e.target.closest('.search-item');
-    if (!item || item.classList.contains('disabled')) return;
-
-    const name = item.dataset.name;
-    if (!name) return;
-
-    // Find index of this name in full list
-    const index = ALL_ROWS.findIndex(r => r['NAME'] === name);
-    if (index === -1) return;
-
-    // Calculate page (0-based index → 1-based page)
-    const page = Math.floor(index / ITEMS_PER_PAGE) + 1;
-    closeDropdown();
-    input.blur();
-
-    // Navigate and request highlight on that name
-    gotoPage(page, name);
-  });
-
-  // Close dropdown when clicking outside
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.search-container')) {
-      closeDropdown();
-    }
-  });
-}
-
-/* -------------------- INIT -------------------- */
-
-build().catch(err => {
-  console.error(err);
-  document.getElementById('top-rank').innerHTML =
-    '<tr><td colspan="6" style="color:red">Error loading leaderboard</td></tr>';
-});
-</script>
+  </script>
 
 </body>
 </html>
