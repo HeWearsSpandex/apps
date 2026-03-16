@@ -79,7 +79,20 @@
       min-width: 0; /* prevents overflow */
     }
     .stat-card.highlight { border-top: 3px solid #c00; }
-    .stat-card.full-width { grid-column: 1 / -1; } /* always spans all columns */
+    .stat-card.full-width { grid-column: 1 / -1; }
+
+    /* Two equal halves inside a full-width card */
+    .two-col-inner {
+      display: flex;
+      gap: 0;
+    }
+    .two-col-inner > div {
+      flex: 1;
+      padding: 4px 0;
+    }
+    .two-col-inner > div:first-child {
+      border-right: 1px solid #eee;
+    }
 
     .stat-card .label {
       font-size: 9px;
@@ -352,28 +365,36 @@
         </div>
 
         <div class="stats-grid">
-          <div class="stat-card highlight">
-            <div class="label">This Month</div>
-            <div class="value">${myTM.toLocaleString()}m</div>
-            <div class="sub">Rank #${myTMRank}</div>
-          </div>
-          <div class="stat-card highlight">
-            <div class="label">Last Month</div>
-            <div class="value">${myLM.toLocaleString()}m</div>
-            <div class="sub">Rank #${myLMRank}</div>
+          <div class="stat-card highlight full-width two-col">
+            <div class="two-col-inner">
+              <div>
+                <div class="label">This Month</div>
+                <div class="value">${myTM.toLocaleString()}m</div>
+                <div class="sub">Rank #${myTMRank}</div>
+              </div>
+              <div>
+                <div class="label">Last Month</div>
+                <div class="value">${myLM.toLocaleString()}m</div>
+                <div class="sub">Rank #${myLMRank}</div>
+              </div>
+            </div>
           </div>
           <div class="stat-card highlight full-width">
             <div class="label">Total Metres</div>
             <div class="value">${myTotal.toLocaleString()}m</div>
             <div class="sub">Overall #${myOverall}</div>
           </div>
-          <div class="stat-card">
-            <div class="label">vs This Month Leader</div>
-            <div class="value">${tmDiff}</div>
-          </div>
-          <div class="stat-card">
-            <div class="label">vs Last Month Leader</div>
-            <div class="value">${lmDiff}</div>
+          <div class="stat-card full-width two-col">
+            <div class="two-col-inner">
+              <div>
+                <div class="label">vs This Month Leader</div>
+                <div class="value">${tmDiff}</div>
+              </div>
+              <div>
+                <div class="label">vs Last Month Leader</div>
+                <div class="value">${lmDiff}</div>
+              </div>
+            </div>
           </div>
           <div class="stat-card full-width">
             <div class="label">vs Overall Leader</div>
@@ -440,6 +461,18 @@
 
       const bounds = new google.maps.LatLngBounds();
       bounds.extend(HQ);
+
+      // HQ marker
+      new google.maps.Marker({
+        map,
+        position: HQ,
+        zIndex: 9999,
+        icon: {
+          url: `${IMG_PATH}JHB%20Logo.png`,
+          scaledSize: new google.maps.Size(80, 45),
+          anchor: new google.maps.Point(40, 22)
+        }
+      });
 
       showParts.forEach((p, idx) => {
         const pos  = getPosition(p.total);
