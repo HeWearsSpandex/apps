@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bonus Metres – My Stats</title>
+
+  <!-- Define Maps callback before script loads -->
+  <script>
+    let resolveMapsReady;
+    window.mapsReadyPromise = new Promise(res => { resolveMapsReady = res; });
+    window.onMapsReady = () => resolveMapsReady();
+  </script>
+  <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=onMapsReady"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      display: flex; flex-direction: column;
+    }
+
+    /* Header */
+    .header {
+      background: #fff;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      flex-shrink: 0;
+    }
+    .header img { max-width: 120px; height: auto; }
+
+    /* Player hero */
+    .hero {
+      background: #fff;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid #e0e0e0;
+      flex-shrink: 0;
+    }
+    .hero-face img {
+      border-radius: 50%;
+      width: 80px; height: 80px;
+      border: 4px solid #ddd;
+    }
+    .hero-info h1 {
+      margin: 0 0 4px;
+      font-size: 22px;
+    }
+    .hero-info .subtitle {
+      color: #666;
+      font-size: 14px;
+    }
+
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 16px;
+      flex-shrink: 0;
+    }
+    .stat-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+    }
+    .stat-card .label {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .stat-card .value {
+      font-size: 20px;
+      font-weight: bold;
+      color: #222;
+    }
+    .stat-card .sub {
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 4px;
+    }
+    .stat-card.highlight { border-top: 3px solid #c00; }
+
+    /* Arrow colours */
+    .up   { color: #2a9d2a; }
+    .down { color: #c00; }
+    .same { color: #888; }
+
+    /* Map */
+    .map-wrap {
+      flex-grow: 1;
+      position: relative;
+      min-height: 250px;
+    }
+    #map {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+    }
+
+    /* Spinner overlay */
+    .spinner-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 5px solid #f0f0f0;
+      border-top-color: #c00;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Error */
+    .error {
+      text-align: center;
+      padding: 40px;
+      color: #c00;
+      font-size: 18px;
+    }
+
+    /* Not found */
+    .not-found {
+      text-align: center;
+      padding: 60px 20px;
+      color: #666;
+    }
+    .not-found h2 { color: #333; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <img src="/img/JHB Logo.png" alt="JHB Logo">
+  </div>
+
+  <div id="content">
+    <div class="spinner-overlay" id="main-spinner">
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <script src="/js/people.js"></script>
+  <script>
+    const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
+    const IMG_PATH = '/img/';
+    const HQ = { lat: 50.43135, lng: -3.797092 };
+    const DESTINATION = 'Bucharest, Romania';
+    const WAYPOINTS = [
+      'Exeter, UK','Bristol, UK','London, UK','Calais, France','Brussels, Belgium',
+      'Cologne, Germany','Frankfurt, Germany','Nuremberg, Germany',
+      'Vienna, Austria','Budapest, Hungary','Sibiu, Romania'
+    ];
+
+    // Kick off early
+    const csvPromise     = fetchCSV();
+    const mapsPromise    = window.mapsReadyPromise;
+
+    function getPlayerName() {
+      return decodeURIComponent(new URLSearchParams(location.search).get('name') || '').trim();
+    }
+
+    async function fetchCSV() {
+      const r = await fetch(CSV_URL, { cache: 'no-cache' });
+      if (!r.ok) throw new Error('CSV failed: ' + r.status);
+      const txt = await r.text();
+      const lines = txt.trim().split(/\r?\n/);
+      const keys = lines.shift().split(',').map(h => h.trim());
+      return lines.map(l => {
+        const cols = l.split(',');
+        return keys.reduce((o, k, i) => (o[k] = (cols[i] || '').trim(), o), {});
+      });
+    }
+
+    async function loadImage(src) {
+      return new Promise(res => {
+        const img = new Image(); img.crossOrigin = 'anonymous';
+        img.onload = () => res(img);
+        img.onerror = () => {
+          const c = document.createElement('canvas'); c.width = c.height = 64;
+          c.getContext('2d').fillStyle = '#ccc';
+          c.getContext('2d').fillRect(0,0,64,64);
+          res(c);
+        };
+        img.src = src;
+      });
+    }
+
+    async function drawIcon(name, haloColor, faceSize = 64, halo = haloColor ? 10 : 0) {
+      const total = faceSize + halo * 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = total;
+      const ctx = canvas.getContext('2d');
+      if (haloColor) {
+        ctx.fillStyle = haloColor;
+        ctx.beginPath();
+        ctx.arc(total/2, total/2, faceSize/2 + halo, 0, 2*Math.PI);
+        ctx.arc(total/2, total/2, faceSize/2, 0, 2*Math.PI);
+        ctx.fill('evenodd');
+      }
+      const img = await loadImage(`${IMG_PATH}${encodeURIComponent(name.trim())}_cvface1.png`);
+      ctx.drawImage(img, halo, halo, faceSize, faceSize);
+      return canvas.toDataURL();
+    }
+
+    function val(row, col) {
+      return parseFloat((row[col] || '0').replace(/,/g, '')) || 0;
+    }
+
+    function haloForRank(rank) {
+      return rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? '#cd7f32' : null;
+    }
+
+    async function build() {
+      const name = getPlayerName();
+      const content = document.getElementById('content');
+
+      if (!name || !PEOPLE.includes(name)) {
+        document.getElementById('main-spinner').style.display = 'none';
+        content.innerHTML = `
+          <div class="not-found">
+            <h2>Player not found</h2>
+            <p>No player named "<strong>${name || '?'}</strong>" exists in the leaderboard.</p>
+          </div>`;
+        return;
+      }
+
+      // Load CSV and Maps in parallel
+      const [data] = await Promise.all([csvPromise, mapsPromise]);
+
+      const player = data.find(r => r['NAME'] === name);
+      if (!player) {
+        document.getElementById('main-spinner').style.display = 'none';
+        content.innerHTML = `<div class="not-found"><h2>No data found for ${name}</h2></div>`;
+        return;
+      }
+
+      // Build ranked list by total metres
+      const ranked = data
+        .filter(r => PEOPLE.includes(r['NAME']) && val(r, 'TOTAL METERS') > 0)
+        .sort((a, b) => val(b, 'TOTAL METERS') - val(a, 'TOTAL METERS'));
+
+      // Assign overall ranks
+      let lastVal = null, overallRank = 0;
+      ranked.forEach((r, i) => {
+        const v = val(r, 'TOTAL METERS');
+        if (v !== lastVal) { overallRank = i + 1; lastVal = v; }
+        r._overallRank = overallRank;
+      });
+
+      // This month ranks
+      const tmRanked = data
+        .filter(r => PEOPLE.includes(r['NAME']) && r['T/M RANK'])
+        .sort((a, b) => +a['T/M RANK'] - +b['T/M RANK']);
+      let lastTM = null, tmRank = 0;
+      tmRanked.forEach((r, i) => {
+        const v = +r['T/M RANK'];
+        if (v !== lastTM) { tmRank = i + 1; lastTM = v; }
+        r._tmRank = tmRank;
+      });
+
+      // Last month ranks
+      const lmRanked = data
+        .filter(r => PEOPLE.includes(r['NAME']) && r['L/M RANK'])
+        .sort((a, b) => +a['L/M RANK'] - +b['L/M RANK']);
+      let lastLM = null, lmRank = 0;
+      lmRanked.forEach((r, i) => {
+        const v = +r['L/M RANK'];
+        if (v !== lastLM) { lmRank = i + 1; lastLM = v; }
+        r._lmRank = lmRank;
+      });
+
+      const myTM   = val(player, 'THIS MONTH');
+      const myLM   = val(player, 'LAST MONTH');
+      const myTotal = val(player, 'TOTAL METERS');
+      const myTMRank = tmRanked.find(r => r['NAME'] === name)?._tmRank || '-';
+      const myLMRank = lmRanked.find(r => r['NAME'] === name)?._lmRank || '-';
+      const myOverall = player._overallRank || ranked.find(r => r['NAME'] === name)?._overallRank || '-';
+
+      // Leader values
+      const tmLeader   = val(tmRanked[0], 'THIS MONTH');
+      const lmLeader   = val(lmRanked[0], 'LAST MONTH');
+      const totLeader  = val(ranked[0], 'TOTAL METERS');
+
+      const tmDiff  = myTM  === tmLeader  ? 'Leader' : `-${(tmLeader  - myTM).toLocaleString()}m`;
+      const lmDiff  = myLM  === lmLeader  ? 'Leader' : `-${(lmLeader  - myLM).toLocaleString()}m`;
+      const totDiff = myTotal === totLeader ? 'Leader' : `-${(totLeader - myTotal).toLocaleString()}m`;
+
+      // Positional change this month
+      const tmCurrent = +player['T/M RANK'] || 0;
+      const tmLast    = +player['T/M LAST RANK'] || 0;
+      let changeArrow = '', changeText = '', changeClass = 'same';
+      if (tmLast && tmCurrent) {
+        if (tmCurrent < tmLast)      { changeArrow = '▲'; changeText = `Up ${tmLast - tmCurrent}`; changeClass = 'up'; }
+        else if (tmCurrent > tmLast) { changeArrow = '▼'; changeText = `Down ${tmCurrent - tmLast}`; changeClass = 'down'; }
+        else                          { changeArrow = '—'; changeText = 'No change'; changeClass = 'same'; }
+      }
+
+      // Draw player face
+      const playerIcon = await drawIcon(name, null, 80, 0);
+
+      // Render hero + stats
+      document.getElementById('main-spinner').style.display = 'none';
+      content.innerHTML = `
+        <div class="hero">
+          <div class="hero-face"><img src="${playerIcon}" alt="${name}"></div>
+          <div class="hero-info">
+            <h1>${name}</h1>
+            <div class="subtitle">Bonus Metres – Personal Stats</div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card highlight">
+            <div class="label">This Month</div>
+            <div class="value">${myTM.toLocaleString()}m</div>
+            <div class="sub">Rank #${myTMRank}</div>
+          </div>
+          <div class="stat-card highlight">
+            <div class="label">Last Month</div>
+            <div class="value">${myLM.toLocaleString()}m</div>
+            <div class="sub">Rank #${myLMRank}</div>
+          </div>
+          <div class="stat-card highlight">
+            <div class="label">Total Metres</div>
+            <div class="value">${myTotal.toLocaleString()}m</div>
+            <div class="sub">Overall #${myOverall}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">vs This Month Leader</div>
+            <div class="value">${tmDiff}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">vs Last Month Leader</div>
+            <div class="value">${lmDiff}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">vs Overall Leader</div>
+            <div class="value">${totDiff}</div>
+          </div>
+          <div class="stat-card" style="grid-column: span 3;">
+            <div class="label">Positional Change This Month</div>
+            <div class="value ${changeClass}">${changeArrow} ${changeText}</div>
+          </div>
+        </div>
+
+        <div class="map-wrap">
+          <div class="spinner-overlay" id="map-spinner"><div class="spinner"></div></div>
+          <div id="map"></div>
+        </div>
+      `;
+
+      // Now render map with player + top 3
+      await renderMap(name, myTotal, ranked, data);
+    }
+
+    async function renderMap(playerName, playerTotal, ranked, data) {
+      const map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 8,
+        center: HQ
+      });
+
+      document.getElementById('map-spinner').style.display = 'none';
+
+      // Get route
+      new google.maps.DirectionsService().route({
+        origin: HQ,
+        destination: DESTINATION,
+        waypoints: WAYPOINTS.map(loc => ({ location: loc })),
+        travelMode: google.maps.TravelMode.DRIVING
+      }, async (res, status) => {
+        if (status !== 'OK') { console.error('Directions error:', status); return; }
+
+        const path = res.routes[0].overview_path;
+        const distances = path.slice(0, -1).map((_, i) =>
+          google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
+        );
+        const cum = distances.reduce((arr, d) => (arr.push((arr.slice(-1)[0]||0) + d), arr), []);
+
+        function getPosition(metres) {
+          let idx = cum.findIndex(d => metres <= d);
+          if (idx < 0) idx = cum.length - 1;
+          const prev = cum[idx-1] || 0;
+          const frac = distances[idx] ? (metres - prev) / distances[idx] : 0;
+          const p0 = path[idx], p1 = path[idx+1] || p0;
+          return {
+            lat: p0.lat() + (p1.lat() - p0.lat()) * frac,
+            lng: p0.lng() + (p1.lng() - p0.lng()) * frac
+          };
+        }
+
+        // People to show: player + top 3 (deduplicated)
+        const top3 = ranked.slice(0, 3);
+        const showNames = [...new Set([playerName, ...top3.map(r => r['NAME'])])];
+
+        const showParts = showNames.map(n => {
+          const row = data.find(r => r['NAME'] === n);
+          const total = val(row, 'TOTAL METERS');
+          const isPlayer = n === playerName;
+          const rank = ranked.find(r => r['NAME'] === n)?._overallRank || 99;
+          return { name: n, total, isPlayer, rank, halo: isPlayer && rank > 3 ? '#1a73e8' : haloForRank(rank) };
+        });
+
+        // Draw all icons in parallel
+        const icons = await Promise.all(showParts.map(p => drawIcon(p.name, p.halo, 64, p.halo ? 10 : 0)));
+
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend(HQ);
+
+        showParts.forEach((p, idx) => {
+          const pos  = getPosition(p.total);
+          const size = 64 + (p.halo ? 10 : 0);
+          new google.maps.Marker({
+            map,
+            position: pos,
+            zIndex: p.isPlayer ? 9999 : 1,
+            icon: {
+              url: icons[idx],
+              scaledSize: new google.maps.Size(size, size),
+              anchor: new google.maps.Point(size/2, size/2)
+            }
+          });
+          bounds.extend(pos);
+        });
+
+        map.fitBounds(bounds);
+      });
+    }
+
+    build().catch(e => {
+      console.error(e);
+      document.getElementById('main-spinner').style.display = 'none';
+      document.getElementById('content').innerHTML =
+        `<div class="error">Error loading stats. Please try again.</div>`;
+    });
+  </script>
+</body>
+</html>
