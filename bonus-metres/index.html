@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Animated Face Marker on Google Maps</title>
 
+  <!-- Define callback before Maps script loads -->
+  <script>
+    let resolveMapsReady;
+    window.mapsReadyPromise = new Promise(res => { resolveMapsReady = res; });
+    window.onMapsReady = () => resolveMapsReady();
+  </script>
+
   <!-- Load Google Maps early -->
   <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=onMapsReady"></script>
 
@@ -130,10 +137,8 @@
     // Kick off CSV fetch immediately — don't wait for the map
     const csvPromise = fetchActualMeters();
 
-    // Map ready promise
-    let resolveMapsReady;
-    const mapsReadyPromise = new Promise(res => { resolveMapsReady = res; });
-    window.onMapsReady = () => resolveMapsReady();
+    // Map ready promise (defined in <head> before Maps script)
+    const mapsReadyPromise = window.mapsReadyPromise;
 
     async function fetchActualMeters() {
       const res = await fetch(CSV_URL, { cache: 'no-cache' });
