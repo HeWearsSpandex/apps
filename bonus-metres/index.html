@@ -65,21 +65,13 @@
     </div>
   </div>
   <div id="map"></div>
+
+  <!-- Shared people list -->
+  <script src="/js/people.js"></script>
   <script>
     const IMG_PATH = '/img/';
     const CSV_URL = '/bonus-metres/data/actual_distances.csv';
     const HQ = { lat: 50.43135, lng: -3.797092 };
-    const PEOPLE = [
-      'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Turnstill',
-      'Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan',
-      'Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks',
-      'James Whiteoak',
-      'Jonathan Thompson','Joseph Nixon','Joshua Powell','Joshua Rowberry',
-      'Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Morgan Hemming',
-      'Nicholas Kingshott','Richard Clanford','Robert Tamas',
-      'Ryan Breslan','Ryan Manners','Tom Brooks','Tristan Allen','Tyler Webb','David Mahon','Jason Bligh','Rhys Grant','Ross Wills','Ross Striplin','Jordan Reynolds','Mark Stafford',
-      'William Garratt','Chris Voisey','Ryan Turnstil','Jenna Turvey','Archie Beckett','Colby Mathews'
-    ];
     const DESTINATION = 'Bucharest, Romania';
     const WAYPOINTS = [
       'Exeter, UK','Bristol, UK','London, UK','Calais, France','Brussels, Belgium',
@@ -123,8 +115,7 @@
         ctx.arc(total/2, total/2, faceSize/2, 0, 2*Math.PI);
         ctx.fill('evenodd');
       }
-      const safe = encodeURIComponent(name.trim());
-      const img = await loadImage(`${IMG_PATH}${safe}_cvface1.png`);
+      const img = await loadImage(`${IMG_PATH}${encodeURIComponent(name.trim())}_cvface1.png`);
       ctx.drawImage(img, halo, halo, faceSize, faceSize);
       return canvas.toDataURL();
     }
@@ -187,7 +178,6 @@
       });
       window.map = map;
 
-      // HQ logo on top
       new google.maps.Marker({
         map,
         position: HQ,
@@ -199,7 +189,6 @@
         }
       });
 
-      // draw route & animate
       new google.maps.DirectionsService().route({
         origin: HQ,
         destination: DESTINATION,
@@ -279,15 +268,3 @@
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
