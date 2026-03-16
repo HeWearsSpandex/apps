@@ -3,217 +3,151 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bonus Metres – My Stats</title>
+  <title>Animated Face Marker on Google Maps</title>
 
+  <!-- Define callback before Maps script loads -->
   <script>
     let resolveMapsReady;
     window.mapsReadyPromise = new Promise(res => { resolveMapsReady = res; });
     window.onMapsReady = () => resolveMapsReady();
   </script>
+
+  <!-- Load Google Maps early -->
   <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=onMapsReady"></script>
 
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin:0; padding:0; height:100%; }
+    #map { position:absolute; top:0; left:0; right:0; bottom:0; }
 
-    html, body {
-      margin: 0; padding: 0; height: 100%;
+    /* Leaderboard */
+    #leaderboard {
+      position: absolute;
+      top: 10px; right: 10px; bottom: 10px;
+      width: 300px;
+      background: #fff;
+      padding: 16px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      z-index: 1002;
+      display: flex;
+      flex-direction: column;
       font-family: Arial, sans-serif;
-      background: #f0f2f5;
-      display: flex; flex-direction: column;
-      overflow: hidden;
-      -webkit-text-size-adjust: 100%;
+      font-size: 14px;
     }
+    #leaderboard .logo { text-align: center; margin-bottom: 8px; }
+    #leaderboard .logo img { max-width: 120px; height: auto; }
+    #leaderboard h2 { text-align: center; margin: 4px 0 12px; font-size: 16px; }
+    #leaderboard .header-row {
+      display: flex; font-weight: bold;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 4px; margin-bottom: 8px;
+    }
+    .col-rank { width: 30px; text-align: center; flex-shrink: 0; }
+    .col-face { width: 42px; margin: 0 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .col-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .static-section { flex-shrink: 0; }
+    .scrollable-section { flex-grow: 1; overflow: hidden; position: relative; }
+    .scrollable-inner {
+      height: 100%; overflow-y: auto;
+      scrollbar-width: none; -ms-overflow-style: none;
+      padding-right: 4px;
+    }
+    .scrollable-inner::-webkit-scrollbar { display: none; }
+    #static-rank1, #other-ranks {
+      list-style: none; padding: 0; margin: 0;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    #static-rank1 li, #other-ranks li {
+      display: flex; align-items: center; min-height: 42px;
+    }
+    img.face { border-radius: 50%; }
 
-    /* ── Header ── */
-    .header {
-      background: #fff;
-      padding: 8px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      flex-shrink: 0;
-    }
-    .header img { max-width: 70px; height: auto; }
-
-    /* ── Hero ── */
-    .hero {
-      background: #fff;
-      padding: 8px 14px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      border-bottom: 1px solid #e0e0e0;
-      flex-shrink: 0;
-    }
-    .hero-face img {
-      border-radius: 50%;
-      width: 48px; height: 48px;
-      border: 3px solid #ddd;
-      flex-shrink: 0;
-    }
-    .hero-info h1 {
-      margin: 0 0 1px;
-      font-size: 16px;
-      line-height: 1.2;
-    }
-    .hero-info .subtitle {
-      color: #999;
-      font-size: 11px;
-    }
-
-    /* ── Stats grid — 2 cols mobile first ── */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 6px;
-      padding: 8px;
-      flex-shrink: 0;
-    }
-    .stat-card {
-      background: #fff;
-      border-radius: 8px;
-      padding: 8px;
-      text-align: center;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-    }
-    .stat-card.highlight { border-top: 3px solid #c00; }
-    .stat-card.full-width { grid-column: span 2; }
-
-    .stat-card .label {
-      font-size: 9px;
-      color: #999;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      margin-bottom: 3px;
-    }
-    .stat-card .value {
-      font-size: 15px;
-      font-weight: bold;
-      color: #222;
-      line-height: 1.2;
-    }
-    .stat-card .sub {
-      font-size: 10px;
-      color: #bbb;
-      margin-top: 2px;
-    }
-
-    /* Arrow colours */
-    .up   { color: #2a9d2a; }
-    .down { color: #c00; }
-    .same { color: #888; }
-
-    /* ── Map — fills remaining space ── */
-    .map-wrap {
-      flex: 1 1 0;
-      position: relative;
-      min-height: 120px;
-    }
-    #map {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-    }
-
-    /* ── Spinners ── */
-    .spinner-overlay {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(255,255,255,0.85);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
+    /* Spinner */
+    .spinner-wrap {
+      display: flex; justify-content: center;
+      align-items: center; padding: 20px 0;
     }
     .spinner {
-      width: 40px; height: 40px;
-      border: 4px solid #f0f0f0;
+      width: 36px; height: 36px;
+      border: 4px solid #f4f4f4;
       border-top-color: #c00;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Error / not found ── */
-    .error {
-      text-align: center;
-      padding: 40px 20px;
-      color: #c00;
-      font-size: 16px;
+    /* Map spinner overlay */
+    #map-spinner {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.7);
+      z-index: 1001;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .not-found {
-      text-align: center;
-      padding: 40px 20px;
-      color: #666;
-    }
-    .not-found h2 { color: #333; margin-bottom: 8px; }
-
-    /* ── Scale up for larger screens ── */
-    @media (min-width: 400px) {
-      .header img        { max-width: 90px; }
-      .hero-face img     { width: 56px; height: 56px; }
-      .hero-info h1      { font-size: 18px; }
-      .stat-card .value  { font-size: 17px; }
-    }
-
-    @media (min-width: 540px) {
-      .stats-grid        { grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; }
-      .stat-card.full-width { grid-column: span 3; }
-      .stat-card .value  { font-size: 19px; }
-      .header img        { max-width: 110px; }
-    }
-
-    @media (min-width: 768px) {
-      .header img        { max-width: 140px; }
-      .hero              { padding: 14px 20px; }
-      .hero-face img     { width: 72px; height: 72px; }
-      .hero-info h1      { font-size: 22px; }
-      .stats-grid        { padding: 12px 16px; gap: 10px; }
-      .stat-card         { padding: 12px; }
-      .stat-card .label  { font-size: 11px; }
-      .stat-card .value  { font-size: 22px; }
-      .stat-card .sub    { font-size: 12px; }
+    #map-spinner .spinner {
+      width: 64px; height: 64px;
+      border-width: 6px;
     }
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <img src="/img/JHB Logo.png" alt="JHB Logo">
+  <!-- Map spinner overlay -->
+  <div id="map-spinner">
+    <div class="spinner"></div>
   </div>
 
-  <div id="content">
-    <div class="spinner-overlay" id="main-spinner">
-      <div class="spinner"></div>
+  <div id="leaderboard">
+    <div class="logo"><img src="/img/JHB%20Logo.png" alt="Logo"></div>
+    <h2>Bonus Metres Leaderboard</h2>
+    <div class="header-row">
+      <span class="col-rank">#</span>
+      <span class="col-face"></span>
+      <span class="col-name">Name</span>
+    </div>
+    <div class="static-section"><ul id="static-rank1"></ul></div>
+    <div class="scrollable-section">
+      <div class="scrollable-inner" id="scroll-container">
+        <!-- Leaderboard spinner -->
+        <div class="spinner-wrap" id="leaderboard-spinner">
+          <div class="spinner"></div>
+        </div>
+        <ul id="other-ranks"></ul>
+      </div>
     </div>
   </div>
 
+  <div id="map"></div>
+
+  <!-- Shared people list -->
   <script src="/js/people.js"></script>
   <script>
-    const CSV_URL   = '/bonus-metres/data/actual_distances.csv';
-    const ROUTE_URL = '/bonus-metres/data/route.json';
-    const IMG_PATH  = '/img/';
+    const IMG_PATH = '/img/';
+    const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
     const HQ = { lat: 50.43135, lng: -3.797092 };
+    const ROUTE_URL = '/bonus-metres/data/route.json';
 
-    // Kick off all fetches immediately
-    const csvPromise   = fetchCSV();
-    const mapsPromise  = window.mapsReadyPromise;
-    const routePromise = fetch(ROUTE_URL).then(r => r.json());
+    // Kick off CSV fetch immediately — don't wait for the map
+    const csvPromise = fetchActualMeters();
 
-    function getPlayerName() {
-      return decodeURIComponent(new URLSearchParams(location.search).get('name') || '').trim();
-    }
+    // Map ready promise (defined in <head> before Maps script)
+    const mapsReadyPromise = window.mapsReadyPromise;
 
-    async function fetchCSV() {
-      const r = await fetch(CSV_URL, { cache: 'no-cache' });
-      if (!r.ok) throw new Error('CSV failed: ' + r.status);
-      const txt = await r.text();
-      const lines = txt.trim().split(/\r?\n/);
+    async function fetchActualMeters() {
+      const res = await fetch(CSV_URL, { cache: 'no-cache' });
+      if (!res.ok) throw new Error('CSV load failed: ' + res.status);
+      const lines = (await res.text()).trim().split(/\r?\n/);
       const keys = lines.shift().split(',').map(h => h.trim());
-      return lines.map(l => {
-        const cols = l.split(',');
-        return keys.reduce((o, k, i) => (o[k] = (cols[i] || '').trim(), o), {});
+      const data = {};
+      lines.forEach(line => {
+        const cols = line.split(',');
+        const row  = keys.reduce((o, k, i) => (o[k] = (cols[i] || '').trim(), o), {});
+        // Use TOTAL METERS (cumulative total) for map position
+        data[row['NAME']] = parseFloat((row['TOTAL METERS'] || '0').replace(/,/g, '')) || 0;
       });
+      return data;
     }
 
     async function loadImage(src) {
@@ -222,18 +156,16 @@
         img.onload = () => res(img);
         img.onerror = () => {
           const c = document.createElement('canvas'); c.width = c.height = 64;
-          c.getContext('2d').fillStyle = '#ccc';
-          c.getContext('2d').fillRect(0, 0, 64, 64);
+          const ctx = c.getContext('2d'); ctx.fillStyle = '#ccc'; ctx.fillRect(0,0,64,64);
           res(c);
         };
         img.src = src;
       });
     }
 
-    async function drawIcon(name, haloColor, faceSize = 64, halo = haloColor ? 10 : 0) {
-      const total = faceSize + halo * 2;
-      const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = total;
+    async function drawIcon(name, haloColor, faceSize = 32, halo = haloColor ? 5 : 0) {
+      const total = faceSize + halo*2;
+      const canvas = document.createElement('canvas'); canvas.width = canvas.height = total;
       const ctx = canvas.getContext('2d');
       if (haloColor) {
         ctx.fillStyle = haloColor;
@@ -247,162 +179,115 @@
       return canvas.toDataURL();
     }
 
-    function val(row, col) {
-      return parseFloat((row[col] || '0').replace(/,/g, '')) || 0;
+    function assignRanks(parts) {
+      let last = null, rank = 0;
+      parts.forEach((p, i) => {
+        if (p.bonus !== last) { rank = i + 1; last = p.bonus; }
+        p.rank = rank;
+        p.halo = p.rank === 1 ? 'gold'
+               : p.rank === 2 ? 'silver'
+               : p.rank === 3 ? '#cd7f32'
+               : null;
+      });
     }
 
-    function haloForRank(rank) {
-      return rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? '#cd7f32' : null;
+    async function renderLeaderboard(parts) {
+      const staticUl = document.getElementById('static-rank1');
+      const otherUl  = document.getElementById('other-ranks');
+      staticUl.innerHTML = '';
+      otherUl.innerHTML  = '';
+
+      // Step 1: Render names immediately with placeholder for faces
+      parts.forEach(p => {
+        const ties = parts.filter(x => x.bonus === p.bonus).length > 1;
+        const txt  = (ties ? '=' : '') + p.rank;
+        const li   = document.createElement('li');
+        li.id = 'lb-' + p.name.replace(/\s+/g, '-');
+        li.innerHTML =
+          `<span class="col-rank">${txt}</span>` +
+          `<span class="col-face" id="face-${li.id}"><div style="width:32px;height:32px;border-radius:50%;background:#ddd;"></div></span>` +
+          `<span class="col-name">${p.name}</span>`;
+        (p.rank === 1 ? staticUl : otherUl).appendChild(li);
+      });
+
+      // Hide leaderboard spinner now names are visible
+      document.getElementById('leaderboard-spinner').style.display = 'none';
+
+      // Step 2: Draw all icons in parallel then swap in
+      const icons = await Promise.all(parts.map(p => drawIcon(p.name, p.halo, 32, p.halo ? 5 : 0)));
+      parts.forEach((p, idx) => {
+        const sz  = 32 + (p.halo ? 5 : 0);
+        const faceEl = document.getElementById('face-lb-' + p.name.replace(/\s+/g, '-'));
+        if (faceEl) {
+          faceEl.innerHTML = `<img class="face" src="${icons[idx]}" width="${sz}" height="${sz}">`;
+        }
+      });
+
+      setTimeout(startPingPongScroll, 1000);
     }
 
-    async function build() {
-      const name    = getPlayerName();
-      const content = document.getElementById('content');
-
-      if (!name || !PEOPLE.includes(name)) {
-        document.getElementById('main-spinner').style.display = 'none';
-        content.innerHTML = `
-          <div class="not-found">
-            <h2>Player not found</h2>
-            <p>No player named "<strong>${name || '?'}</strong>" exists in the leaderboard.</p>
-          </div>`;
-        return;
+    function startPingPongScroll() {
+      const ct = document.getElementById('scroll-container');
+      const speed = 0.05, pause = 1000;
+      let dir = 1, paused = false, last = performance.now(), elapsed = 0;
+      function step(now) {
+        const dt = now - last; last = now;
+        if (paused) {
+          elapsed += dt; if (elapsed >= pause) { paused = false; elapsed = 0; }
+        } else {
+          ct.scrollTop += speed * dt * dir;
+          const max = ct.scrollHeight - ct.clientHeight;
+          if (ct.scrollTop >= max) { ct.scrollTop = max; dir = -1; paused = true; }
+          else if (ct.scrollTop <= 0) { ct.scrollTop = 0; dir = 1; paused = true; }
+        }
+        requestAnimationFrame(step);
       }
-
-      // Load everything in parallel
-      const [data] = await Promise.all([csvPromise, mapsPromise, routePromise]);
-
-      const player = data.find(r => r['NAME'] === name);
-      if (!player) {
-        document.getElementById('main-spinner').style.display = 'none';
-        content.innerHTML = `<div class="not-found"><h2>No data found for ${name}</h2></div>`;
-        return;
-      }
-
-      // Overall rank by total metres
-      const ranked = data
-        .filter(r => PEOPLE.includes(r['NAME']) && val(r, 'TOTAL METERS') > 0)
-        .sort((a, b) => val(b, 'TOTAL METERS') - val(a, 'TOTAL METERS'));
-      let lastVal = null, overallRank = 0;
-      ranked.forEach((r, i) => {
-        const v = val(r, 'TOTAL METERS');
-        if (v !== lastVal) { overallRank = i + 1; lastVal = v; }
-        r._overallRank = overallRank;
-      });
-
-      // This month rank
-      const tmRanked = data
-        .filter(r => PEOPLE.includes(r['NAME']) && r['T/M RANK'])
-        .sort((a, b) => +a['T/M RANK'] - +b['T/M RANK']);
-      let lastTM = null, tmRank = 0;
-      tmRanked.forEach((r, i) => {
-        const v = +r['T/M RANK'];
-        if (v !== lastTM) { tmRank = i + 1; lastTM = v; }
-        r._tmRank = tmRank;
-      });
-
-      // Last month rank
-      const lmRanked = data
-        .filter(r => PEOPLE.includes(r['NAME']) && r['L/M RANK'])
-        .sort((a, b) => +a['L/M RANK'] - +b['L/M RANK']);
-      let lastLM = null, lmRank = 0;
-      lmRanked.forEach((r, i) => {
-        const v = +r['L/M RANK'];
-        if (v !== lastLM) { lmRank = i + 1; lastLM = v; }
-        r._lmRank = lmRank;
-      });
-
-      const myTM      = val(player, 'THIS MONTH');
-      const myLM      = val(player, 'LAST MONTH');
-      const myTotal   = val(player, 'TOTAL METERS');
-      const myTMRank  = tmRanked.find(r => r['NAME'] === name)?._tmRank  || '-';
-      const myLMRank  = lmRanked.find(r => r['NAME'] === name)?._lmRank  || '-';
-      const myOverall = ranked.find(r => r['NAME'] === name)?._overallRank || '-';
-
-      const tmLeader  = val(tmRanked[0], 'THIS MONTH');
-      const lmLeader  = val(lmRanked[0], 'LAST MONTH');
-      const totLeader = val(ranked[0],   'TOTAL METERS');
-
-      const tmDiff  = myTM    === tmLeader  ? 'Leader' : `-${(tmLeader  - myTM).toLocaleString()}m`;
-      const lmDiff  = myLM    === lmLeader  ? 'Leader' : `-${(lmLeader  - myLM).toLocaleString()}m`;
-      const totDiff = myTotal === totLeader ? 'Leader' : `-${(totLeader - myTotal).toLocaleString()}m`;
-
-      // Positional change
-      const tmCurrent = +player['T/M RANK'] || 0;
-      const tmLast    = +player['T/M LAST RANK'] || 0;
-      let changeArrow = '—', changeText = 'No change', changeClass = 'same';
-      if (tmLast && tmCurrent) {
-        if      (tmCurrent < tmLast) { changeArrow = '▲'; changeText = `Up ${tmLast - tmCurrent}`; changeClass = 'up'; }
-        else if (tmCurrent > tmLast) { changeArrow = '▼'; changeText = `Down ${tmCurrent - tmLast}`; changeClass = 'down'; }
-      }
-
-      // Draw player face
-      const playerIcon = await drawIcon(name, null, 64, 0);
-
-      // Render page
-      document.getElementById('main-spinner').style.display = 'none';
-      content.innerHTML = `
-        <div class="hero">
-          <div class="hero-face"><img src="${playerIcon}" alt="${name}"></div>
-          <div class="hero-info">
-            <h1>${name}</h1>
-            <div class="subtitle">Bonus Metres – Personal Stats</div>
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-card highlight">
-            <div class="label">This Month</div>
-            <div class="value">${myTM.toLocaleString()}m</div>
-            <div class="sub">Rank #${myTMRank}</div>
-          </div>
-          <div class="stat-card highlight">
-            <div class="label">Last Month</div>
-            <div class="value">${myLM.toLocaleString()}m</div>
-            <div class="sub">Rank #${myLMRank}</div>
-          </div>
-          <div class="stat-card highlight full-width">
-            <div class="label">Total Metres</div>
-            <div class="value">${myTotal.toLocaleString()}m</div>
-            <div class="sub">Overall #${myOverall}</div>
-          </div>
-          <div class="stat-card">
-            <div class="label">vs This Month Leader</div>
-            <div class="value">${tmDiff}</div>
-          </div>
-          <div class="stat-card">
-            <div class="label">vs Last Month Leader</div>
-            <div class="value">${lmDiff}</div>
-          </div>
-          <div class="stat-card full-width">
-            <div class="label">vs Overall Leader</div>
-            <div class="value">${totDiff}</div>
-          </div>
-          <div class="stat-card full-width">
-            <div class="label">Positional Change This Month</div>
-            <div class="value ${changeClass}">${changeArrow} ${changeText}</div>
-          </div>
-        </div>
-
-        <div class="map-wrap">
-          <div class="spinner-overlay" id="map-spinner"><div class="spinner"></div></div>
-          <div id="map"></div>
-        </div>
-      `;
-
-      await renderMap(name, ranked, data);
+      requestAnimationFrame(step);
     }
 
-    async function renderMap(playerName, ranked, data) {
-      const map = new google.maps.Map(document.getElementById('map'), {
-        zoom: 8,
-        center: HQ
-      });
+    async function init() {
+      // Wait for both CSV and Maps API in parallel
+      const [actualMeters] = await Promise.all([csvPromise, mapsReadyPromise]);
 
+      // Hide map spinner
       document.getElementById('map-spinner').style.display = 'none';
 
-      const routeData = await routePromise;
-      const path = routeData.points;
+      const map = new google.maps.Map(document.getElementById('map'), {
+        padding: { top:70, right:10, bottom:10, left:10 }
+      });
+      window.map = map;
+
+      // HQ marker
+      new google.maps.Marker({
+        map,
+        position: HQ,
+        zIndex: 9999,
+        icon: {
+          url: `${IMG_PATH}JHB Logo.png`,
+          scaledSize: new google.maps.Size(115, 64),
+          anchor: new google.maps.Point(57, 32)
+        }
+      });
+
+      // Build parts list
+      const parts = PEOPLE.map(name => ({
+        name,
+        bonus: actualMeters[name] || 0
+      }));
+      parts.sort((a, b) => b.bonus - a.bonus);
+      assignRanks(parts);
+
+      // Render leaderboard with names immediately, icons load in background
+      renderLeaderboard(parts);
+
+      // Fetch static route — no API call needed
+      const routeData = await fetch(ROUTE_URL).then(r => r.json());
+      const path = routeData.points; // array of {lat, lng}
+      animateRoute(parts, path);
+    }
+
+    async function animateRoute(parts, path) {
+      const map = window.map;
 
       const distances = path.slice(0, -1).map((_, i) => {
         const a = new google.maps.LatLng(path[i].lat, path[i].lng);
@@ -411,60 +296,65 @@
       });
       const cum = distances.reduce((arr, d) => (arr.push((arr.slice(-1)[0]||0) + d), arr), []);
 
-      function getPosition(metres) {
-        let idx = cum.findIndex(d => metres <= d);
+      // Calculate target positions
+      parts.forEach(p => {
+        let idx = cum.findIndex(d => p.bonus <= d);
         if (idx < 0) idx = cum.length - 1;
         const prev = cum[idx-1] || 0;
-        const frac = distances[idx] ? (metres - prev) / distances[idx] : 0;
+        const frac = distances[idx] ? (p.bonus - prev) / distances[idx] : 0;
         const p0 = path[idx], p1 = path[idx+1] || p0;
-        return {
+        p.target = {
           lat: p0.lat + (p1.lat - p0.lat) * frac,
           lng: p0.lng + (p1.lng - p0.lng) * frac
         };
-      }
-
-      // Show player + top 3 (deduplicated)
-      const top3 = ranked.slice(0, 3);
-      const showNames = [...new Set([playerName, ...top3.map(r => r['NAME'])])];
-      const showParts = showNames.map(n => {
-        const row      = data.find(r => r['NAME'] === n);
-        const total    = val(row, 'TOTAL METERS');
-        const rank     = ranked.find(r => r['NAME'] === n)?._overallRank || 99;
-        const isPlayer = n === playerName;
-        return { name: n, total, isPlayer, rank, halo: isPlayer && rank > 3 ? '#1a73e8' : haloForRank(rank) };
       });
 
-      // Draw all icons in parallel
-      const icons = await Promise.all(showParts.map(p => drawIcon(p.name, p.halo, 64, p.halo ? 10 : 0)));
+      // Draw all map icons in parallel
+      const mapIcons = await Promise.all(
+        parts.map(p => drawIcon(p.name, p.halo, 64, p.halo ? 10 : 0))
+      );
 
-      const bounds = new google.maps.LatLngBounds();
-      bounds.extend(HQ);
-
-      showParts.forEach((p, idx) => {
-        const pos  = getPosition(p.total);
+      // Place all markers at HQ
+      parts.forEach((p, idx) => {
         const size = 64 + (p.halo ? 10 : 0);
-        new google.maps.Marker({
+        p.marker = new google.maps.Marker({
           map,
-          position: pos,
-          zIndex: p.isPlayer ? 9999 : 1,
+          position: HQ,
+          zIndex: 1,
           icon: {
-            url: icons[idx],
+            url: mapIcons[idx],
             scaledSize: new google.maps.Size(size, size),
             anchor: new google.maps.Point(size/2, size/2)
           }
         });
-        bounds.extend(pos);
       });
 
+      // Fit map bounds
+      const bounds = new google.maps.LatLngBounds();
+      parts.forEach(p => bounds.extend(p.target));
+      bounds.extend(HQ);
       map.fitBounds(bounds);
+
+      // Animate all markers simultaneously
+      const startTime = performance.now();
+      const dur = 5000;
+
+      function animateAll(now) {
+        const t = Math.min((now - startTime) / dur, 1);
+        parts.forEach(p => {
+          p.marker.setPosition({
+            lat: HQ.lat + (p.target.lat - HQ.lat) * t,
+            lng: HQ.lng + (p.target.lng - HQ.lng) * t
+          });
+        });
+        if (t < 1) requestAnimationFrame(animateAll);
+      }
+
+      requestAnimationFrame(animateAll);
     }
 
-    build().catch(e => {
-      console.error(e);
-      document.getElementById('main-spinner').style.display = 'none';
-      document.getElementById('content').innerHTML =
-        `<div class="error">Error loading stats. Please try again.</div>`;
-    });
+    // Kick everything off
+    init().catch(e => console.error(e));
   </script>
 </body>
 </html>
