@@ -118,6 +118,25 @@
     .down { color: #c00; }
     .same { color: #888; }
 
+    /* ── Message banner ── */
+    .msg-banner {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      margin: 0 8px 8px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: bold;
+      line-height: 1.3;
+    }
+    .msg-emoji { font-size: 20px; flex-shrink: 0; }
+    .msg-gold     { background: #fff8e1; border-left: 4px solid gold;    color: #7a5c00; }
+    .msg-positive { background: #e8f5e9; border-left: 4px solid #2a9d2a; color: #1b5e20; }
+    .msg-warning  { background: #fff3e0; border-left: 4px solid #e65100; color: #7a3300; }
+    .msg-neutral  { background: #f0f4ff; border-left: 4px solid #3a7bd5; color: #1a3a6e; }
+
     /* ── Map — fills remaining space ── */
     .map-wrap {
       flex: 1 1 0;
@@ -345,9 +364,64 @@
       const tmCurrent = +player['T/M RANK'] || 0;
       const tmLast    = +player['T/M LAST RANK'] || 0;
       let changeArrow = '—', changeText = 'No change', changeClass = 'same';
+      const placesChanged = tmLast && tmCurrent ? tmLast - tmCurrent : 0;
       if (tmLast && tmCurrent) {
-        if      (tmCurrent < tmLast) { changeArrow = '▲'; changeText = `Up ${tmLast - tmCurrent}`; changeClass = 'up'; }
-        else if (tmCurrent > tmLast) { changeArrow = '▼'; changeText = `Down ${tmCurrent - tmLast}`; changeClass = 'down'; }
+        if      (tmCurrent < tmLast) { changeArrow = '▲'; changeText = `Up ${placesChanged}`; changeClass = 'up'; }
+        else if (tmCurrent > tmLast) { changeArrow = '▼'; changeText = `Down ${Math.abs(placesChanged)}`; changeClass = 'down'; }
+      }
+
+      // --- Motivational message ---
+      const tmGap  = tmLeader  - myTM;
+      const lmGap  = lmLeader  - myLM;
+      const totGap = totLeader - myTotal;
+
+      let msgText = '', msgEmoji = '', msgClass = 'msg-neutral';
+
+      if (myTotal >= totLeader) {
+        // They ARE the overall leader
+        msgEmoji = '🏆';
+        msgText  = "You're leading the way — everyone else is chasing you!";
+        msgClass = 'msg-gold';
+      } else if (totGap <= 500) {
+        // Within 500m of overall leader
+        msgEmoji = '🔥';
+        msgText  = "So close! You're right on the overall leader's heels!";
+        msgClass = 'msg-positive';
+      } else if (myTM >= tmLeader) {
+        // Leading this month
+        msgEmoji = '⚡';
+        msgText  = "You're top of the table this month — brilliant effort!";
+        msgClass = 'msg-gold';
+      } else if (tmGap < lmGap) {
+        // Closing the gap vs leader this month
+        msgEmoji = '📈';
+        msgText  = "You're closing the gap on the leader — keep pushing!";
+        msgClass = 'msg-positive';
+      } else if (tmGap > lmGap * 1.2) {
+        // Gap growing by more than 20%
+        msgEmoji = '⚠️';
+        msgText  = "The leader is pulling away — now's the time to push!";
+        msgClass = 'msg-warning';
+      } else if (placesChanged >= 5) {
+        // Big jump up
+        msgEmoji = '🚀';
+        msgText  = "What a month! You've rocketed up the rankings!";
+        msgClass = 'msg-positive';
+      } else if (placesChanged > 0) {
+        // Moving up
+        msgEmoji = '👍';
+        msgText  = "Moving in the right direction — nice work!";
+        msgClass = 'msg-positive';
+      } else if (placesChanged < -2) {
+        // Dropped places
+        msgEmoji  = '💪';
+        msgText   = "Tough month — but there's everything to play for!";
+        msgClass  = 'msg-warning';
+      } else {
+        // Holding steady
+        msgEmoji = '🎯';
+        msgText  = "You're holding your ground — stay consistent!";
+        msgClass = 'msg-neutral';
       }
 
       // Draw player face
@@ -404,6 +478,11 @@
             <div class="label">Positional Change This Month</div>
             <div class="value ${changeClass}">${changeArrow} ${changeText}</div>
           </div>
+        </div>
+
+        <div class="msg-banner ${msgClass}">
+          <span class="msg-emoji">${msgEmoji}</span>
+          <span class="msg-text">${msgText}</span>
         </div>
 
         <div class="map-wrap">
