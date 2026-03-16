@@ -127,12 +127,7 @@
     const IMG_PATH = '/img/';
     const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
     const HQ = { lat: 50.43135, lng: -3.797092 };
-    const DESTINATION = 'Bucharest, Romania';
-    const WAYPOINTS = [
-      'Exeter, UK','Bristol, UK','London, UK','Calais, France','Brussels, Belgium',
-      'Cologne, Germany','Frankfurt, Germany','Nuremberg, Germany',
-      'Vienna, Austria','Budapest, Hungary','Sibiu, Romania'
-    ];
+    const ROUTE_URL = '/bonus-metres/data/route.json';
 
     // Kick off CSV fetch immediately — don't wait for the map
     const csvPromise = fetchActualMeters();
@@ -285,24 +280,20 @@
       // Render leaderboard with names immediately, icons load in background
       renderLeaderboard(parts);
 
-      // Get route and animate markers
-      new google.maps.DirectionsService().route({
-        origin: HQ,
-        destination: DESTINATION,
-        waypoints: WAYPOINTS.map(loc => ({ location: loc })),
-        travelMode: google.maps.TravelMode.DRIVING
-      }, (res, status) => {
-        if (status === 'OK') animateRoute(parts, res.routes[0].overview_path);
-        else console.error('Directions error:', status);
-      });
+      // Fetch static route — no API call needed
+      const routeData = await fetch(ROUTE_URL).then(r => r.json());
+      const path = routeData.points; // array of {lat, lng}
+      animateRoute(parts, path);
     }
 
     async function animateRoute(parts, path) {
       const map = window.map;
 
-      const distances = path.slice(0, -1).map((_, i) =>
-        google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1])
-      );
+      const distances = path.slice(0, -1).map((_, i) => {
+        const a = new google.maps.LatLng(path[i].lat, path[i].lng);
+        const b = new google.maps.LatLng(path[i+1].lat, path[i+1].lng);
+        return google.maps.geometry.spherical.computeDistanceBetween(a, b);
+      });
       const cum = distances.reduce((arr, d) => (arr.push((arr.slice(-1)[0]||0) + d), arr), []);
 
       // Calculate target positions
@@ -313,8 +304,8 @@
         const frac = distances[idx] ? (p.bonus - prev) / distances[idx] : 0;
         const p0 = path[idx], p1 = path[idx+1] || p0;
         p.target = {
-          lat: p0.lat() + (p1.lat() - p0.lat()) * frac,
-          lng: p0.lng() + (p1.lng() - p0.lng()) * frac
+          lat: p0.lat + (p1.lat - p0.lat) * frac,
+          lng: p0.lng + (p1.lng - p0.lng) * frac
         };
       });
 
