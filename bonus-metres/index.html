@@ -149,7 +149,8 @@
       lines.forEach(line => {
         const cols = line.split(',');
         const row  = keys.reduce((o, k, i) => (o[k] = (cols[i] || '').trim(), o), {});
-        data[row['NAME']] = parseFloat((row['THIS MONTH'] || '0').replace(/,/g, '')) || 0;
+        // Use TOTAL METERS (cumulative total) for map position
+        data[row['NAME']] = parseFloat((row['TOTAL METERS'] || '0').replace(/,/g, '')) || 0;
       });
       return data;
     }
