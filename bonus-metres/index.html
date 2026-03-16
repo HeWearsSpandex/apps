@@ -4,11 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Animated Face Marker on Google Maps</title>
+
+  <!-- Load Google Maps early -->
+  <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=onMapsReady"></script>
+
   <style>
     html, body { margin:0; padding:0; height:100%; }
     #map { position:absolute; top:0; left:0; right:0; bottom:0; }
 
-    /* Leaderboard styles */
+    /* Leaderboard */
     #leaderboard {
       position: absolute;
       top: 10px; right: 10px; bottom: 10px;
@@ -32,7 +36,7 @@
       padding-bottom: 4px; margin-bottom: 8px;
     }
     .col-rank { width: 30px; text-align: center; flex-shrink: 0; }
-    .col-face { margin: 0 8px; flex-shrink: 0; }
+    .col-face { width: 42px; margin: 0 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
     .col-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .static-section { flex-shrink: 0; }
     .scrollable-section { flex-grow: 1; overflow: hidden; position: relative; }
@@ -46,11 +50,48 @@
       list-style: none; padding: 0; margin: 0;
       display: flex; flex-direction: column; gap: 4px;
     }
-    #static-rank1 li, #other-ranks li { display: flex; align-items: center; }
+    #static-rank1 li, #other-ranks li {
+      display: flex; align-items: center; min-height: 42px;
+    }
     img.face { border-radius: 50%; }
+
+    /* Spinner */
+    .spinner-wrap {
+      display: flex; justify-content: center;
+      align-items: center; padding: 20px 0;
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 4px solid #f4f4f4;
+      border-top-color: #c00;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Map spinner overlay */
+    #map-spinner {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255,255,255,0.7);
+      z-index: 1001;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #map-spinner .spinner {
+      width: 64px; height: 64px;
+      border-width: 6px;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Map spinner overlay -->
+  <div id="map-spinner">
+    <div class="spinner"></div>
+  </div>
+
   <div id="leaderboard">
     <div class="logo"><img src="/img/JHB%20Logo.png" alt="Logo"></div>
     <h2>Bonus Metres Leaderboard</h2>
@@ -61,16 +102,23 @@
     </div>
     <div class="static-section"><ul id="static-rank1"></ul></div>
     <div class="scrollable-section">
-      <div class="scrollable-inner" id="scroll-container"><ul id="other-ranks"></ul></div>
+      <div class="scrollable-inner" id="scroll-container">
+        <!-- Leaderboard spinner -->
+        <div class="spinner-wrap" id="leaderboard-spinner">
+          <div class="spinner"></div>
+        </div>
+        <ul id="other-ranks"></ul>
+      </div>
     </div>
   </div>
+
   <div id="map"></div>
 
   <!-- Shared people list -->
   <script src="/js/people.js"></script>
   <script>
     const IMG_PATH = '/img/';
-    const CSV_URL = '/bonus-metres/data/actual_distances.csv';
+    const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
     const HQ = { lat: 50.43135, lng: -3.797092 };
     const DESTINATION = 'Bucharest, Romania';
     const WAYPOINTS = [
@@ -78,17 +126,27 @@
       'Cologne, Germany','Frankfurt, Germany','Nuremberg, Germany',
       'Vienna, Austria','Budapest, Hungary','Sibiu, Romania'
     ];
-    let ACTUAL_METERS = {};
+
+    // Kick off CSV fetch immediately — don't wait for the map
+    const csvPromise = fetchActualMeters();
+
+    // Map ready promise
+    let resolveMapsReady;
+    const mapsReadyPromise = new Promise(res => { resolveMapsReady = res; });
+    window.onMapsReady = () => resolveMapsReady();
 
     async function fetchActualMeters() {
       const res = await fetch(CSV_URL, { cache: 'no-cache' });
       if (!res.ok) throw new Error('CSV load failed: ' + res.status);
       const lines = (await res.text()).trim().split(/\r?\n/);
-      lines.shift();
+      const keys = lines.shift().split(',').map(h => h.trim());
+      const data = {};
       lines.forEach(line => {
-        const [name, m] = line.split(',');
-        ACTUAL_METERS[name.trim()] = parseFloat(m) || 0;
+        const cols = line.split(',');
+        const row  = keys.reduce((o, k, i) => (o[k] = (cols[i] || '').trim(), o), {});
+        data[row['NAME']] = parseFloat((row['THIS MONTH'] || '0').replace(/,/g, '')) || 0;
       });
+      return data;
     }
 
     async function loadImage(src) {
@@ -120,33 +178,49 @@
       return canvas.toDataURL();
     }
 
-    async function initLeaderboard(parts) {
-      const staticUl = document.getElementById('static-rank1');
-      const otherUl = document.getElementById('other-ranks');
-      staticUl.innerHTML = ''; otherUl.innerHTML = '';
-
-      let lastBonus = null, rank = 0;
-      parts.forEach((p, idx) => {
-        if (p.bonus !== lastBonus) { rank = idx + 1; lastBonus = p.bonus; }
+    function assignRanks(parts) {
+      let last = null, rank = 0;
+      parts.forEach((p, i) => {
+        if (p.bonus !== last) { rank = i + 1; last = p.bonus; }
         p.rank = rank;
         p.halo = p.rank === 1 ? 'gold'
                : p.rank === 2 ? 'silver'
                : p.rank === 3 ? '#cd7f32'
                : null;
       });
+    }
 
-      for (const p of parts) {
+    async function renderLeaderboard(parts) {
+      const staticUl = document.getElementById('static-rank1');
+      const otherUl  = document.getElementById('other-ranks');
+      staticUl.innerHTML = '';
+      otherUl.innerHTML  = '';
+
+      // Step 1: Render names immediately with placeholder for faces
+      parts.forEach(p => {
         const ties = parts.filter(x => x.bonus === p.bonus).length > 1;
-        const txt = (ties ? '=' : '') + p.rank;
-        const sz = 32 + (p.halo ? 5 : 0);
-        const url = await drawIcon(p.name, p.halo, 32, p.halo ? 5 : 0);
-        const li = document.createElement('li');
+        const txt  = (ties ? '=' : '') + p.rank;
+        const li   = document.createElement('li');
+        li.id = 'lb-' + p.name.replace(/\s+/g, '-');
         li.innerHTML =
           `<span class="col-rank">${txt}</span>` +
-          `<img class="face col-face" src="${url}" width="${sz}" height="${sz}">` +
+          `<span class="col-face" id="face-${li.id}"><div style="width:32px;height:32px;border-radius:50%;background:#ddd;"></div></span>` +
           `<span class="col-name">${p.name}</span>`;
         (p.rank === 1 ? staticUl : otherUl).appendChild(li);
-      }
+      });
+
+      // Hide leaderboard spinner now names are visible
+      document.getElementById('leaderboard-spinner').style.display = 'none';
+
+      // Step 2: Draw all icons in parallel then swap in
+      const icons = await Promise.all(parts.map(p => drawIcon(p.name, p.halo, 32, p.halo ? 5 : 0)));
+      parts.forEach((p, idx) => {
+        const sz  = 32 + (p.halo ? 5 : 0);
+        const faceEl = document.getElementById('face-lb-' + p.name.replace(/\s+/g, '-'));
+        if (faceEl) {
+          faceEl.innerHTML = `<img class="face" src="${icons[idx]}" width="${sz}" height="${sz}">`;
+        }
+      });
 
       setTimeout(startPingPongScroll, 1000);
     }
@@ -154,8 +228,7 @@
     function startPingPongScroll() {
       const ct = document.getElementById('scroll-container');
       const speed = 0.05, pause = 1000;
-      let dir = 1, paused = false;
-      let last = performance.now(), elapsed = 0;
+      let dir = 1, paused = false, last = performance.now(), elapsed = 0;
       function step(now) {
         const dt = now - last; last = now;
         if (paused) {
@@ -171,13 +244,19 @@
       requestAnimationFrame(step);
     }
 
-    async function initMap() {
-      await fetchActualMeters();
+    async function init() {
+      // Wait for both CSV and Maps API in parallel
+      const [actualMeters] = await Promise.all([csvPromise, mapsReadyPromise]);
+
+      // Hide map spinner
+      document.getElementById('map-spinner').style.display = 'none';
+
       const map = new google.maps.Map(document.getElementById('map'), {
         padding: { top:70, right:10, bottom:10, left:10 }
       });
       window.map = map;
 
+      // HQ marker
       new google.maps.Marker({
         map,
         position: HQ,
@@ -189,18 +268,30 @@
         }
       });
 
+      // Build parts list
+      const parts = PEOPLE.map(name => ({
+        name,
+        bonus: actualMeters[name] || 0
+      }));
+      parts.sort((a, b) => b.bonus - a.bonus);
+      assignRanks(parts);
+
+      // Render leaderboard with names immediately, icons load in background
+      renderLeaderboard(parts);
+
+      // Get route and animate markers
       new google.maps.DirectionsService().route({
         origin: HQ,
         destination: DESTINATION,
         waypoints: WAYPOINTS.map(loc => ({ location: loc })),
         travelMode: google.maps.TravelMode.DRIVING
       }, (res, status) => {
-        if (status === 'OK') animateRoute(res.routes[0].overview_path);
+        if (status === 'OK') animateRoute(parts, res.routes[0].overview_path);
         else console.error('Directions error:', status);
       });
     }
 
-    async function animateRoute(path) {
+    async function animateRoute(parts, path) {
       const map = window.map;
 
       const distances = path.slice(0, -1).map((_, i) =>
@@ -208,63 +299,65 @@
       );
       const cum = distances.reduce((arr, d) => (arr.push((arr.slice(-1)[0]||0) + d), arr), []);
 
-      const parts = await Promise.all(PEOPLE.map(async name => {
-        const bonus = ACTUAL_METERS[name] || 0;
-        let idx = cum.findIndex(d => bonus <= d);
+      // Calculate target positions
+      parts.forEach(p => {
+        let idx = cum.findIndex(d => p.bonus <= d);
         if (idx < 0) idx = cum.length - 1;
         const prev = cum[idx-1] || 0;
-        const frac = distances[idx] ? (bonus - prev)/distances[idx] : 0;
+        const frac = distances[idx] ? (p.bonus - prev) / distances[idx] : 0;
         const p0 = path[idx], p1 = path[idx+1] || p0;
-        return { name, bonus, target: {
-          lat: p0.lat() + (p1.lat()-p0.lat())*frac,
-          lng: p0.lng() + (p1.lng()-p0.lng())*frac
-        }};
-      }));
-      parts.sort((a,b) => b.bonus - a.bonus);
-
-      let last = null, rank = 0;
-      parts.forEach((p, i) => {
-        if (p.bonus !== last) { rank = i+1; last = p.bonus; }
-        p.rank = rank;
-        p.halo = p.rank===1 ? 'gold'
-               : p.rank===2 ? 'silver'
-               : p.rank===3 ? '#cd7f32'
-               : null;
+        p.target = {
+          lat: p0.lat() + (p1.lat() - p0.lat()) * frac,
+          lng: p0.lng() + (p1.lng() - p0.lng()) * frac
+        };
       });
 
-      for (const p of parts) {
+      // Draw all map icons in parallel
+      const mapIcons = await Promise.all(
+        parts.map(p => drawIcon(p.name, p.halo, 64, p.halo ? 10 : 0))
+      );
+
+      // Place all markers at HQ
+      parts.forEach((p, idx) => {
         const size = 64 + (p.halo ? 10 : 0);
-        const url = await drawIcon(p.name, p.halo, 64, p.halo ? 10 : 0);
         p.marker = new google.maps.Marker({
           map,
           position: HQ,
           zIndex: 1,
-          icon: { url, scaledSize: new google.maps.Size(size, size), anchor: new google.maps.Point(size/2, size/2) }
+          icon: {
+            url: mapIcons[idx],
+            scaledSize: new google.maps.Size(size, size),
+            anchor: new google.maps.Point(size/2, size/2)
+          }
         });
-      }
+      });
 
+      // Fit map bounds
       const bounds = new google.maps.LatLngBounds();
       parts.forEach(p => bounds.extend(p.target));
       bounds.extend(HQ);
       map.fitBounds(bounds);
 
-      parts.forEach(p => {
-        const start = performance.now(), dur = 5000;
-        (function move(now) {
-          const t = Math.min((now - start)/dur,1);
-          p.marker.setPosition({
-            lat: HQ.lat + (p.target.lat-HQ.lat)*t,
-            lng: HQ.lng + (p.target.lng-HQ.lng)*t
-          });
-          if (t<1) requestAnimationFrame(move);
-        })(start);
-      });
+      // Animate all markers simultaneously
+      const startTime = performance.now();
+      const dur = 5000;
 
-      initLeaderboard(parts);
+      function animateAll(now) {
+        const t = Math.min((now - startTime) / dur, 1);
+        parts.forEach(p => {
+          p.marker.setPosition({
+            lat: HQ.lat + (p.target.lat - HQ.lat) * t,
+            lng: HQ.lng + (p.target.lng - HQ.lng) * t
+          });
+        });
+        if (t < 1) requestAnimationFrame(animateAll);
+      }
+
+      requestAnimationFrame(animateAll);
     }
 
-    window.initMap = initMap;
+    // Kick everything off
+    init().catch(e => console.error(e));
   </script>
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap"></script>
 </body>
 </html>
