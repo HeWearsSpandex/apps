@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Bonus Metres – Last Month’s Leaderboard</title>
+  <title>Bonus Metres – Last Month's Leaderboard</title>
   <style>
     html, body {
       margin: 0; padding: 0;
@@ -40,7 +40,7 @@
     <div class="logo">
       <img src="/img/JHB Logo.png" alt="JHB Logo">
     </div>
-    <h1>Bonus Metres – Last Month’s Leaderboard</h1>
+    <h1>Bonus Metres – Last Month's Leaderboard</h1>
     <table>
       <thead>
         <tr>
@@ -63,20 +63,11 @@
     </div>
   </div>
 
+  <!-- Shared people list -->
+  <script src="/js/people.js"></script>
   <script>
     const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
     const IMG_PATH = '/img/';
-    const PEOPLE = [
-      'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Turnstill',
-      'Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan',
-      'Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks',
-      'James Whiteoak',
-      'Jonathan Thompson','Joseph Nixon','Joshua Powell','Joshua Rowberry',
-      'Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Morgan Hemming',
-      'Nicholas Kingshott','Richard Clanford','Robert Tamas',
-      'Ryan Breslan','Ryan Manners','Tom Brooks','Tristan Allen','Tyler Webb','David Mahon','Jason Bligh','Rhys Grant','Ross Wills','Ross Striplin','Jordan Reynolds','Mark Stafford',
-      'William Garratt','Chris Voisey','Ryan Turnstil','Jenna Turvey','Archie Beckett','Colby Mathews'
-    ];
 
     async function loadImageElement(src, size) {
       return new Promise(res => {
@@ -99,7 +90,6 @@
       const base = 64, halo = haloColor ? 10 : 0, total = base + 2*halo;
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      const safe = encodeURIComponent(name.trim()) + '_cvface1.png';
       canvas.width = canvas.height = total;
       if (haloColor) {
         ctx.fillStyle = haloColor;
@@ -108,7 +98,7 @@
         ctx.arc(total/2, total/2, base/2, 0, 2 * Math.PI);
         ctx.fill('evenodd');
       }
-      const img = await loadImageElement(IMG_PATH + safe, base);
+      const img = await loadImageElement(IMG_PATH + encodeURIComponent(name.trim()) + '_cvface1.png', base);
       ctx.drawImage(img, halo, halo, base, base);
       return canvas.toDataURL();
     }
@@ -160,8 +150,8 @@
         const tie = counts[+r['L/M RANK']] > 1;
         const rankTxt = (tie ? '=' : '') + r._display;
         const haloColor = r._display === 1 ? 'gold'
-                          : r._display === 2 ? 'silver'
-                          : r._display === 3 ? '#cd7f32' : null;
+                        : r._display === 2 ? 'silver'
+                        : r._display === 3 ? '#cd7f32' : null;
         const icon = await drawIcon(r['NAME'], haloColor);
         const size = 64 + (haloColor ? 10 : 0);
         const metresTxt = r._value.toLocaleString() + 'm';
