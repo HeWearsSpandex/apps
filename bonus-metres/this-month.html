@@ -1,10 +1,10 @@
-<!-- Save as: this-month.html -->
+<!-- Save as: this-month.html (v1 – auto-scroll) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Bonus Metres – Current Month’s Leaderboard</title>
+  <title>Bonus Metres – Current Month's Leaderboard</title>
   <style>
     html, body {
       margin: 0; padding: 0;
@@ -40,7 +40,7 @@
     <div class="logo">
       <img src="/img/JHB Logo.png" alt="JHB Logo">
     </div>
-    <h1>Bonus Metres – Current Month’s Leaderboard</h1>
+    <h1>Bonus Metres – Current Month's Leaderboard</h1>
     <table>
       <thead>
         <tr>
@@ -64,20 +64,11 @@
     </div>
   </div>
 
+  <!-- Shared people list -->
+  <script src="/js/people.js"></script>
   <script>
     const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
     const IMG_PATH = '/img/';
-    const PEOPLE = [
-      'Adrian Lutic','Alex Nita','Antun Vidakovic','Bradley Turnstill',
-      'Byron Claridge','Callum Evans','Cameron Gill','Christopher Scourfield','Craig Dolan',
-      'Edward Shanley','Gary Mounce','George Norris','James Hickman','James Hodge-Brooks',
-      'James Whiteoak',
-      'Jonathan Thompson','Joseph Nixon','Joshua Powell','Joshua Rowberry',
-      'Lewis Cannon','Liam Hammon','Luke Piller','Mark Sneap','Morgan Hemming',
-      'Nicholas Kingshott','Richard Clanford','Robert Tamas',
-      'Ryan Breslan','Ryan Manners','Tom Brooks','Tristan Allen','Tyler Webb','David Mahon','Jason Bligh','Rhys Grant','Ross Wills','Ross Striplin','Jordan Reynolds','Mark Stafford',
-      'William Garratt','Chris Voisey','Ryan Turnstil','Jenna Turvey','Archie Beckett','Colby Mathews'
-    ];
 
     async function loadImageElement(src, size) {
       return new Promise(res => {
@@ -163,8 +154,8 @@
         const tie = counts[tm] > 1;
         const rankTxt = (tie ? '=' : '') + r._display;
         const haloColor = r._display === 1 ? 'gold'
-                          : r._display === 2 ? 'silver'
-                          : r._display === 3 ? '#cd7f32' : null;
+                        : r._display === 2 ? 'silver'
+                        : r._display === 3 ? '#cd7f32' : null;
         const icon = await drawIcon(r['NAME'], haloColor);
         const size = 64 + (haloColor ? 10 : 0);
         const metresTxt = r._value.toLocaleString() + 'm';
