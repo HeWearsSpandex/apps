@@ -181,15 +181,13 @@
 
     /* ── Racetrack ── */
     .race-wrap {
-      flex: 1 1 0;
+      flex-shrink: 0;
       position: relative;
-      min-height: 150px;
-      overflow-y: auto;
       background: #fff;
       margin: 0 8px 8px;
       border-radius: 8px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-      padding: 8px 0;
+      padding: 4px 0;
     }
     #racetrack { width: 100%; }
 
@@ -675,7 +673,7 @@
     async function renderRace(playerName, ranked, data) {
       document.getElementById('race-spinner').style.display = 'none';
 
-      // Build list of racers: top 3 + player (deduplicated)
+      // Build racers: top 3 + player (deduplicated)
       const top3 = ranked.slice(0, 3);
       const allNames = [...new Set([...top3.map(r => r['NAME']), playerName])];
       const racers = allNames.map(n => {
@@ -688,19 +686,21 @@
       }).sort((a, b) => a.rank - b.rank);
 
       const leaderTotal = racers[0].total;
-      const LANE_H   = 80;
-      const BADGE_W  = 44;   // left badge area
-      const LABEL_W  = 140;  // right label area (name + metres)
-      const FACE_R   = 24;   // face radius
-      const FACE_D   = FACE_R * 2;
-      const TRACK_L  = BADGE_W + 8;
-      const TRACK_R  = LABEL_W + FACE_D + 8; // keep track away from right edge
-      const svgW     = 680;
-      const svgH     = racers.length * LANE_H + 20;
-      const trackW   = svgW - TRACK_L - TRACK_R;
+
+      // Layout constants
+      const svgW      = 680;
+      const PAD_L     = 20;
+      const PAD_R     = 20;
+      const TRACK_Y   = 120;  // vertical centre of the track
+      const FACE_D    = 48;   // face diameter
+      const TRACK_H   = 10;
+      const trackW    = svgW - PAD_L - PAD_R;
+      const svgH      = TRACK_Y + FACE_D / 2 + 40;
 
       // Draw all icons in parallel
-      const icons = await Promise.all(racers.map(r => drawIcon(r.name, r.halo, FACE_D, r.halo ? 6 : 0)));
+      const icons = await Promise.all(
+        racers.map(r => drawIcon(r.name, r.halo, FACE_D, r.halo ? 6 : 0))
+      );
 
       const NS  = 'http://www.w3.org/2000/svg';
       const svg = document.createElementNS(NS, 'svg');
@@ -708,88 +708,83 @@
       svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
       svg.style.display = 'block';
 
-      const laneColors = ['#fff9e6','#f0f4ff','#f0fff4','#fff0f6'];
+      // Track background
+      const trackBg = document.createElementNS(NS, 'rect');
+      trackBg.setAttribute('x', String(PAD_L));
+      trackBg.setAttribute('y', String(TRACK_Y - TRACK_H / 2));
+      trackBg.setAttribute('width', String(trackW));
+      trackBg.setAttribute('height', String(TRACK_H));
+      trackBg.setAttribute('rx', String(TRACK_H / 2));
+      trackBg.setAttribute('fill', '#e8e8e8');
+      svg.appendChild(trackBg);
 
+      // Draw each racer
       racers.forEach((racer, i) => {
-        const laneTop  = 10 + i * LANE_H;
-        const laneMid  = laneTop + LANE_H / 2;
+        const pct    = leaderTotal > 0 ? racer.total / leaderTotal : 0;
+        const xPos   = PAD_L + trackW * pct;
         const faceSize = FACE_D + (racer.halo ? 12 : 0);
-        const pct      = leaderTotal > 0 ? racer.total / leaderTotal : 0;
-        const fillW    = trackW * pct;
-        const faceX    = TRACK_L + fillW - faceSize / 2; // face centred on track end
 
-        // Lane background
-        const laneBg = document.createElementNS(NS, 'rect');
-        laneBg.setAttribute('x', '0');
-        laneBg.setAttribute('y', String(laneTop));
-        laneBg.setAttribute('width', String(svgW));
-        laneBg.setAttribute('height', String(LANE_H - 2));
-        laneBg.setAttribute('fill', laneColors[i % laneColors.length]);
-        laneBg.setAttribute('rx', '6');
-        svg.appendChild(laneBg);
-
-        // Lane divider
-        if (i < racers.length - 1) {
-          const div = document.createElementNS(NS, 'line');
-          div.setAttribute('x1', '0');
-          div.setAttribute('y1', String(laneTop + LANE_H - 2));
-          div.setAttribute('x2', String(svgW));
-          div.setAttribute('y2', String(laneTop + LANE_H - 2));
-          div.setAttribute('stroke', '#e0e0e0');
-          div.setAttribute('stroke-width', '1');
-          div.setAttribute('stroke-dasharray', '6 4');
-          svg.appendChild(div);
+        // Progress fill up to this racer (only draw for leader to avoid overlap)
+        if (i === 0) {
+          const fill = document.createElementNS(NS, 'rect');
+          fill.setAttribute('x', String(PAD_L));
+          fill.setAttribute('y', String(TRACK_Y - TRACK_H / 2));
+          fill.setAttribute('width', '0');
+          fill.setAttribute('height', String(TRACK_H));
+          fill.setAttribute('rx', String(TRACK_H / 2));
+          fill.setAttribute('fill', '#ffe082');
+          svg.appendChild(fill);
+          setTimeout(() => {
+            fill.style.transition = 'width 1.4s cubic-bezier(0.4,0,0.2,1)';
+            fill.setAttribute('width', String(trackW * pct));
+          }, 200);
         }
 
-        // Rank badge
-        const badgeColors = ['#f9a825','#9e9e9e','#cd7f32','#1a73e8'];
-        const badgeColor  = racer.isPlayer && racer.rank > 3 ? '#1a73e8' : badgeColors[Math.min(racer.rank - 1, 3)];
-        const badge = document.createElementNS(NS, 'circle');
-        badge.setAttribute('cx', '22');
-        badge.setAttribute('cy', String(laneMid));
-        badge.setAttribute('r', '14');
-        badge.setAttribute('fill', badgeColor);
-        svg.appendChild(badge);
+        // Label above the face — name and metres
+        const shortName = racer.isPlayer && racer.rank > 3
+          ? racer.name.split(' ')[0] + ' (You)'
+          : racer.name.split(' ')[0] + (racer.name.split(' ')[1] ? ' ' + racer.name.split(' ')[1][0] + '.' : '');
 
-        const badgeTxt = document.createElementNS(NS, 'text');
-        badgeTxt.setAttribute('x', '22');
-        badgeTxt.setAttribute('y', String(laneMid + 1));
-        badgeTxt.setAttribute('text-anchor', 'middle');
-        badgeTxt.setAttribute('dominant-baseline', 'central');
-        badgeTxt.setAttribute('font-size', '11');
-        badgeTxt.setAttribute('font-weight', '500');
-        badgeTxt.setAttribute('fill', '#fff');
-        badgeTxt.textContent = racer.isPlayer && racer.rank > 3 ? 'YOU' : `#${racer.rank}`;
-        svg.appendChild(badgeTxt);
+        // Alternating label height to avoid overlap
+        const labelY = i % 2 === 0 ? TRACK_Y - faceSize / 2 - 28 : TRACK_Y - faceSize / 2 - 8;
 
-        // Track base line
-        const trackLine = document.createElementNS(NS, 'line');
-        trackLine.setAttribute('x1', String(TRACK_L));
-        trackLine.setAttribute('y1', String(laneMid));
-        trackLine.setAttribute('x2', String(TRACK_L + trackW));
-        trackLine.setAttribute('y2', String(laneMid));
-        trackLine.setAttribute('stroke', '#e0e0e0');
-        trackLine.setAttribute('stroke-width', '6');
-        trackLine.setAttribute('stroke-linecap', 'round');
-        svg.appendChild(trackLine);
+        const nameEl = document.createElementNS(NS, 'text');
+        nameEl.setAttribute('x', String(xPos));
+        nameEl.setAttribute('y', String(labelY));
+        nameEl.setAttribute('text-anchor', 'middle');
+        nameEl.setAttribute('font-size', '11');
+        nameEl.setAttribute('font-weight', '500');
+        nameEl.setAttribute('fill', '#333');
+        nameEl.style.opacity = '0';
+        nameEl.textContent = shortName;
+        svg.appendChild(nameEl);
 
-        // Progress fill
-        const fillColor = racer.isPlayer && racer.rank > 3 ? '#bbdefb' :
-                          racer.rank === 1 ? '#ffe082' :
-                          racer.rank === 2 ? '#e0e0e0' : '#ffcc80';
-        const trackFill = document.createElementNS(NS, 'rect');
-        trackFill.setAttribute('x', String(TRACK_L));
-        trackFill.setAttribute('y', String(laneMid - 3));
-        trackFill.setAttribute('width', '0');
-        trackFill.setAttribute('height', '6');
-        trackFill.setAttribute('rx', '3');
-        trackFill.setAttribute('fill', fillColor);
-        svg.appendChild(trackFill);
+        const metresEl = document.createElementNS(NS, 'text');
+        metresEl.setAttribute('x', String(xPos));
+        metresEl.setAttribute('y', String(labelY + 14));
+        metresEl.setAttribute('text-anchor', 'middle');
+        metresEl.setAttribute('font-size', '10');
+        metresEl.setAttribute('fill', '#888');
+        metresEl.style.opacity = '0';
+        metresEl.textContent = `${Math.round(racer.total).toLocaleString()}m`;
+        svg.appendChild(metresEl);
 
-        // Face icon — starts at left, animates right
+        // Tick mark on track
+        const tick = document.createElementNS(NS, 'line');
+        tick.setAttribute('x1', String(xPos));
+        tick.setAttribute('y1', String(TRACK_Y - TRACK_H / 2 - 2));
+        tick.setAttribute('x2', String(xPos));
+        tick.setAttribute('y2', String(TRACK_Y + TRACK_H / 2 + 2));
+        tick.setAttribute('stroke', racer.isPlayer && racer.rank > 3 ? '#1a73e8' : '#f9a825');
+        tick.setAttribute('stroke-width', '2');
+        svg.appendChild(tick);
+
+        // Face — starts off-screen left, slides to position
         const faceGroup = document.createElementNS(NS, 'g');
-        faceGroup.setAttribute('transform', `translate(${TRACK_L - faceSize/2}, ${laneMid - faceSize/2})`);
-        faceGroup.style.transition = 'transform 1.2s cubic-bezier(0.4,0,0.2,1)';
+        faceGroup.setAttribute('transform',
+          `translate(${PAD_L - faceSize / 2}, ${TRACK_Y - faceSize / 2})`);
+        faceGroup.style.transition = `transform 1.4s cubic-bezier(0.4,0,0.2,1)`;
+
         const faceImg = document.createElementNS(NS, 'image');
         faceImg.setAttribute('href', icons[i]);
         faceImg.setAttribute('width', String(faceSize));
@@ -797,45 +792,15 @@
         faceGroup.appendChild(faceImg);
         svg.appendChild(faceGroup);
 
-        // Name label — fixed to right label area
-        const labelX = TRACK_L + trackW + 8;
-        const nameEl = document.createElementNS(NS, 'text');
-        nameEl.setAttribute('x', String(labelX));
-        nameEl.setAttribute('y', String(laneMid - 7));
-        nameEl.setAttribute('font-size', '11');
-        nameEl.setAttribute('font-weight', '500');
-        nameEl.setAttribute('fill', '#333');
-        nameEl.style.opacity = '0';
-        // Truncate long names
-        const displayName = racer.isPlayer && racer.rank > 3
-          ? `${racer.name.split(' ')[0]} (You)`
-          : racer.name.split(' ')[0] + (racer.name.split(' ')[1] ? ' ' + racer.name.split(' ')[1][0] + '.' : '');
-        nameEl.textContent = displayName;
-        svg.appendChild(nameEl);
-
-        const metresEl = document.createElementNS(NS, 'text');
-        metresEl.setAttribute('x', String(labelX));
-        metresEl.setAttribute('y', String(laneMid + 9));
-        metresEl.setAttribute('font-size', '10');
-        metresEl.setAttribute('fill', '#888');
-        metresEl.style.opacity = '0';
-        metresEl.textContent = `${Math.round(racer.total).toLocaleString()}m`;
-        svg.appendChild(metresEl);
-
-        // Animate after staggered delay
+        // Animate face and labels
         setTimeout(() => {
-          trackFill.style.transition = 'width 1.2s cubic-bezier(0.4,0,0.2,1)';
-          trackFill.setAttribute('width', String(fillW));
           faceGroup.setAttribute('transform',
-            `translate(${faceX}, ${laneMid - faceSize/2})`);
-        }, 200 + i * 80);
-
-        setTimeout(() => {
+            `translate(${xPos - faceSize / 2}, ${TRACK_Y - faceSize / 2})`);
           nameEl.style.transition   = 'opacity 0.4s ease';
           metresEl.style.transition = 'opacity 0.4s ease';
           nameEl.style.opacity   = '1';
           metresEl.style.opacity = '1';
-        }, 200 + i * 80 + 1000);
+        }, 200 + i * 100);
       });
 
       document.getElementById('racetrack').appendChild(svg);
