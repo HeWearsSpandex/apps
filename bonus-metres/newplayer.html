@@ -80,8 +80,8 @@
     }
     .stat-card.highlight { border-top: 3px solid #c00; }
 
-    /* ── Pot of gold ── */
-    .pot-wrap {
+    /* ── Coin stack ── */
+    .coin-wrap {
       flex-shrink: 0;
       background: #fff;
       border-radius: 8px;
@@ -92,56 +92,41 @@
       align-items: center;
       gap: 16px;
     }
-    .pot-graphic {
+    .coin-stack-container {
       flex-shrink: 0;
+      width: 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      height: 120px;
       position: relative;
-      width: 70px;
-      height: 80px;
     }
-    .pot-graphic svg {
-      width: 100%;
-      height: 100%;
+    .coin-stack-svg {
+      position: absolute;
+      bottom: 0;
+      width: 80px;
     }
-    .pot-info {
+    .coin-info {
       flex: 1;
     }
-    .pot-label {
+    .coin-label {
       font-size: 10px;
       color: #999;
       text-transform: uppercase;
       letter-spacing: 0.4px;
       margin-bottom: 4px;
     }
-    .pot-amount {
+    .coin-amount {
       font-size: 26px;
       font-weight: bold;
       color: #1b5e20;
       line-height: 1;
       margin-bottom: 4px;
     }
-    .pot-sub {
+    .coin-sub {
       font-size: 11px;
       color: #aaa;
-    }
-    .pot-bar-wrap {
-      margin-top: 8px;
-      background: #f0f0f0;
-      border-radius: 4px;
-      height: 6px;
-      overflow: hidden;
-    }
-    .pot-bar {
-      height: 100%;
-      background: linear-gradient(90deg, #f9a825, #fdd835);
-      border-radius: 4px;
-      width: 0%;
-      transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .pot-max {
-      font-size: 10px;
-      color: #ccc;
-      margin-top: 3px;
-      text-align: right;
     }
     .stat-card.full-width { grid-column: 1 / -1; }
 
@@ -550,48 +535,26 @@
 
         </div>
 
-        <div class="pot-wrap">
-          <div class="pot-graphic">
-            <svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+        <div class="coin-wrap">
+          <div class="coin-stack-container">
+            <svg class="coin-stack-svg" id="coinStackSvg" viewBox="0 0 80 120" xmlns="http://www.w3.org/2000/svg">
               <defs>
-                <clipPath id="potClip">
-                  <!-- Pot body shape for clipping the fill -->
-                  <path d="M20,45 Q15,50 14,65 Q12,90 50,105 Q88,90 86,65 Q85,50 80,45 Z"/>
-                </clipPath>
-              </defs>
-              <!-- Pot rim -->
-              <ellipse cx="50" cy="45" rx="32" ry="10" fill="#5d4037"/>
-              <!-- Pot body -->
-              <path d="M20,45 Q15,50 14,65 Q12,90 50,105 Q88,90 86,65 Q85,50 80,45 Z" fill="#6d4c41"/>
-              <!-- Gold fill inside pot — animates via JS -->
-              <rect id="goldFill" x="10" y="0" width="80" height="110"
-                    fill="url(#goldGrad)" clip-path="url(#potClip)"
-                    transform="translate(0,110)" />
-              <!-- Pot shine -->
-              <path d="M28,52 Q25,70 27,85" stroke="rgba(255,255,255,0.15)" stroke-width="4" fill="none" stroke-linecap="round"/>
-              <!-- Pot rim top highlight -->
-              <ellipse cx="50" cy="44" rx="30" ry="8" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
-              <!-- Coins on top -->
-              <ellipse cx="50" cy="38" rx="28" ry="8" fill="#fdd835"/>
-              <ellipse cx="50" cy="35" rx="28" ry="8" fill="#f9a825"/>
-              <ellipse cx="50" cy="33" rx="28" ry="8" fill="#fdd835"/>
-              <text x="50" y="37" text-anchor="middle" font-size="10" font-weight="bold" fill="#e65100">£</text>
-              <defs>
-                <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#fdd835"/>
-                  <stop offset="100%" stop-color="#f57f17"/>
+                <linearGradient id="cTop" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#FFE566"/>
+                  <stop offset="100%" stop-color="#F9A825"/>
+                </linearGradient>
+                <linearGradient id="cSide" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#E6900A"/>
+                  <stop offset="100%" stop-color="#BF6E00"/>
                 </linearGradient>
               </defs>
+              <!-- Coins rendered by JS here -->
             </svg>
           </div>
-          <div class="pot-info">
-            <div class="pot-label">💰 This Month's Bonus</div>
-            <div class="pot-amount" id="potAmount">£0.00</div>
-            <div class="pot-sub">${myTM.toLocaleString()}m @ £0.03/m</div>
-            <div class="pot-bar-wrap">
-              <div class="pot-bar" id="potBar"></div>
-            </div>
-            <div class="pot-max">Max this month: £500</div>
+          <div class="coin-info">
+            <div class="coin-label">💰 This Month's Bonus</div>
+            <div class="coin-amount" id="coinAmount">£0.00</div>
+            <div class="coin-sub">${myTM.toLocaleString()}m @ £0.03/m</div>
           </div>
         </div>
 
@@ -608,43 +571,115 @@
 
       await renderMap(name, ranked, data);
 
-      // Animate pot of gold after a short delay
-      const BONUS_MAX = 500;
-      const bonusRaw  = myTM * 0.03;
-      const fillPct   = Math.min(bonusRaw / BONUS_MAX * 100, 100);
+      // Coin stack animation
+      const bonusRaw   = myTM * 0.03;
+      const COIN_VALUE = 15;  // £15 per coin
+      const numCoins   = Math.max(1, Math.round(bonusRaw / COIN_VALUE));
+      const COIN_H     = 8;   // height of each coin (side + face)
+      const COIN_RX    = 34;  // x radius of coin ellipse
+      const COIN_RY    = 8;   // y radius of coin ellipse
+      const SVG_BOTTOM = 118; // bottom of SVG
 
-      // Animate the amount counting up
-      const potAmountEl = document.getElementById('potAmount');
-      const potBarEl    = document.getElementById('potBar');
-      const goldFillEl  = document.getElementById('goldFill');
+      const svg = document.getElementById('coinStackSvg');
+      const amountEl = document.getElementById('coinAmount');
 
-      if (potAmountEl && potBarEl) {
-        setTimeout(() => {
-          // Animate bar
-          potBarEl.style.width = fillPct + '%';
+      // Update viewBox to fit the stack
+      const stackHeight = numCoins * COIN_H + COIN_RY * 2 + 10;
+      const svgH = Math.max(40, stackHeight);
+      svg.setAttribute('viewBox', `0 0 80 ${svgH}`);
 
-          // Animate gold fill in SVG (translates from bottom up)
-          if (goldFillEl) {
-            const translateY = 110 - (110 * fillPct / 100);
-            goldFillEl.style.transition = 'transform 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
-            goldFillEl.setAttribute('transform', `translate(0,${translateY})`);
-          }
+      // Build coins bottom to top, reveal one by one
+      const coins = [];
+      for (let i = 0; i < numCoins; i++) {
+        const bottomY  = svgH - 4 - (i * COIN_H);
+        const sideTop  = bottomY - COIN_H;
+        const faceY    = sideTop;
+        const isTop    = i === numCoins - 1;
 
-          // Count up the amount
-          const duration = 1500;
-          const start    = performance.now();
-          function countUp(now) {
-            const t = Math.min((now - start) / duration, 1);
-            const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
-            const current = bonusRaw * ease;
-            potAmountEl.textContent = current.toLocaleString('en-GB', {
-              style: 'currency', currency: 'GBP'
-            });
-            if (t < 1) requestAnimationFrame(countUp);
-          }
-          requestAnimationFrame(countUp);
-        }, 500);
+        // Side band
+        const side = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+        side.setAttribute('cx', '40');
+        side.setAttribute('cy', String(bottomY));
+        side.setAttribute('rx', String(COIN_RX));
+        side.setAttribute('ry', String(COIN_RY));
+        side.setAttribute('fill', 'url(#cSide)');
+        side.style.opacity = '0';
+
+        const band = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        band.setAttribute('x', String(40 - COIN_RX));
+        band.setAttribute('y', String(sideTop));
+        band.setAttribute('width', String(COIN_RX * 2));
+        band.setAttribute('height', String(COIN_H));
+        band.setAttribute('fill', 'url(#cSide)');
+        band.style.opacity = '0';
+
+        // Face (top ellipse)
+        const face = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+        face.setAttribute('cx', '40');
+        face.setAttribute('cy', String(faceY));
+        face.setAttribute('rx', String(COIN_RX));
+        face.setAttribute('ry', String(COIN_RY));
+        face.setAttribute('fill', 'url(#cTop)');
+        face.style.opacity = '0';
+
+        // Ring detail on face
+        const ring = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+        ring.setAttribute('cx', '40');
+        ring.setAttribute('cy', String(faceY));
+        ring.setAttribute('rx', String(COIN_RX - 8));
+        ring.setAttribute('ry', String(COIN_RY - 2));
+        ring.setAttribute('fill', 'none');
+        ring.setAttribute('stroke', '#D4880A');
+        ring.setAttribute('stroke-width', '0.8');
+        ring.style.opacity = '0';
+
+        svg.appendChild(side);
+        svg.appendChild(band);
+        svg.appendChild(face);
+        svg.appendChild(ring);
+
+        // £ sign on top coin only
+        if (isTop) {
+          const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          label.setAttribute('x', '40');
+          label.setAttribute('y', String(faceY + 1));
+          label.setAttribute('text-anchor', 'middle');
+          label.setAttribute('dominant-baseline', 'central');
+          label.setAttribute('font-size', '9');
+          label.setAttribute('font-weight', '500');
+          label.setAttribute('fill', '#9A5E00');
+          label.textContent = '£';
+          label.style.opacity = '0';
+          svg.appendChild(label);
+          coins.push([side, band, face, ring, label]);
+        } else {
+          coins.push([side, band, face, ring]);
+        }
       }
+
+      // Animate coins dropping in one by one
+      const DELAY_PER_COIN = Math.min(120, 1400 / numCoins);
+      coins.forEach((group, i) => {
+        setTimeout(() => {
+          group.forEach(el => {
+            el.style.transition = 'opacity 0.15s ease';
+            el.style.opacity = '1';
+          });
+        }, 400 + i * DELAY_PER_COIN);
+      });
+
+      // Count up amount in sync
+      const totalDuration = 400 + numCoins * DELAY_PER_COIN + 200;
+      const start = performance.now();
+      function countUp(now) {
+        const t = Math.min((now - start) / totalDuration, 1);
+        const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+        amountEl.textContent = (bonusRaw * ease).toLocaleString('en-GB', {
+          style: 'currency', currency: 'GBP'
+        });
+        if (t < 1) requestAnimationFrame(countUp);
+      }
+      setTimeout(() => requestAnimationFrame(countUp), 400);
     }
 
     async function renderMap(playerName, ranked, data) {
