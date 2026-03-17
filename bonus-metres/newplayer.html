@@ -55,109 +55,94 @@
       font-size: 11px;
     }
 
-    /* ── Stats grid — 2 cols mobile first ── */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 6px;
-      padding: 8px;
-      flex-shrink: 0;
-    }
-    .stat-card {
-      background: #fff;
-      border-radius: 8px;
-      padding: 8px;
-      text-align: center;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-      min-width: 0; /* prevents overflow */
-    }
-    .stat-card.highlight { border-top: 3px solid #c00; }
-
-    /* ── Coin stack ── */
-    .coin-wrap {
-      flex-shrink: 0;
-      background: #fff;
-      border-radius: 8px;
-      margin: 0 8px 6px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    /* ── Main 3-col grid (coin | stats) ── */
+    .main-grid {
       display: flex;
-      align-items: stretch;
-      min-height: 160px;
-    }
-    .coin-stack-side {
+      gap: 0;
+      margin: 0 8px 6px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      overflow: hidden;
       flex-shrink: 0;
-      width: 90px;
+    }
+
+    /* Coin column — fixed width, full height */
+    .coin-col {
+      width: 72px;
+      flex-shrink: 0;
       background: #fffdf0;
-      border-radius: 8px 0 0 8px;
       border-right: 1px solid #f0e8c8;
       display: flex;
       align-items: flex-end;
       justify-content: center;
       overflow: hidden;
-      padding: 0;
-    }
-    .coin-stack-svg {
-      width: 80px;
-      display: block;
-      flex-shrink: 0;
-    }
-    .coin-info {
-      flex: 1;
-      padding: 16px 14px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-    .coin-label {
-      font-size: 10px;
-      color: #999;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      margin-bottom: 6px;
-    }
-    .coin-amount {
-      font-size: 32px;
-      font-weight: bold;
-      color: #1b5e20;
-      line-height: 1;
-      margin-bottom: 6px;
-    }
-    .coin-sub {
-      font-size: 11px;
-      color: #aaa;
-    }
-    .stat-card.full-width { grid-column: 1 / -1; }
-
-    /* Two equal halves inside a full-width card */
-    .two-col-inner {
-      display: flex;
-      gap: 0;
-    }
-    .two-col-inner > div {
-      flex: 1;
       padding: 4px 0;
     }
-    .two-col-inner > div:first-child {
-      border-right: 1px solid #eee;
+    .coin-zero {
+      font-size: 28px;
+      padding-bottom: 12px;
+      text-align: center;
     }
+
+    /* Stats column */
+    .stats-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      background: #f0f0f0;
+      min-width: 0;
+    }
+    .stat-card {
+      background: #fff;
+      padding: 7px 10px;
+      min-width: 0;
+    }
+    .stat-card.highlight { border-left: 3px solid #c00; }
+    .stat-card.bonus-stat { border-left: 3px solid #2a9d2a; background: #f8fff8; }
 
     .stat-card .label {
       font-size: 9px;
       color: #999;
       text-transform: uppercase;
       letter-spacing: 0.4px;
-      margin-bottom: 3px;
+      margin-bottom: 2px;
     }
     .stat-card .value {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: bold;
       color: #222;
       line-height: 1.2;
     }
     .stat-card .sub {
-      font-size: 10px;
+      font-size: 9px;
       color: #bbb;
-      margin-top: 2px;
+      margin-top: 1px;
+    }
+    .coin-amount {
+      font-size: 20px;
+      font-weight: bold;
+      color: #1b5e20;
+      line-height: 1.2;
+    }
+
+    /* Two equal halves */
+    .two-col-inner {
+      display: flex;
+      gap: 0;
+    }
+    .two-col-inner > div {
+      flex: 1;
+      padding: 2px 0;
+      min-width: 0;
+    }
+    .two-col-inner > div:first-child {
+      border-right: 1px solid #eee;
+      padding-right: 6px;
+    }
+    .two-col-inner > div:last-child {
+      padding-left: 6px;
     }
 
     /* Arrow colours */
@@ -258,26 +243,15 @@
       .header img        { max-width: 90px; }
       .hero-face img     { width: 56px; height: 56px; }
       .hero-info h1      { font-size: 18px; }
-      .stat-card .value  { font-size: 17px; }
     }
-
-    @media (min-width: 540px) {
-      .stats-grid        { grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; }
-      .stat-card.full-width { grid-column: 1 / -1; }
-      .stat-card .value  { font-size: 19px; }
-      .header img        { max-width: 110px; }
-    }
-
     @media (min-width: 768px) {
       .header img        { max-width: 140px; }
       .hero              { padding: 14px 20px; }
       .hero-face img     { width: 72px; height: 72px; }
       .hero-info h1      { font-size: 22px; }
-      .stats-grid        { padding: 12px 16px; gap: 10px; }
-      .stat-card         { padding: 12px; }
-      .stat-card .label  { font-size: 11px; }
-      .stat-card .value  { font-size: 22px; }
-      .stat-card .sub    { font-size: 12px; }
+      .coin-col          { width: 90px; }
+      .stat-card .value  { font-size: 16px; }
+      .coin-amount       { font-size: 24px; }
     }
   </style>
 </head>
@@ -510,52 +484,11 @@
           </div>
         </div>
 
-        <div class="stats-grid">
-          <div class="stat-card highlight full-width two-col">
-            <div class="two-col-inner">
-              <div>
-                <div class="label">This Month</div>
-                <div class="value">${myTM.toLocaleString()}m</div>
-                <div class="sub">Rank #${myTMRank}</div>
-              </div>
-              <div>
-                <div class="label">Last Month</div>
-                <div class="value">${myLM.toLocaleString()}m</div>
-                <div class="sub">Rank #${myLMRank}</div>
-              </div>
-            </div>
-          </div>
-          <div class="stat-card highlight full-width">
-            <div class="label">Total Metres</div>
-            <div class="value">${myTotal.toLocaleString()}m</div>
-            <div class="sub">Overall #${myOverall}</div>
-          </div>
-          <div class="stat-card full-width two-col">
-            <div class="two-col-inner">
-              <div>
-                <div class="label">vs This Month Leader</div>
-                <div class="value">${tmDiff}</div>
-              </div>
-              <div>
-                <div class="label">vs Last Month Leader</div>
-                <div class="value">${lmDiff}</div>
-              </div>
-            </div>
-          </div>
-          <div class="stat-card full-width">
-            <div class="label">vs Overall Leader</div>
-            <div class="value">${totDiff}</div>
-          </div>
-          <div class="stat-card full-width">
-            <div class="label">Positional Change This Month</div>
-            <div class="value ${changeClass}">${changeArrow} ${changeText}</div>
-          </div>
-        </div>
-
-        ${myTM > 0 ? `
-        <div class="coin-wrap">
-          <div class="coin-stack-side">
-            <svg class="coin-stack-svg" id="coinStackSvg" viewBox="0 0 80 10" xmlns="http://www.w3.org/2000/svg">
+        <div class="main-grid">
+          <!-- Left coin column -->
+          <div class="coin-col" id="coinCol">
+            ${myTM > 0 ? `
+            <svg id="coinStackSvg" viewBox="0 0 80 10" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;">
               <defs>
                 <linearGradient id="cTop" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stop-color="#FFE566"/>
@@ -567,22 +500,57 @@
                 </linearGradient>
               </defs>
             </svg>
+            ` : `<div class="coin-zero">🎯</div>`}
           </div>
-          <div class="coin-info">
-            <div class="coin-label">💰 This Month's Bonus</div>
-            <div class="coin-amount" id="coinAmount">£0.00</div>
-            <div class="coin-sub">${myTM.toLocaleString()}m @ £0.03/m</div>
+
+          <!-- Right stats column -->
+          <div class="stats-col">
+            <div class="stat-card highlight two-col">
+              <div class="two-col-inner">
+                <div>
+                  <div class="label">This Month</div>
+                  <div class="value">${myTM.toLocaleString()}m</div>
+                  <div class="sub">Rank #${myTMRank}</div>
+                </div>
+                <div>
+                  <div class="label">Last Month</div>
+                  <div class="value">${myLM.toLocaleString()}m</div>
+                  <div class="sub">Rank #${myLMRank}</div>
+                </div>
+              </div>
+            </div>
+            <div class="stat-card highlight">
+              <div class="label">Total Metres</div>
+              <div class="value">${myTotal.toLocaleString()}m</div>
+              <div class="sub">Overall #${myOverall}</div>
+            </div>
+            <div class="stat-card two-col">
+              <div class="two-col-inner">
+                <div>
+                  <div class="label">vs This Month</div>
+                  <div class="value">${tmDiff}</div>
+                </div>
+                <div>
+                  <div class="label">vs Last Month</div>
+                  <div class="value">${lmDiff}</div>
+                </div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="label">vs Overall Leader</div>
+              <div class="value">${totDiff}</div>
+            </div>
+            <div class="stat-card bonus-stat">
+              <div class="label">💰 This Month's Bonus</div>
+              <div class="coin-amount" id="coinAmount">£0.00</div>
+              <div class="sub">${myTM.toLocaleString()}m @ £0.03/m</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Positional Change</div>
+              <div class="value ${changeClass}">${changeArrow} ${changeText}</div>
+            </div>
           </div>
         </div>
-        ` : `
-        <div class="zero-bonus-card">
-          <div class="zero-bonus-icon">🎯</div>
-          <div class="zero-bonus-text">
-            <div class="zero-bonus-title">No bonus logged yet this month</div>
-            <div class="zero-bonus-sub">Every metre counts — get out there and start building your stack!</div>
-          </div>
-        </div>
-        `}
 
         <div class="msg-banner ${msgClass}">
           <span class="msg-emoji">${msgEmoji}</span>
@@ -597,31 +565,26 @@
 
       await renderRace(name, ranked, data);
 
-      // Coin stack — only shown if they earned something
+      // Coin stack animation
       if (myTM > 0) {
-        const bonusRaw   = myTM * 0.03;
-        const COIN_RX    = 34;
-        const COIN_RY    = 7;
-        const COIN_H     = 12;
-        const SVG_W      = 80;
+        const bonusRaw  = myTM * 0.03;
+        const BONUS_MAX = 1500;
+        const fillRatio = Math.min(bonusRaw / BONUS_MAX, 1);
+        const COIN_RX   = 32;
+        const COIN_RY   = 6;
+        const COIN_H    = 11;
+        const SVG_W     = 72;
 
         const svg      = document.getElementById('coinStackSvg');
         const amountEl = document.getElementById('coinAmount');
-        const sidePan  = svg.parentElement;
+        const coinCol  = document.getElementById('coinCol');
 
-        // Measure the rendered panel height after layout
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            const panelH = Math.max(sidePan.clientHeight, 160);
-
-            // How many coins stack up to fill the panel
+            const panelH   = Math.max(coinCol.clientHeight, 120);
             const maxCoins = Math.floor((panelH - COIN_RY * 2 - 8) / COIN_H);
+            const numCoins = Math.max(1, Math.round(maxCoins * fillRatio));
 
-            // Scale coins against £1500 max — but stack grows freely
-            const BONUS_MAX = 1500;
-            const numCoins  = Math.max(1, Math.round(maxCoins * Math.min(bonusRaw / BONUS_MAX, 1)));
-
-            // Set SVG to exactly fill the panel height
             svg.setAttribute('viewBox', `0 0 ${SVG_W} ${panelH}`);
             svg.setAttribute('height', String(panelH));
 
@@ -632,9 +595,10 @@
               const bottomY = panelH - 4 - (i * COIN_H);
               const faceY   = bottomY - COIN_H;
               const isTop   = i === numCoins - 1;
+              const cx      = SVG_W / 2;
 
               const band = document.createElementNS(NS, 'rect');
-              band.setAttribute('x', String(SVG_W / 2 - COIN_RX));
+              band.setAttribute('x', String(cx - COIN_RX));
               band.setAttribute('y', String(faceY));
               band.setAttribute('width', String(COIN_RX * 2));
               band.setAttribute('height', String(COIN_H));
@@ -642,7 +606,7 @@
               band.style.opacity = '0';
 
               const bottom = document.createElementNS(NS, 'ellipse');
-              bottom.setAttribute('cx', String(SVG_W / 2));
+              bottom.setAttribute('cx', String(cx));
               bottom.setAttribute('cy', String(bottomY));
               bottom.setAttribute('rx', String(COIN_RX));
               bottom.setAttribute('ry', String(COIN_RY));
@@ -650,7 +614,7 @@
               bottom.style.opacity = '0';
 
               const face = document.createElementNS(NS, 'ellipse');
-              face.setAttribute('cx', String(SVG_W / 2));
+              face.setAttribute('cx', String(cx));
               face.setAttribute('cy', String(faceY));
               face.setAttribute('rx', String(COIN_RX));
               face.setAttribute('ry', String(COIN_RY));
@@ -658,13 +622,13 @@
               face.style.opacity = '0';
 
               const ring = document.createElementNS(NS, 'ellipse');
-              ring.setAttribute('cx', String(SVG_W / 2));
+              ring.setAttribute('cx', String(cx));
               ring.setAttribute('cy', String(faceY));
-              ring.setAttribute('rx', String(COIN_RX - 8));
-              ring.setAttribute('ry', String(COIN_RY - 2));
+              ring.setAttribute('rx', String(COIN_RX - 7));
+              ring.setAttribute('ry', String(COIN_RY - 1));
               ring.setAttribute('fill', 'none');
               ring.setAttribute('stroke', '#D4880A');
-              ring.setAttribute('stroke-width', '0.8');
+              ring.setAttribute('stroke-width', '0.7');
               ring.style.opacity = '0';
 
               svg.appendChild(band);
@@ -674,11 +638,11 @@
 
               if (isTop) {
                 const lbl = document.createElementNS(NS, 'text');
-                lbl.setAttribute('x', String(SVG_W / 2));
+                lbl.setAttribute('x', String(cx));
                 lbl.setAttribute('y', String(faceY + 1));
                 lbl.setAttribute('text-anchor', 'middle');
                 lbl.setAttribute('dominant-baseline', 'central');
-                lbl.setAttribute('font-size', '9');
+                lbl.setAttribute('font-size', '8');
                 lbl.setAttribute('font-weight', '500');
                 lbl.setAttribute('fill', '#9A5E00');
                 lbl.textContent = '£';
@@ -690,8 +654,7 @@
               }
             }
 
-            // Animate coins stacking up from bottom
-            const DELAY = Math.min(60, 1000 / Math.max(numCoins, 1));
+            const DELAY = Math.min(60, 900 / Math.max(numCoins, 1));
             coins.forEach((group, i) => {
               setTimeout(() => {
                 group.forEach(el => {
@@ -701,7 +664,6 @@
               }, 300 + i * DELAY);
             });
 
-            // Count up in sync
             const totalDur = 300 + numCoins * DELAY + 200;
             const start    = performance.now();
             function countUp(now) {
@@ -721,7 +683,6 @@
     async function renderRace(playerName, ranked, data) {
       document.getElementById('race-spinner').style.display = 'none';
 
-      // Build racers: top 3 + player (deduplicated)
       const top3 = ranked.slice(0, 3);
       const allNames = [...new Set([...top3.map(r => r['NAME']), playerName])];
       const racers = allNames.map(n => {
@@ -735,25 +696,25 @@
 
       const leaderTotal = racers[0].total;
 
-      // Layout constants
-      const svgW      = 680;
-      const PAD_L     = 20;
-      const PAD_R     = 20;
-      const TRACK_Y   = 120;  // vertical centre of the track
-      const FACE_D    = 48;   // face diameter
-      const TRACK_H   = 10;
-      const trackW    = svgW - PAD_L - PAD_R;
-      const svgH      = TRACK_Y + FACE_D / 2 + 40;
+      // Use smaller face size and tighter layout for mobile
+      const SVG_W    = 360;  // narrow viewBox — scales to screen width
+      const PAD_L    = 8;
+      const PAD_R    = 8;
+      const TRACK_Y  = 90;
+      const FACE_D   = 36;
+      const TRACK_H  = 8;
+      const trackW   = SVG_W - PAD_L - PAD_R;
+      const svgH     = TRACK_Y + FACE_D / 2 + 50;
 
-      // Draw all icons in parallel
       const icons = await Promise.all(
-        racers.map(r => drawIcon(r.name, r.halo, FACE_D, r.halo ? 6 : 0))
+        racers.map(r => drawIcon(r.name, r.halo, FACE_D, r.halo ? 5 : 0))
       );
 
       const NS  = 'http://www.w3.org/2000/svg';
       const svg = document.createElementNS(NS, 'svg');
       svg.setAttribute('width', '100%');
-      svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+      svg.setAttribute('viewBox', `0 0 ${SVG_W} ${svgH}`);
+      svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
       svg.style.display = 'block';
 
       // Track background
@@ -766,73 +727,72 @@
       trackBg.setAttribute('fill', '#e8e8e8');
       svg.appendChild(trackBg);
 
-      // Draw each racer
+      // Leader fill
+      const leaderFill = document.createElementNS(NS, 'rect');
+      leaderFill.setAttribute('x', String(PAD_L));
+      leaderFill.setAttribute('y', String(TRACK_Y - TRACK_H / 2));
+      leaderFill.setAttribute('width', '0');
+      leaderFill.setAttribute('height', String(TRACK_H));
+      leaderFill.setAttribute('rx', String(TRACK_H / 2));
+      leaderFill.setAttribute('fill', '#ffe082');
+      svg.appendChild(leaderFill);
+      setTimeout(() => {
+        leaderFill.style.transition = 'width 1.4s cubic-bezier(0.4,0,0.2,1)';
+        leaderFill.setAttribute('width', String(trackW));
+      }, 200);
+
       racers.forEach((racer, i) => {
-        const pct    = leaderTotal > 0 ? racer.total / leaderTotal : 0;
-        const xPos   = PAD_L + trackW * pct;
-        const faceSize = FACE_D + (racer.halo ? 12 : 0);
+        const pct      = leaderTotal > 0 ? racer.total / leaderTotal : 0;
+        const xPos     = PAD_L + trackW * pct;
+        const faceSize = FACE_D + (racer.halo ? 10 : 0);
 
-        // Progress fill up to this racer (only draw for leader to avoid overlap)
-        if (i === 0) {
-          const fill = document.createElementNS(NS, 'rect');
-          fill.setAttribute('x', String(PAD_L));
-          fill.setAttribute('y', String(TRACK_Y - TRACK_H / 2));
-          fill.setAttribute('width', '0');
-          fill.setAttribute('height', String(TRACK_H));
-          fill.setAttribute('rx', String(TRACK_H / 2));
-          fill.setAttribute('fill', '#ffe082');
-          svg.appendChild(fill);
-          setTimeout(() => {
-            fill.style.transition = 'width 1.4s cubic-bezier(0.4,0,0.2,1)';
-            fill.setAttribute('width', String(trackW * pct));
-          }, 200);
-        }
+        // Alternating label rows to avoid overlap
+        const labelY = i % 2 === 0
+          ? TRACK_Y - faceSize / 2 - 22
+          : TRACK_Y - faceSize / 2 - 4;
 
-        // Label above the face — name and metres
         const shortName = racer.isPlayer && racer.rank > 3
           ? racer.name.split(' ')[0] + ' (You)'
           : racer.name.split(' ')[0] + (racer.name.split(' ')[1] ? ' ' + racer.name.split(' ')[1][0] + '.' : '');
 
-        // Alternating label height to avoid overlap
-        const labelY = i % 2 === 0 ? TRACK_Y - faceSize / 2 - 28 : TRACK_Y - faceSize / 2 - 8;
-
+        // Name
         const nameEl = document.createElementNS(NS, 'text');
         nameEl.setAttribute('x', String(xPos));
         nameEl.setAttribute('y', String(labelY));
         nameEl.setAttribute('text-anchor', 'middle');
-        nameEl.setAttribute('font-size', '11');
+        nameEl.setAttribute('font-size', '8');
         nameEl.setAttribute('font-weight', '500');
         nameEl.setAttribute('fill', '#333');
         nameEl.style.opacity = '0';
         nameEl.textContent = shortName;
         svg.appendChild(nameEl);
 
+        // Metres
         const metresEl = document.createElementNS(NS, 'text');
         metresEl.setAttribute('x', String(xPos));
-        metresEl.setAttribute('y', String(labelY + 14));
+        metresEl.setAttribute('y', String(labelY + 11));
         metresEl.setAttribute('text-anchor', 'middle');
-        metresEl.setAttribute('font-size', '10');
+        metresEl.setAttribute('font-size', '7');
         metresEl.setAttribute('fill', '#888');
         metresEl.style.opacity = '0';
         metresEl.textContent = `${Math.round(racer.total).toLocaleString()}m`;
         svg.appendChild(metresEl);
 
-        // Tick mark on track
+        // Tick
         const tick = document.createElementNS(NS, 'line');
         tick.setAttribute('x1', String(xPos));
         tick.setAttribute('y1', String(TRACK_Y - TRACK_H / 2 - 2));
         tick.setAttribute('x2', String(xPos));
         tick.setAttribute('y2', String(TRACK_Y + TRACK_H / 2 + 2));
         tick.setAttribute('stroke', racer.isPlayer && racer.rank > 3 ? '#1a73e8' : '#f9a825');
-        tick.setAttribute('stroke-width', '2');
+        tick.setAttribute('stroke-width', '1.5');
         svg.appendChild(tick);
 
-        // Face — starts off-screen left, slides to position
+        // Face
         const faceGroup = document.createElementNS(NS, 'g');
         faceGroup.setAttribute('transform',
           `translate(${PAD_L - faceSize / 2}, ${TRACK_Y - faceSize / 2})`);
         faceGroup.style.transition = `transform 1.4s cubic-bezier(0.4,0,0.2,1)`;
-
         const faceImg = document.createElementNS(NS, 'image');
         faceImg.setAttribute('href', icons[i]);
         faceImg.setAttribute('width', String(faceSize));
@@ -840,7 +800,6 @@
         faceGroup.appendChild(faceImg);
         svg.appendChild(faceGroup);
 
-        // Animate face and labels
         setTimeout(() => {
           faceGroup.setAttribute('transform',
             `translate(${xPos - faceSize / 2}, ${TRACK_Y - faceSize / 2})`);
