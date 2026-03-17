@@ -79,43 +79,47 @@
       background: #fff;
       border-radius: 8px;
       margin: 0 8px 6px;
-      padding: 12px 16px 10px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.08);
       display: flex;
-      align-items: center;
-      gap: 16px;
+      align-items: stretch;
+      min-height: 140px;
     }
-    .coin-stack-container {
+    .coin-stack-side {
       flex-shrink: 0;
-      width: 80px;
+      width: 90px;
+      background: #fffdf0;
+      border-radius: 8px 0 0 8px;
+      border-right: 1px solid #f0e8c8;
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      height: 120px;
-      position: relative;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 8px;
+      overflow: hidden;
     }
     .coin-stack-svg {
-      position: absolute;
-      bottom: 0;
       width: 80px;
+      display: block;
     }
     .coin-info {
       flex: 1;
+      padding: 16px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
     .coin-label {
       font-size: 10px;
       color: #999;
       text-transform: uppercase;
       letter-spacing: 0.4px;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
     .coin-amount {
-      font-size: 26px;
+      font-size: 32px;
       font-weight: bold;
       color: #1b5e20;
       line-height: 1;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
     .coin-sub {
       font-size: 11px;
@@ -179,7 +183,31 @@
     .msg-warning  { background: #fff3e0; border-left: 4px solid #e65100; color: #7a3300; }
     .msg-neutral  { background: #f0f4ff; border-left: 4px solid #3a7bd5; color: #1a3a6e; }
 
-    /* ── Racetrack ── */
+    /* ── Zero bonus card ── */
+    .zero-bonus-card {
+      flex-shrink: 0;
+      background: #fff;
+      border-radius: 8px;
+      margin: 0 8px 6px;
+      padding: 14px 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border-left: 4px solid #f9a825;
+    }
+    .zero-bonus-icon { font-size: 28px; flex-shrink: 0; }
+    .zero-bonus-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 4px;
+    }
+    .zero-bonus-sub {
+      font-size: 12px;
+      color: #888;
+      line-height: 1.4;
+    }
     .race-wrap {
       flex-shrink: 0;
       position: relative;
@@ -523,9 +551,10 @@
           </div>
         </div>
 
+        ${myTM > 0 ? `
         <div class="coin-wrap">
-          <div class="coin-stack-container">
-            <svg class="coin-stack-svg" id="coinStackSvg" viewBox="0 0 80 120" xmlns="http://www.w3.org/2000/svg">
+          <div class="coin-stack-side">
+            <svg class="coin-stack-svg" id="coinStackSvg" viewBox="0 0 80 10" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <linearGradient id="cTop" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stop-color="#FFE566"/>
@@ -536,7 +565,6 @@
                   <stop offset="100%" stop-color="#BF6E00"/>
                 </linearGradient>
               </defs>
-              <!-- Coins rendered by JS here -->
             </svg>
           </div>
           <div class="coin-info">
@@ -545,6 +573,15 @@
             <div class="coin-sub">${myTM.toLocaleString()}m @ £0.03/m</div>
           </div>
         </div>
+        ` : `
+        <div class="zero-bonus-card">
+          <div class="zero-bonus-icon">🎯</div>
+          <div class="zero-bonus-text">
+            <div class="zero-bonus-title">No bonus logged yet this month</div>
+            <div class="zero-bonus-sub">Every metre counts — get out there and start building your stack!</div>
+          </div>
+        </div>
+        `}
 
         <div class="msg-banner ${msgClass}">
           <span class="msg-emoji">${msgEmoji}</span>
@@ -559,115 +596,112 @@
 
       await renderRace(name, ranked, data);
 
-      // Coin stack animation
-      const bonusRaw   = myTM * 0.03;
-      const COIN_VALUE = 15;  // £15 per coin
-      const numCoins   = Math.max(1, Math.round(bonusRaw / COIN_VALUE));
-      const COIN_H     = 8;   // height of each coin (side + face)
-      const COIN_RX    = 34;  // x radius of coin ellipse
-      const COIN_RY    = 8;   // y radius of coin ellipse
-      const SVG_BOTTOM = 118; // bottom of SVG
+      // Coin stack — only shown if they earned something
+      if (myTM > 0) {
+        const bonusRaw   = myTM * 0.03;
+        const COIN_VALUE = 12;  // £12 per coin
+        const numCoins   = Math.max(1, Math.round(bonusRaw / COIN_VALUE));
+        const COIN_RX    = 34;
+        const COIN_RY    = 7;
+        const COIN_H     = 12;
+        const SVG_W      = 80;
+        const svgH       = numCoins * COIN_H + COIN_RY * 2 + 8;
 
-      const svg = document.getElementById('coinStackSvg');
-      const amountEl = document.getElementById('coinAmount');
+        const svg      = document.getElementById('coinStackSvg');
+        const amountEl = document.getElementById('coinAmount');
 
-      // Update viewBox to fit the stack
-      const stackHeight = numCoins * COIN_H + COIN_RY * 2 + 10;
-      const svgH = Math.max(40, stackHeight);
-      svg.setAttribute('viewBox', `0 0 80 ${svgH}`);
+        svg.setAttribute('viewBox', `0 0 ${SVG_W} ${svgH}`);
+        svg.style.height = svgH + 'px';
 
-      // Build coins bottom to top, reveal one by one
-      const coins = [];
-      for (let i = 0; i < numCoins; i++) {
-        const bottomY  = svgH - 4 - (i * COIN_H);
-        const sideTop  = bottomY - COIN_H;
-        const faceY    = sideTop;
-        const isTop    = i === numCoins - 1;
+        const NS    = 'http://www.w3.org/2000/svg';
+        const coins = [];
 
-        // Side band
-        const side = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-        side.setAttribute('cx', '40');
-        side.setAttribute('cy', String(bottomY));
-        side.setAttribute('rx', String(COIN_RX));
-        side.setAttribute('ry', String(COIN_RY));
-        side.setAttribute('fill', 'url(#cSide)');
-        side.style.opacity = '0';
+        for (let i = 0; i < numCoins; i++) {
+          const bottomY = svgH - 4 - (i * COIN_H);
+          const faceY   = bottomY - COIN_H;
+          const isTop   = i === numCoins - 1;
 
-        const band = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        band.setAttribute('x', String(40 - COIN_RX));
-        band.setAttribute('y', String(sideTop));
-        band.setAttribute('width', String(COIN_RX * 2));
-        band.setAttribute('height', String(COIN_H));
-        band.setAttribute('fill', 'url(#cSide)');
-        band.style.opacity = '0';
+          const band = document.createElementNS(NS, 'rect');
+          band.setAttribute('x', String(SVG_W / 2 - COIN_RX));
+          band.setAttribute('y', String(faceY));
+          band.setAttribute('width', String(COIN_RX * 2));
+          band.setAttribute('height', String(COIN_H));
+          band.setAttribute('fill', 'url(#cSide)');
+          band.style.opacity = '0';
 
-        // Face (top ellipse)
-        const face = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-        face.setAttribute('cx', '40');
-        face.setAttribute('cy', String(faceY));
-        face.setAttribute('rx', String(COIN_RX));
-        face.setAttribute('ry', String(COIN_RY));
-        face.setAttribute('fill', 'url(#cTop)');
-        face.style.opacity = '0';
+          const bottom = document.createElementNS(NS, 'ellipse');
+          bottom.setAttribute('cx', String(SVG_W / 2));
+          bottom.setAttribute('cy', String(bottomY));
+          bottom.setAttribute('rx', String(COIN_RX));
+          bottom.setAttribute('ry', String(COIN_RY));
+          bottom.setAttribute('fill', 'url(#cSide)');
+          bottom.style.opacity = '0';
 
-        // Ring detail on face
-        const ring = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-        ring.setAttribute('cx', '40');
-        ring.setAttribute('cy', String(faceY));
-        ring.setAttribute('rx', String(COIN_RX - 8));
-        ring.setAttribute('ry', String(COIN_RY - 2));
-        ring.setAttribute('fill', 'none');
-        ring.setAttribute('stroke', '#D4880A');
-        ring.setAttribute('stroke-width', '0.8');
-        ring.style.opacity = '0';
+          const face = document.createElementNS(NS, 'ellipse');
+          face.setAttribute('cx', String(SVG_W / 2));
+          face.setAttribute('cy', String(faceY));
+          face.setAttribute('rx', String(COIN_RX));
+          face.setAttribute('ry', String(COIN_RY));
+          face.setAttribute('fill', 'url(#cTop)');
+          face.style.opacity = '0';
 
-        svg.appendChild(side);
-        svg.appendChild(band);
-        svg.appendChild(face);
-        svg.appendChild(ring);
+          const ring = document.createElementNS(NS, 'ellipse');
+          ring.setAttribute('cx', String(SVG_W / 2));
+          ring.setAttribute('cy', String(faceY));
+          ring.setAttribute('rx', String(COIN_RX - 8));
+          ring.setAttribute('ry', String(COIN_RY - 2));
+          ring.setAttribute('fill', 'none');
+          ring.setAttribute('stroke', '#D4880A');
+          ring.setAttribute('stroke-width', '0.8');
+          ring.style.opacity = '0';
 
-        // £ sign on top coin only
-        if (isTop) {
-          const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          label.setAttribute('x', '40');
-          label.setAttribute('y', String(faceY + 1));
-          label.setAttribute('text-anchor', 'middle');
-          label.setAttribute('dominant-baseline', 'central');
-          label.setAttribute('font-size', '9');
-          label.setAttribute('font-weight', '500');
-          label.setAttribute('fill', '#9A5E00');
-          label.textContent = '£';
-          label.style.opacity = '0';
-          svg.appendChild(label);
-          coins.push([side, band, face, ring, label]);
-        } else {
-          coins.push([side, band, face, ring]);
+          svg.appendChild(band);
+          svg.appendChild(bottom);
+          svg.appendChild(face);
+          svg.appendChild(ring);
+
+          if (isTop) {
+            const lbl = document.createElementNS(NS, 'text');
+            lbl.setAttribute('x', String(SVG_W / 2));
+            lbl.setAttribute('y', String(faceY + 1));
+            lbl.setAttribute('text-anchor', 'middle');
+            lbl.setAttribute('dominant-baseline', 'central');
+            lbl.setAttribute('font-size', '9');
+            lbl.setAttribute('font-weight', '500');
+            lbl.setAttribute('fill', '#9A5E00');
+            lbl.textContent = '£';
+            lbl.style.opacity = '0';
+            svg.appendChild(lbl);
+            coins.push([band, bottom, face, ring, lbl]);
+          } else {
+            coins.push([band, bottom, face, ring]);
+          }
         }
-      }
 
-      // Animate coins dropping in one by one
-      const DELAY_PER_COIN = Math.min(120, 1400 / numCoins);
-      coins.forEach((group, i) => {
-        setTimeout(() => {
-          group.forEach(el => {
-            el.style.transition = 'opacity 0.15s ease';
-            el.style.opacity = '1';
-          });
-        }, 400 + i * DELAY_PER_COIN);
-      });
-
-      // Count up amount in sync
-      const totalDuration = 400 + numCoins * DELAY_PER_COIN + 200;
-      const start = performance.now();
-      function countUp(now) {
-        const t = Math.min((now - start) / totalDuration, 1);
-        const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
-        amountEl.textContent = (bonusRaw * ease).toLocaleString('en-GB', {
-          style: 'currency', currency: 'GBP'
+        // Animate coins stacking up one by one
+        const DELAY = Math.min(80, 1200 / Math.max(numCoins, 1));
+        coins.forEach((group, i) => {
+          setTimeout(() => {
+            group.forEach(el => {
+              el.style.transition = 'opacity 0.12s ease';
+              el.style.opacity = '1';
+            });
+          }, 300 + i * DELAY);
         });
-        if (t < 1) requestAnimationFrame(countUp);
+
+        // Count up in sync
+        const totalDur = 300 + numCoins * DELAY + 200;
+        const start    = performance.now();
+        function countUp(now) {
+          const t    = Math.min((now - start) / totalDur, 1);
+          const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+          amountEl.textContent = (bonusRaw * ease).toLocaleString('en-GB', {
+            style: 'currency', currency: 'GBP'
+          });
+          if (t < 1) requestAnimationFrame(countUp);
+        }
+        setTimeout(() => requestAnimationFrame(countUp), 300);
       }
-      setTimeout(() => requestAnimationFrame(countUp), 400);
     }
 
     async function renderRace(playerName, ranked, data) {
