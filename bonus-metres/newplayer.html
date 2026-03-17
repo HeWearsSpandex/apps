@@ -82,7 +82,7 @@
       box-shadow: 0 1px 4px rgba(0,0,0,0.08);
       display: flex;
       align-items: stretch;
-      min-height: 140px;
+      min-height: 160px;
     }
     .coin-stack-side {
       flex-shrink: 0;
@@ -93,12 +93,13 @@
       display: flex;
       align-items: flex-end;
       justify-content: center;
-      padding-bottom: 8px;
       overflow: hidden;
+      padding: 0;
     }
     .coin-stack-svg {
       width: 80px;
       display: block;
+      flex-shrink: 0;
     }
     .coin-info {
       flex: 1;
@@ -599,108 +600,121 @@
       // Coin stack — only shown if they earned something
       if (myTM > 0) {
         const bonusRaw   = myTM * 0.03;
-        const COIN_VALUE = 12;  // £12 per coin
-        const numCoins   = Math.max(1, Math.round(bonusRaw / COIN_VALUE));
         const COIN_RX    = 34;
         const COIN_RY    = 7;
         const COIN_H     = 12;
         const SVG_W      = 80;
-        const svgH       = numCoins * COIN_H + COIN_RY * 2 + 8;
 
         const svg      = document.getElementById('coinStackSvg');
         const amountEl = document.getElementById('coinAmount');
+        const sidePan  = svg.parentElement;
 
-        svg.setAttribute('viewBox', `0 0 ${SVG_W} ${svgH}`);
-        svg.style.height = svgH + 'px';
+        // Measure the rendered panel height after layout
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const panelH = Math.max(sidePan.clientHeight, 160);
 
-        const NS    = 'http://www.w3.org/2000/svg';
-        const coins = [];
+            // How many coins stack up to fill the panel
+            const maxCoins = Math.floor((panelH - COIN_RY * 2 - 8) / COIN_H);
 
-        for (let i = 0; i < numCoins; i++) {
-          const bottomY = svgH - 4 - (i * COIN_H);
-          const faceY   = bottomY - COIN_H;
-          const isTop   = i === numCoins - 1;
+            // Scale coins against £1500 max — but stack grows freely
+            const BONUS_MAX = 1500;
+            const numCoins  = Math.max(1, Math.round(maxCoins * Math.min(bonusRaw / BONUS_MAX, 1)));
 
-          const band = document.createElementNS(NS, 'rect');
-          band.setAttribute('x', String(SVG_W / 2 - COIN_RX));
-          band.setAttribute('y', String(faceY));
-          band.setAttribute('width', String(COIN_RX * 2));
-          band.setAttribute('height', String(COIN_H));
-          band.setAttribute('fill', 'url(#cSide)');
-          band.style.opacity = '0';
+            // Set SVG to exactly fill the panel height
+            svg.setAttribute('viewBox', `0 0 ${SVG_W} ${panelH}`);
+            svg.setAttribute('height', String(panelH));
 
-          const bottom = document.createElementNS(NS, 'ellipse');
-          bottom.setAttribute('cx', String(SVG_W / 2));
-          bottom.setAttribute('cy', String(bottomY));
-          bottom.setAttribute('rx', String(COIN_RX));
-          bottom.setAttribute('ry', String(COIN_RY));
-          bottom.setAttribute('fill', 'url(#cSide)');
-          bottom.style.opacity = '0';
+            const NS    = 'http://www.w3.org/2000/svg';
+            const coins = [];
 
-          const face = document.createElementNS(NS, 'ellipse');
-          face.setAttribute('cx', String(SVG_W / 2));
-          face.setAttribute('cy', String(faceY));
-          face.setAttribute('rx', String(COIN_RX));
-          face.setAttribute('ry', String(COIN_RY));
-          face.setAttribute('fill', 'url(#cTop)');
-          face.style.opacity = '0';
+            for (let i = 0; i < numCoins; i++) {
+              const bottomY = panelH - 4 - (i * COIN_H);
+              const faceY   = bottomY - COIN_H;
+              const isTop   = i === numCoins - 1;
 
-          const ring = document.createElementNS(NS, 'ellipse');
-          ring.setAttribute('cx', String(SVG_W / 2));
-          ring.setAttribute('cy', String(faceY));
-          ring.setAttribute('rx', String(COIN_RX - 8));
-          ring.setAttribute('ry', String(COIN_RY - 2));
-          ring.setAttribute('fill', 'none');
-          ring.setAttribute('stroke', '#D4880A');
-          ring.setAttribute('stroke-width', '0.8');
-          ring.style.opacity = '0';
+              const band = document.createElementNS(NS, 'rect');
+              band.setAttribute('x', String(SVG_W / 2 - COIN_RX));
+              band.setAttribute('y', String(faceY));
+              band.setAttribute('width', String(COIN_RX * 2));
+              band.setAttribute('height', String(COIN_H));
+              band.setAttribute('fill', 'url(#cSide)');
+              band.style.opacity = '0';
 
-          svg.appendChild(band);
-          svg.appendChild(bottom);
-          svg.appendChild(face);
-          svg.appendChild(ring);
+              const bottom = document.createElementNS(NS, 'ellipse');
+              bottom.setAttribute('cx', String(SVG_W / 2));
+              bottom.setAttribute('cy', String(bottomY));
+              bottom.setAttribute('rx', String(COIN_RX));
+              bottom.setAttribute('ry', String(COIN_RY));
+              bottom.setAttribute('fill', 'url(#cSide)');
+              bottom.style.opacity = '0';
 
-          if (isTop) {
-            const lbl = document.createElementNS(NS, 'text');
-            lbl.setAttribute('x', String(SVG_W / 2));
-            lbl.setAttribute('y', String(faceY + 1));
-            lbl.setAttribute('text-anchor', 'middle');
-            lbl.setAttribute('dominant-baseline', 'central');
-            lbl.setAttribute('font-size', '9');
-            lbl.setAttribute('font-weight', '500');
-            lbl.setAttribute('fill', '#9A5E00');
-            lbl.textContent = '£';
-            lbl.style.opacity = '0';
-            svg.appendChild(lbl);
-            coins.push([band, bottom, face, ring, lbl]);
-          } else {
-            coins.push([band, bottom, face, ring]);
-          }
-        }
+              const face = document.createElementNS(NS, 'ellipse');
+              face.setAttribute('cx', String(SVG_W / 2));
+              face.setAttribute('cy', String(faceY));
+              face.setAttribute('rx', String(COIN_RX));
+              face.setAttribute('ry', String(COIN_RY));
+              face.setAttribute('fill', 'url(#cTop)');
+              face.style.opacity = '0';
 
-        // Animate coins stacking up one by one
-        const DELAY = Math.min(80, 1200 / Math.max(numCoins, 1));
-        coins.forEach((group, i) => {
-          setTimeout(() => {
-            group.forEach(el => {
-              el.style.transition = 'opacity 0.12s ease';
-              el.style.opacity = '1';
+              const ring = document.createElementNS(NS, 'ellipse');
+              ring.setAttribute('cx', String(SVG_W / 2));
+              ring.setAttribute('cy', String(faceY));
+              ring.setAttribute('rx', String(COIN_RX - 8));
+              ring.setAttribute('ry', String(COIN_RY - 2));
+              ring.setAttribute('fill', 'none');
+              ring.setAttribute('stroke', '#D4880A');
+              ring.setAttribute('stroke-width', '0.8');
+              ring.style.opacity = '0';
+
+              svg.appendChild(band);
+              svg.appendChild(bottom);
+              svg.appendChild(face);
+              svg.appendChild(ring);
+
+              if (isTop) {
+                const lbl = document.createElementNS(NS, 'text');
+                lbl.setAttribute('x', String(SVG_W / 2));
+                lbl.setAttribute('y', String(faceY + 1));
+                lbl.setAttribute('text-anchor', 'middle');
+                lbl.setAttribute('dominant-baseline', 'central');
+                lbl.setAttribute('font-size', '9');
+                lbl.setAttribute('font-weight', '500');
+                lbl.setAttribute('fill', '#9A5E00');
+                lbl.textContent = '£';
+                lbl.style.opacity = '0';
+                svg.appendChild(lbl);
+                coins.push([band, bottom, face, ring, lbl]);
+              } else {
+                coins.push([band, bottom, face, ring]);
+              }
+            }
+
+            // Animate coins stacking up from bottom
+            const DELAY = Math.min(60, 1000 / Math.max(numCoins, 1));
+            coins.forEach((group, i) => {
+              setTimeout(() => {
+                group.forEach(el => {
+                  el.style.transition = 'opacity 0.1s ease';
+                  el.style.opacity = '1';
+                });
+              }, 300 + i * DELAY);
             });
-          }, 300 + i * DELAY);
-        });
 
-        // Count up in sync
-        const totalDur = 300 + numCoins * DELAY + 200;
-        const start    = performance.now();
-        function countUp(now) {
-          const t    = Math.min((now - start) / totalDur, 1);
-          const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
-          amountEl.textContent = (bonusRaw * ease).toLocaleString('en-GB', {
-            style: 'currency', currency: 'GBP'
+            // Count up in sync
+            const totalDur = 300 + numCoins * DELAY + 200;
+            const start    = performance.now();
+            function countUp(now) {
+              const t    = Math.min((now - start) / totalDur, 1);
+              const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+              amountEl.textContent = (bonusRaw * ease).toLocaleString('en-GB', {
+                style: 'currency', currency: 'GBP'
+              });
+              if (t < 1) requestAnimationFrame(countUp);
+            }
+            setTimeout(() => requestAnimationFrame(countUp), 300);
           });
-          if (t < 1) requestAnimationFrame(countUp);
-        }
-        setTimeout(() => requestAnimationFrame(countUp), 300);
+        });
       }
     }
 
