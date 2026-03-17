@@ -416,8 +416,8 @@
       const myLMRank  = lmRanked.find(r => r['NAME'] === name)?._lmRank  || '-';
       const myOverall = ranked.find(r => r['NAME'] === name)?._overallRank || '-';
 
-      // Bonus calculation — £0.02 per metre this month
-      const RATE = 0.02;
+      // Bonus calculation — £0.03 per metre this month
+      const RATE = 0.03;
       const myBonus = (myTM * RATE).toLocaleString('en-GB', { style: 'currency', currency: 'GBP' });
 
       const tmLeader  = val(tmRanked[0], 'THIS MONTH');
@@ -587,7 +587,7 @@
           <div class="pot-info">
             <div class="pot-label">💰 This Month's Bonus</div>
             <div class="pot-amount" id="potAmount">£0.00</div>
-            <div class="pot-sub">${myTM.toLocaleString()}m @ £0.02/m</div>
+            <div class="pot-sub">${myTM.toLocaleString()}m @ £0.03/m</div>
             <div class="pot-bar-wrap">
               <div class="pot-bar" id="potBar"></div>
             </div>
@@ -610,7 +610,7 @@
 
       // Animate pot of gold after a short delay
       const BONUS_MAX = 500;
-      const bonusRaw  = myTM * 0.02;
+      const bonusRaw  = myTM * 0.03;
       const fillPct   = Math.min(bonusRaw / BONUS_MAX * 100, 100);
 
       // Animate the amount counting up
