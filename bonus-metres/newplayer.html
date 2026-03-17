@@ -690,34 +690,41 @@
       }).sort((a, b) => a.rank - b.rank);
 
       const leaderTotal = racers[0].total;
-      const LANE_H      = 80;
-      const TRACK_L     = 90;   // left edge of track (after JHB logo)
-      const TRACK_R     = 20;   // right padding
-      const FACE_R      = 24;   // face radius
-      const svgH        = racers.length * LANE_H + 20;
+      const LANE_H   = 80;
+      const BADGE_W  = 44;   // left badge area
+      const LABEL_W  = 140;  // right label area (name + metres)
+      const FACE_R   = 24;   // face radius
+      const FACE_D   = FACE_R * 2;
+      const TRACK_L  = BADGE_W + 8;
+      const TRACK_R  = LABEL_W + FACE_D + 8; // keep track away from right edge
+      const svgW     = 680;
+      const svgH     = racers.length * LANE_H + 20;
+      const trackW   = svgW - TRACK_L - TRACK_R;
 
       // Draw all icons in parallel
-      const icons = await Promise.all(racers.map(r => drawIcon(r.name, r.halo, FACE_R * 2, r.halo ? 6 : 0)));
+      const icons = await Promise.all(racers.map(r => drawIcon(r.name, r.halo, FACE_D, r.halo ? 6 : 0)));
 
-      // Build SVG
       const NS  = 'http://www.w3.org/2000/svg';
       const svg = document.createElementNS(NS, 'svg');
       svg.setAttribute('width', '100%');
-      svg.setAttribute('viewBox', `0 0 680 ${svgH}`);
+      svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
       svg.style.display = 'block';
 
-      // Lane colours
-      const laneColors = ['#fff9e6', '#f0f4ff', '#f0fff4', '#fff0f6'];
+      const laneColors = ['#fff9e6','#f0f4ff','#f0fff4','#fff0f6'];
 
       racers.forEach((racer, i) => {
-        const laneTop = 10 + i * LANE_H;
-        const laneMid = laneTop + LANE_H / 2;
+        const laneTop  = 10 + i * LANE_H;
+        const laneMid  = laneTop + LANE_H / 2;
+        const faceSize = FACE_D + (racer.halo ? 12 : 0);
+        const pct      = leaderTotal > 0 ? racer.total / leaderTotal : 0;
+        const fillW    = trackW * pct;
+        const faceX    = TRACK_L + fillW - faceSize / 2; // face centred on track end
 
         // Lane background
         const laneBg = document.createElementNS(NS, 'rect');
         laneBg.setAttribute('x', '0');
         laneBg.setAttribute('y', String(laneTop));
-        laneBg.setAttribute('width', '680');
+        laneBg.setAttribute('width', String(svgW));
         laneBg.setAttribute('height', String(LANE_H - 2));
         laneBg.setAttribute('fill', laneColors[i % laneColors.length]);
         laneBg.setAttribute('rx', '6');
@@ -728,7 +735,7 @@
           const div = document.createElementNS(NS, 'line');
           div.setAttribute('x1', '0');
           div.setAttribute('y1', String(laneTop + LANE_H - 2));
-          div.setAttribute('x2', '680');
+          div.setAttribute('x2', String(svgW));
           div.setAttribute('y2', String(laneTop + LANE_H - 2));
           div.setAttribute('stroke', '#e0e0e0');
           div.setAttribute('stroke-width', '1');
@@ -757,40 +764,21 @@
         badgeTxt.textContent = racer.isPlayer && racer.rank > 3 ? 'YOU' : `#${racer.rank}`;
         svg.appendChild(badgeTxt);
 
-        // Track line (dashed)
-        const trackW   = 680 - TRACK_L - TRACK_R;
+        // Track base line
         const trackLine = document.createElementNS(NS, 'line');
         trackLine.setAttribute('x1', String(TRACK_L));
         trackLine.setAttribute('y1', String(laneMid));
         trackLine.setAttribute('x2', String(TRACK_L + trackW));
         trackLine.setAttribute('y2', String(laneMid));
-        trackLine.setAttribute('stroke', '#ddd');
-        trackLine.setAttribute('stroke-width', '2');
-        trackLine.setAttribute('stroke-dasharray', '8 6');
+        trackLine.setAttribute('stroke', '#e0e0e0');
+        trackLine.setAttribute('stroke-width', '6');
+        trackLine.setAttribute('stroke-linecap', 'round');
         svg.appendChild(trackLine);
 
-        // Finish flag at right
-        const flagX = TRACK_L + trackW;
-        for (let fx = 0; fx < 3; fx++) {
-          for (let fy = 0; fy < 3; fy++) {
-            const sq = document.createElementNS(NS, 'rect');
-            sq.setAttribute('x', String(flagX + fx * 5));
-            sq.setAttribute('y', String(laneMid - 8 + fy * 5));
-            sq.setAttribute('width', '5');
-            sq.setAttribute('height', '5');
-            sq.setAttribute('fill', (fx + fy) % 2 === 0 ? '#333' : '#fff');
-            sq.setAttribute('stroke', '#ccc');
-            sq.setAttribute('stroke-width', '0.3');
-            svg.appendChild(sq);
-          }
-        }
-
-        // Progress track fill
-        const pct      = leaderTotal > 0 ? racer.total / leaderTotal : 0;
-        const fillW    = trackW * pct;
+        // Progress fill
         const fillColor = racer.isPlayer && racer.rank > 3 ? '#bbdefb' :
-                          racer.rank === 1 ? '#fff3cd' :
-                          racer.rank === 2 ? '#e8e8e8' : '#ffe0b2';
+                          racer.rank === 1 ? '#ffe082' :
+                          racer.rank === 2 ? '#e0e0e0' : '#ffcc80';
         const trackFill = document.createElementNS(NS, 'rect');
         trackFill.setAttribute('x', String(TRACK_L));
         trackFill.setAttribute('y', String(laneMid - 3));
@@ -800,70 +788,57 @@
         trackFill.setAttribute('fill', fillColor);
         svg.appendChild(trackFill);
 
-        // Animate track fill
-        setTimeout(() => {
-          trackFill.style.transition = 'width 1.2s cubic-bezier(0.4,0,0.2,1)';
-          trackFill.setAttribute('width', String(fillW));
-        }, 300 + i * 100);
-
-        // Face icon — positioned at end of fill, animated
-        const faceSize  = FACE_R * 2 + (racer.halo ? 12 : 0);
+        // Face icon — starts at left, animates right
         const faceGroup = document.createElementNS(NS, 'g');
         faceGroup.setAttribute('transform', `translate(${TRACK_L - faceSize/2}, ${laneMid - faceSize/2})`);
         faceGroup.style.transition = 'transform 1.2s cubic-bezier(0.4,0,0.2,1)';
-
         const faceImg = document.createElementNS(NS, 'image');
         faceImg.setAttribute('href', icons[i]);
         faceImg.setAttribute('width', String(faceSize));
         faceImg.setAttribute('height', String(faceSize));
-        svg.appendChild(faceGroup);
         faceGroup.appendChild(faceImg);
+        svg.appendChild(faceGroup);
 
-        // Animate face sliding along track
-        setTimeout(() => {
-          faceGroup.setAttribute('transform',
-            `translate(${TRACK_L + fillW - faceSize/2}, ${laneMid - faceSize/2})`);
-        }, 300 + i * 100);
-
-        // Name label
+        // Name label — fixed to right label area
+        const labelX = TRACK_L + trackW + 8;
         const nameEl = document.createElementNS(NS, 'text');
-        nameEl.setAttribute('x', String(TRACK_L + fillW + (faceSize / 2) + 6));
-        nameEl.setAttribute('y', String(laneMid - 6));
+        nameEl.setAttribute('x', String(labelX));
+        nameEl.setAttribute('y', String(laneMid - 7));
         nameEl.setAttribute('font-size', '11');
         nameEl.setAttribute('font-weight', '500');
         nameEl.setAttribute('fill', '#333');
         nameEl.style.opacity = '0';
-        nameEl.textContent = racer.isPlayer && racer.rank > 3
-          ? `${racer.name} (You)`
-          : racer.name;
+        // Truncate long names
+        const displayName = racer.isPlayer && racer.rank > 3
+          ? `${racer.name.split(' ')[0]} (You)`
+          : racer.name.split(' ')[0] + (racer.name.split(' ')[1] ? ' ' + racer.name.split(' ')[1][0] + '.' : '');
+        nameEl.textContent = displayName;
         svg.appendChild(nameEl);
 
         const metresEl = document.createElementNS(NS, 'text');
-        metresEl.setAttribute('x', String(TRACK_L + fillW + (faceSize / 2) + 6));
-        metresEl.setAttribute('y', String(laneMid + 10));
+        metresEl.setAttribute('x', String(labelX));
+        metresEl.setAttribute('y', String(laneMid + 9));
         metresEl.setAttribute('font-size', '10');
         metresEl.setAttribute('fill', '#888');
         metresEl.style.opacity = '0';
-        metresEl.textContent = `${racer.total.toLocaleString()}m`;
+        metresEl.textContent = `${Math.round(racer.total).toLocaleString()}m`;
         svg.appendChild(metresEl);
 
-        // Fade in labels after animation
+        // Animate after staggered delay
+        setTimeout(() => {
+          trackFill.style.transition = 'width 1.2s cubic-bezier(0.4,0,0.2,1)';
+          trackFill.setAttribute('width', String(fillW));
+          faceGroup.setAttribute('transform',
+            `translate(${faceX}, ${laneMid - faceSize/2})`);
+        }, 200 + i * 80);
+
         setTimeout(() => {
           nameEl.style.transition   = 'opacity 0.4s ease';
           metresEl.style.transition = 'opacity 0.4s ease';
           nameEl.style.opacity   = '1';
           metresEl.style.opacity = '1';
-        }, 300 + i * 100 + 1000);
+        }, 200 + i * 80 + 1000);
       });
-
-      // JHB logo at start
-      const logo = document.createElementNS(NS, 'image');
-      logo.setAttribute('href', `${IMG_PATH}JHB%20Logo.png`);
-      logo.setAttribute('x', '42');
-      logo.setAttribute('y', String(svgH / 2 - 18));
-      logo.setAttribute('width', '40');
-      logo.setAttribute('height', '36');
-      svg.appendChild(logo);
 
       document.getElementById('racetrack').appendChild(svg);
     }
