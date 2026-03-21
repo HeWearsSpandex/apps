@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bonus Metres – Admin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+    }
+
+    /* ── PIN screen ── */
+    .pin-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .pin-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      padding: 32px 28px;
+      width: 100%;
+      max-width: 340px;
+      text-align: center;
+    }
+    .pin-card img { max-width: 100px; margin-bottom: 16px; }
+    .pin-card h2 { margin: 0 0 6px; font-size: 20px; color: #222; }
+    .pin-card p  { margin: 0 0 20px; font-size: 13px; color: #888; }
+    .pin-input {
+      width: 100%;
+      padding: 12px;
+      font-size: 24px;
+      text-align: center;
+      letter-spacing: 8px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      outline: none;
+      margin-bottom: 12px;
+    }
+    .pin-input:focus { border-color: #c00; }
+    .pin-btn {
+      width: 100%;
+      padding: 12px;
+      background: #c00;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .pin-btn:hover { background: #a00; }
+    .pin-error {
+      color: #c00;
+      font-size: 13px;
+      margin-top: 10px;
+      min-height: 18px;
+    }
+
+    /* ── Admin page ── */
+    .admin-page { display: none; }
+
+    .admin-header {
+      background: #fff;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .admin-header img { max-width: 70px; height: auto; }
+    .admin-header h1 { font-size: 16px; color: #333; margin: 0; }
+    .admin-header .logout {
+      font-size: 12px;
+      color: #888;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    /* Summary bar */
+    .summary-bar {
+      display: flex;
+      gap: 8px;
+      padding: 10px 12px;
+      overflow-x: auto;
+    }
+    .summary-pill {
+      background: #fff;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      white-space: nowrap;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      color: #555;
+    }
+    .summary-pill strong { color: #222; }
+
+    /* Search */
+    .search-wrap {
+      padding: 0 12px 10px;
+    }
+    .search-wrap input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+    }
+    .search-wrap input:focus { border-color: #c00; }
+
+    /* Staff list */
+    .staff-list {
+      padding: 0 12px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .staff-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      text-decoration: none;
+      color: inherit;
+      transition: box-shadow 0.15s;
+    }
+    .staff-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .staff-card.in-arrears { border-left: 3px solid #e65100; }
+
+    .staff-face img {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    .staff-face .no-face {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: #ddd;
+      flex-shrink: 0;
+    }
+
+    .staff-info { flex: 1; min-width: 0; }
+    .staff-name {
+      font-size: 14px;
+      font-weight: bold;
+      color: #222;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .staff-metres {
+      font-size: 11px;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    .staff-figures {
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .staff-gross {
+      font-size: 15px;
+      font-weight: bold;
+      color: #1b5e20;
+    }
+    .staff-net {
+      font-size: 11px;
+      color: #888;
+      margin-top: 2px;
+    }
+    .staff-net.negative { color: #c00; }
+    .arrears-badge {
+      font-size: 10px;
+      background: #fff3e0;
+      color: #e65100;
+      border-radius: 4px;
+      padding: 1px 5px;
+      margin-top: 3px;
+      display: inline-block;
+    }
+
+    .staff-arrow {
+      color: #ccc;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    /* Rank badge */
+    .rank-badge {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    /* Spinner */
+    .spinner-wrap {
+      display: flex; justify-content: center;
+      padding: 40px 0;
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 4px solid #f0f0f0;
+      border-top-color: #c00;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty { text-align: center; padding: 40px; color: #999; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <!-- PIN Screen -->
+  <div class="pin-screen" id="pinScreen">
+    <div class="pin-card">
+      <img src="/img/JHB Logo.png" alt="JHB Logo">
+      <h2>Admin Access</h2>
+      <p>Enter your PIN to continue</p>
+      <input
+        type="password"
+        inputmode="numeric"
+        class="pin-input"
+        id="pinInput"
+        maxlength="6"
+        placeholder="••••••"
+        onkeydown="if(event.key==='Enter') checkPin()"
+      >
+      <button class="pin-btn" onclick="checkPin()">Unlock</button>
+      <div class="pin-error" id="pinError"></div>
+    </div>
+  </div>
+
+  <!-- Admin Page -->
+  <div class="admin-page" id="adminPage">
+    <div class="admin-header">
+      <img src="/img/JHB Logo.png" alt="JHB Logo">
+      <h1>Bonus Admin</h1>
+      <span class="logout" onclick="logout()">Lock</span>
+    </div>
+
+    <div id="adminContent">
+      <div class="spinner-wrap"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <script src="/js/people.js"></script>
+  <script>
+    const CORRECT_PIN = '100974';
+    const CSV_URL     = '/bonus-metres/data/actual_distances.csv';
+    const IMG_PATH    = '/img/';
+    const PLAYER_URL  = '/bonus-metres/newplayer.html';
+    const RATE        = 0.03;
+
+    // ── PIN ──
+    function checkPin() {
+      const input = document.getElementById('pinInput').value;
+      if (input === CORRECT_PIN) {
+        sessionStorage.setItem('adminUnlocked', '1');
+        showAdmin();
+      } else {
+        document.getElementById('pinError').textContent = 'Incorrect PIN — try again';
+        document.getElementById('pinInput').value = '';
+        document.getElementById('pinInput').focus();
+      }
+    }
+
+    function logout() {
+      sessionStorage.removeItem('adminUnlocked');
+      document.getElementById('adminPage').style.display  = 'none';
+      document.getElementById('pinScreen').style.display  = 'flex';
+      document.getElementById('pinInput').value = '';
+      document.getElementById('pinError').textContent = '';
+    }
+
+    function showAdmin() {
+      document.getElementById('pinScreen').style.display = 'none';
+      document.getElementById('adminPage').style.display = 'block';
+      loadData();
+    }
+
+    // Auto-unlock if already authenticated this session
+    if (sessionStorage.getItem('adminUnlocked') === '1') showAdmin();
+
+    // ── DATA ──
+    async function fetchCSV() {
+      const r = await fetch(CSV_URL, { cache: 'no-cache' });
+      if (!r.ok) throw new Error('CSV failed: ' + r.status);
+      const txt = await r.text();
+      const lines = txt.trim().split(/\r?\n/);
+      const keys = lines.shift().split(',').map(h => h.trim());
+      return lines.map(l => {
+        const cols = l.split(',');
+        return keys.reduce((o, k, i) => (o[k] = (cols[i] || '').trim(), o), {});
+      });
+    }
+
+    function val(row, col) {
+      return parseFloat((row[col] || '0').replace(/,/g, '')) || 0;
+    }
+
+    async function loadData() {
+      try {
+        const data = await fetchCSV();
+
+        // Filter to active people, sort by T/M rank
+        const rows = data
+          .filter(r => PEOPLE.includes(r['NAME']))
+          .sort((a, b) => {
+            const ra = +a['T/M RANK'] || 999;
+            const rb = +b['T/M RANK'] || 999;
+            return ra - rb;
+          });
+
+        // Summary figures
+        const totalMetres   = rows.reduce((s, r) => s + val(r, 'THIS MONTH'), 0);
+        const totalGross    = totalMetres * RATE;
+        const totalArrears  = rows.reduce((s, r) => s + val(r, 'ARREARS'), 0);
+        const inArrears     = rows.filter(r => val(r, 'ARREARS') > 0).length;
+        const zeroPeople    = rows.filter(r => val(r, 'THIS MONTH') === 0).length;
+
+        renderAdmin(rows, { totalMetres, totalGross, totalArrears, inArrears, zeroPeople });
+      } catch (e) {
+        document.getElementById('adminContent').innerHTML =
+          `<div class="empty">Error loading data: ${e.message}</div>`;
+      }
+    }
+
+    function renderAdmin(rows, summary) {
+      const fmt = n => n.toLocaleString('en-GB', { style: 'currency', currency: 'GBP' });
+
+      let html = `
+        <div class="summary-bar">
+          <div class="summary-pill"><strong>${rows.length}</strong> staff</div>
+          <div class="summary-pill">Total metres: <strong>${Math.round(summary.totalMetres).toLocaleString()}m</strong></div>
+          <div class="summary-pill">Total gross: <strong>${fmt(summary.totalGross)}</strong></div>
+          <div class="summary-pill">In arrears: <strong>${summary.inArrears}</strong></div>
+          <div class="summary-pill">No activity: <strong>${summary.zeroPeople}</strong></div>
+        </div>
+
+        <div class="search-wrap">
+          <input type="text" id="searchInput" placeholder="Search by name…" oninput="filterList()" />
+        </div>
+
+        <div class="staff-list" id="staffList">
+      `;
+
+      rows.forEach((r, idx) => {
+        const name      = r['NAME'];
+        const metres    = val(r, 'THIS MONTH');
+        const gross     = metres * RATE;
+        const arrears   = val(r, 'ARREARS');
+        const net       = gross - arrears;
+        const tmRank    = +r['T/M RANK'] || 0;
+        const hasArr    = arrears > 0;
+        const imgSrc    = IMG_PATH + encodeURIComponent(name.trim()) + '_cvface1.png';
+        const playerLink = `${PLAYER_URL}?name=${encodeURIComponent(name)}`;
+
+        const badgeColor = tmRank === 1 ? '#f9a825'
+                         : tmRank === 2 ? '#9e9e9e'
+                         : tmRank === 3 ? '#cd7f32' : '#555';
+
+        html += `
+          <a class="staff-card ${hasArr ? 'in-arrears' : ''}" href="${playerLink}" target="_blank" data-name="${name.toLowerCase()}">
+            <div class="rank-badge" style="background:${badgeColor}">
+              ${tmRank || '—'}
+            </div>
+            <div class="staff-face">
+              <img src="${imgSrc}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+              <div class="no-face" style="display:none"></div>
+            </div>
+            <div class="staff-info">
+              <div class="staff-name">${name}</div>
+              <div class="staff-metres">${metres > 0 ? Math.round(metres).toLocaleString() + 'm this month' : 'No activity this month'}</div>
+              ${hasArr ? `<span class="arrears-badge">Arrears: ${fmt(arrears)}</span>` : ''}
+            </div>
+            <div class="staff-figures">
+              <div class="staff-gross">${fmt(gross)}</div>
+              <div class="staff-net ${net < 0 ? 'negative' : ''}">Net: ${fmt(net)}</div>
+            </div>
+            <div class="staff-arrow">›</div>
+          </a>
+        `;
+      });
+
+      html += `</div>`;
+      document.getElementById('adminContent').innerHTML = html;
+    }
+
+    function filterList() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      document.querySelectorAll('.staff-card').forEach(card => {
+        card.style.display = card.dataset.name.includes(q) ? 'flex' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>
