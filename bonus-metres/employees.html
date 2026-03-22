@@ -368,8 +368,10 @@
 </head>
 <body>
 
-  <!-- Supabase JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="admin.js"></script>
+
+  <div id="sidebarMount"></div>
 
   <div class="topbar" id="mainUI" style="display:none">
     <div class="topbar-left">
@@ -503,105 +505,24 @@
 
   <script>
     // ─────────────────────────────────────────────
-    // CONFIG
+    // CONFIG — defined in admin.js
     // ─────────────────────────────────────────────
-    const SUPABASE_URL   = 'https://oxgehlmalbvppjmdaswn.supabase.co';
-    const SUPABASE_KEY   = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
-    const GITHUB_REPO    = 'HeWearsSpandex/apps';
-    const GITHUB_BRANCH  = 'main';
+
     const PEOPLE_JS_PATH = 'js/people.js';
     const IMG_PATH_REPO  = 'img';
     const IMG_PATH_WEB   = '/img/';
-    // ─────────────────────────────────────────────
 
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    let GITHUB_TOKEN  = sessionStorage.getItem('gh_token') || '';
     let allEmployees  = [];
     let currentFilter = 'all';
     let editingId     = null;
     let photoFile     = null;
     let peopleJsTimer = null;
-    let fileSHAs      = {};
 
-    // ── Supabase helpers ─────────────────────────
-
-    const sbHeaders = {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/json'
-    };
-
-    async function sbGet() {
-      const r = await fetch(
-        `${SUPABASE_URL}/rest/v1/employees?select=*&order=full_name.asc`,
-        { headers: sbHeaders }
-      );
-      if (!r.ok) throw new Error(`Supabase read failed: ${r.status}`);
-      return r.json();
-    }
-
-    async function sbInsert(data) {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/employees`, {
-        method: 'POST',
-        headers: { ...sbHeaders, Prefer: 'return=representation' },
-        body: JSON.stringify(data)
-      });
-      if (!r.ok) { const e = await r.json(); throw new Error(e.message || `Insert failed: ${r.status}`); }
-      return r.json();
-    }
-
-    async function sbUpdate(id, data) {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/employees?id=eq.${id}`, {
-        method: 'PATCH',
-        headers: { ...sbHeaders, Prefer: 'return=representation' },
-        body: JSON.stringify({ ...data, updated_at: new Date().toISOString() })
-      });
-      if (!r.ok) { const e = await r.json(); throw new Error(e.message || `Update failed: ${r.status}`); }
-      return r.json();
-    }
-
-    // ── GitHub helpers (photos + people.js only) ─
-
-    async function ghGet(path) {
-      const r = await fetch(
-        `https://api.github.com/repos/${GITHUB_REPO}/contents/${path}?ref=${GITHUB_BRANCH}`,
-        { headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' } }
-      );
-      if (!r.ok) throw new Error(`GitHub GET failed: ${r.status}`);
-      return r.json();
-    }
-
-    async function ghPut(path, content, message, sha) {
-      const body = { message, content: btoa(unescape(encodeURIComponent(content))), branch: GITHUB_BRANCH };
-      if (sha) body.sha = sha;
-      const r = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`, {
-        method: 'PUT',
-        headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (!r.ok) { const e = await r.json(); throw new Error(e.message || `GitHub PUT failed: ${r.status}`); }
-      return r.json();
-    }
-
-    async function ghPutBinary(path, base64content, message, sha) {
-      const body = { message, content: base64content, branch: GITHUB_BRANCH };
-      if (sha) body.sha = sha;
-      const r = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`, {
-        method: 'PUT',
-        headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (!r.ok) { const e = await r.json(); throw new Error(e.message || `GitHub binary PUT failed: ${r.status}`); }
-      return r.json();
-    }
-
-    // ── Load employees from Supabase ─────────────
+    // ── All Supabase + GitHub helpers from admin.js ─
 
     async function loadEmployees() {
       try {
-        allEmployees = await sbGet();
+        allEmployees = await sbFetch('employees');
         renderGrid();
         renderStats();
       } catch(e) {
@@ -613,6 +534,8 @@
     // ── Upload photo to GitHub ───────────────────
 
     async function uploadPhoto(file, fullName) {
+      const token = sessionStorage.getItem('gh_token') || '';
+      if (!token) throw new Error('No GitHub token — photo not uploaded');
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async () => {
@@ -621,8 +544,8 @@
             const fileName = `${fullName}_cvface1.png`;
             const path     = `${IMG_PATH_REPO}/${fileName}`;
             let sha = null;
-            try { const f = await ghGet(path); sha = f.sha; } catch(e) {}
-            await ghPutBinary(path, base64, `Upload photo for ${fullName}`, sha);
+            try { const f = await ghGet(path, token); sha = f.sha; } catch(e) {}
+            await ghPutBinary(path, base64, `Upload photo for ${fullName}`, sha, token);
             resolve(`${IMG_PATH_WEB}${encodeURIComponent(fileName)}`);
           } catch(e) { reject(e); }
         };
@@ -634,49 +557,44 @@
     // ── Force sync people.js ─────────────────────
 
     async function forceSyncPeopleJS() {
-      if (!GITHUB_TOKEN) {
-        showToast('No GitHub token — please lock and re-enter your token', 'error');
+      const token = sessionStorage.getItem('gh_token') || '';
+      if (!token) {
+        showToast('No GitHub token — enter it when prompted', 'error');
         return;
       }
       const btn = document.getElementById('syncBtn');
-      btn.disabled = true;
-      btn.textContent = '🔄 Syncing…';
+      btn.disabled = true; btn.textContent = '🔄 Syncing…';
       try {
         const today  = new Date().toISOString().split('T')[0];
         const active = allEmployees
-          .filter(e =>
-            e.status === 'active' ||
-            e.status === 'probation' ||
-            (e.status === 'inactive' && e.leaving_date && e.leaving_date >= today)
-          )
+          .filter(e => e.status==='active' || e.status==='probation' || (e.status==='inactive' && e.leaving_date && e.leaving_date >= today))
           .map(e => `'${e.full_name}'`);
         const content = `const PEOPLE = [\n  ${active.join(',\n  ')}\n];\n`;
-        try { const f = await ghGet(PEOPLE_JS_PATH); fileSHAs[PEOPLE_JS_PATH] = f.sha; } catch(e) {}
-        await ghPut(PEOPLE_JS_PATH, content, 'Manual sync PEOPLE list from employee management', fileSHAs[PEOPLE_JS_PATH] || null);
+        let sha = null;
+        try { const f = await ghGet(PEOPLE_JS_PATH, token); sha = f.sha; } catch(e) {}
+        await ghPut(PEOPLE_JS_PATH, content, 'Manual sync PEOPLE list', sha, token);
         showToast(`✓ Leaderboard synced — ${active.length} active staff`, 'success');
       } catch(e) {
         showToast('Sync failed: ' + e.message, 'error');
       } finally {
-        btn.disabled = false;
-        btn.textContent = '🔄 Sync Leaderboard';
+        btn.disabled = false; btn.textContent = '🔄 Sync Leaderboard';
       }
     }
 
     function schedulePeopleJsUpdate() {
       clearTimeout(peopleJsTimer);
       peopleJsTimer = setTimeout(async () => {
+        const token = sessionStorage.getItem('gh_token') || '';
+        if (!token) { showToast('No GitHub token — leaderboard not synced', 'error'); return; }
         try {
-          const today = new Date().toISOString().split('T')[0];
+          const today  = new Date().toISOString().split('T')[0];
           const active = allEmployees
-            .filter(e =>
-              e.status === 'active' ||
-              e.status === 'probation' ||
-              (e.status === 'inactive' && e.leaving_date && e.leaving_date >= today)
-            )
+            .filter(e => e.status==='active' || e.status==='probation' || (e.status==='inactive' && e.leaving_date && e.leaving_date >= today))
             .map(e => `'${e.full_name}'`);
           const content = `const PEOPLE = [\n  ${active.join(',\n  ')}\n];\n`;
-          try { const f = await ghGet(PEOPLE_JS_PATH); fileSHAs[PEOPLE_JS_PATH] = f.sha; } catch(e) {}
-          await ghPut(PEOPLE_JS_PATH, content, 'Auto-update PEOPLE list', fileSHAs[PEOPLE_JS_PATH] || null);
+          let sha = null;
+          try { const f = await ghGet(PEOPLE_JS_PATH, token); sha = f.sha; } catch(e) {}
+          await ghPut(PEOPLE_JS_PATH, content, 'Auto-update PEOPLE list', sha, token);
           showToast('Leaderboard updated', 'success');
         } catch(e) {
           showToast('people.js update failed: ' + e.message, 'error');
@@ -845,13 +763,13 @@
         };
 
         if (editingId) {
-          await sbUpdate(editingId, payload);
+          await sbUpdate('employees', editingId, payload);
         } else {
-          await sbInsert({ ...payload, created_at: new Date().toISOString() });
+          await sbInsert('employees', { ...payload, created_at: new Date().toISOString() });
         }
 
-        // Reload from Supabase to stay in sync
-        allEmployees = await sbGet();
+        // Reload from Supabase
+        allEmployees = await sbFetch('employees');
         renderGrid();
         renderStats();
 
@@ -870,44 +788,18 @@
       }
     }
 
-    // ── Toast ─────────────────────────────────────
+    // showToast is provided by admin.js
 
-    function showToast(msg, type = '') {
-      const t = document.getElementById('toast');
-      t.textContent = type === 'success' ? '✓ ' + msg : type === 'error' ? '✗ ' + msg : msg;
-      t.className = `toast show ${type}`;
-      setTimeout(() => t.className = 'toast', 3500);
-    }
-
-    // ── Auth — redirect to dashboard if not logged in ──
+    // ── Auth — uses requireAuth() from admin.js ───
 
     async function checkAuth() {
-      const { data: { session } } = await sb.auth.getSession();
-      if (!session) {
-        window.location.href = 'dashboard.html';
-        return;
-      }
-      // Verify admin access
-      const { data: adminData } = await sb
-        .from('admin_users')
-        .select('*')
-        .eq('id', session.user.id)
-        .eq('active', true)
-        .single();
-
-      if (!adminData) {
-        window.location.href = 'dashboard.html';
-        return;
-      }
+      const ok = await requireAuth();
+      if (!ok) return; // requireAuth redirects if not logged in
 
       // Prompt for GitHub token if not in session
-      // (needed for photo uploads and people.js sync)
-      if (!GITHUB_TOKEN) {
-        const token = prompt('Enter your GitHub token for photo uploads and leaderboard sync:\n(Leave blank to skip — you can still manage employee data)');
-        if (token) {
-          GITHUB_TOKEN = token;
-          sessionStorage.setItem('gh_token', token);
-        }
+      if (!sessionStorage.getItem('gh_token')) {
+        const token = prompt('Enter your GitHub token for photo uploads and leaderboard sync:\n(Leave blank to skip)');
+        if (token) sessionStorage.setItem('gh_token', token);
       }
 
       showApp();
