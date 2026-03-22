@@ -143,10 +143,11 @@
       background: #eee;
       border: 3px solid var(--border);
     }
-    .emp-avatar.gold   { border-color: var(--gold); }
-    .emp-avatar.active { border-color: var(--green); }
+    .emp-avatar.gold      { border-color: var(--gold); }
+    .emp-avatar.active    { border-color: var(--green); }
     .emp-avatar.probation { border-color: var(--orange); }
-    .emp-avatar.inactive { border-color: #ccc; filter: grayscale(60%); }
+    .emp-avatar.inactive  { border-color: #ccc; filter: grayscale(60%); }
+    .emp-avatar.leaving   { border-color: var(--red); filter: grayscale(30%); }
 
     .emp-name {
       font-size: 13px;
@@ -179,6 +180,7 @@
     .status-badge.active    { background: var(--green); }
     .status-badge.inactive  { background: #ccc; }
     .status-badge.probation { background: var(--orange); }
+    .status-badge.leaving   { background: var(--red); }
 
     /* ── EMPTY STATE ── */
     .empty-state {
@@ -656,8 +658,13 @@
       clearTimeout(peopleJsTimer);
       peopleJsTimer = setTimeout(async () => {
         try {
-          const active  = allEmployees
-            .filter(e => e.status === 'active' || e.status === 'probation')
+          const today = new Date().toISOString().split('T')[0];
+          const active = allEmployees
+            .filter(e =>
+              e.status === 'active' ||
+              e.status === 'probation' ||
+              (e.status === 'inactive' && e.leaving_date && e.leaving_date >= today)
+            )
             .map(e => `'${e.full_name}'`);
           const content = `const PEOPLE = [\n  ${active.join(',\n  ')}\n];\n`;
           try { const f = await ghGet(PEOPLE_JS_PATH); fileSHAs[PEOPLE_JS_PATH] = f.sha; } catch(e) {}
@@ -690,17 +697,22 @@
       }
 
       grid.innerHTML = filtered.map(e => {
-        const photoUrl = `${IMG_PATH_WEB}${encodeURIComponent(e.full_name + '_cvface1.png')}`;
+        const photoUrl   = `${IMG_PATH_WEB}${encodeURIComponent(e.full_name + '_cvface1.png')}`;
+        const today      = new Date().toISOString().split('T')[0];
+        const isLeaving  = e.status === 'inactive' && e.leaving_date && e.leaving_date >= today;
+        const badgeClass = isLeaving ? 'leaving' : e.status;
+        const badgeTitle = isLeaving ? `Leaving ${e.leaving_date}` : e.status;
         return `
           <div class="emp-card" onclick="openEditModal('${e.id}')">
-            <div class="status-badge ${e.status}"></div>
-            <img class="emp-avatar ${e.status}"
+            <div class="status-badge ${badgeClass}" title="${badgeTitle}"></div>
+            <img class="emp-avatar ${badgeClass}"
                  src="${photoUrl}"
                  onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 72 72%22><circle cx=%2236%22 cy=%2236%22 r=%2236%22 fill=%22%23ddd%22/><text x=%2236%22 y=%2242%22 text-anchor=%22middle%22 font-size=%2224%22 fill=%22%23999%22>${e.full_name.charAt(0)}</text></svg>'"
                  alt="${e.full_name}">
             <div class="emp-name">${e.full_name}</div>
             ${e.nickname ? `<div class="emp-nick">"${e.nickname}"</div>` : ''}
             <div class="emp-initials">${e.initials}</div>
+            ${isLeaving ? `<div style="font-size:10px;color:var(--orange);margin-top:-4px;">Leaving ${e.leaving_date}</div>` : ''}
           </div>
         `;
       }).join('');
