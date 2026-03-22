@@ -538,41 +538,5 @@
     "leaving_date": null,
     "created_at": "2026-03-22T09:47:20.451112Z",
     "updated_at": "2026-03-22T09:47:20.451112Z"
-  },
-  {
-    "id": "d85de1b7-43ba-4e8e-92e4-755ce28aa181",
-    "full_name": "Wayne Belle",
-    "nickname": null,
-    "email": "wayne@jhbukltd.co.uk",
-    "initials": "WB",
-    "status": "inactive",
-    "start_date": null,
-    "leaving_date": null,
-    "created_at": "2026-03-22T10:07:14.657Z",
-    "updated_at": "2026-03-22T10:10:33.969Z"
-  },
-  {
-    "id": "d4341f5a-a1ec-4ccd-aa65-fe47a06d39f1",
-    "full_name": "Wayne Belle",
-    "nickname": null,
-    "email": "wayne@jhbukltd.co.uk",
-    "initials": "WB",
-    "status": "inactive",
-    "start_date": null,
-    "leaving_date": null,
-    "created_at": "2026-03-22T10:07:22.510Z",
-    "updated_at": "2026-03-22T10:10:25.644Z"
-  },
-  {
-    "id": "97526181-b235-4d31-8e9b-baa5582e6d82",
-    "full_name": "Wayne Belle",
-    "nickname": null,
-    "email": "wayne@jhbukltd.co.uk",
-    "initials": "WB",
-    "status": "inactive",
-    "start_date": null,
-    "leaving_date": null,
-    "created_at": "2026-03-22T10:10:00.939Z",
-    "updated_at": "2026-03-22T10:10:15.151Z"
   }
 ]
