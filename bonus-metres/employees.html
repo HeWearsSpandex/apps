@@ -368,7 +368,7 @@
 </head>
 <body>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="admin.js"></script>
 
   <div id="sidebarMount"></div>
@@ -557,10 +557,11 @@
     // ── Force sync people.js ─────────────────────
 
     async function forceSyncPeopleJS() {
-      const token = sessionStorage.getItem('gh_token') || '';
+      let token = sessionStorage.getItem('gh_token') || '';
       if (!token) {
-        showToast('No GitHub token — enter it when prompted', 'error');
-        return;
+        token = prompt('Enter your GitHub token to sync the leaderboard:') || '';
+        if (!token) return;
+        sessionStorage.setItem('gh_token', token);
       }
       const btn = document.getElementById('syncBtn');
       btn.disabled = true; btn.textContent = '🔄 Syncing…';
@@ -576,6 +577,7 @@
         showToast(`✓ Leaderboard synced — ${active.length} active staff`, 'success');
       } catch(e) {
         showToast('Sync failed: ' + e.message, 'error');
+        if (e.message.includes('Bad credentials')) sessionStorage.removeItem('gh_token');
       } finally {
         btn.disabled = false; btn.textContent = '🔄 Sync Leaderboard';
       }
@@ -794,14 +796,7 @@
 
     async function checkAuth() {
       const ok = await requireAuth();
-      if (!ok) return; // requireAuth redirects if not logged in
-
-      // Prompt for GitHub token if not in session
-      if (!sessionStorage.getItem('gh_token')) {
-        const token = prompt('Enter your GitHub token for photo uploads and leaderboard sync:\n(Leave blank to skip)');
-        if (token) sessionStorage.setItem('gh_token', token);
-      }
-
+      if (!ok) return;
       showApp();
     }
 
