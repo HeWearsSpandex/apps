@@ -695,16 +695,20 @@
       }).sort((a, b) => a.rank - b.rank);
 
       const leaderTotal = racers[0].total;
+      const maxFaceSize = 36 + 10; // max face + halo
 
-      // Use smaller face size and tighter layout for mobile
-      const SVG_W    = 360;  // narrow viewBox — scales to screen width
-      const PAD_L    = 8;
-      const PAD_R    = 8;
-      const TRACK_Y  = 90;
-      const FACE_D   = 36;
-      const TRACK_H  = 8;
-      const trackW   = SVG_W - PAD_L - PAD_R;
-      const svgH     = TRACK_Y + FACE_D / 2 + 50;
+      // Layout — generous padding so faces never clip
+      const SVG_W   = 360;
+      const PAD_L   = maxFaceSize / 2 + 4;   // left pad = half face width
+      const PAD_R   = maxFaceSize / 2 + 4;   // right pad = half face width
+      const TRACK_Y = 70;
+      const FACE_D  = 32;
+      const TRACK_H = 7;
+      const trackW  = SVG_W - PAD_L - PAD_R;
+
+      // Labels go BELOW the track so they never push height above
+      const LABEL_Y = TRACK_Y + FACE_D / 2 + 16;
+      const svgH    = LABEL_Y + 24;
 
       const icons = await Promise.all(
         racers.map(r => drawIcon(r.name, r.halo, FACE_D, r.halo ? 5 : 0))
@@ -743,22 +747,26 @@
 
       racers.forEach((racer, i) => {
         const pct      = leaderTotal > 0 ? racer.total / leaderTotal : 0;
-        const xPos     = PAD_L + trackW * pct;
         const faceSize = FACE_D + (racer.halo ? 10 : 0);
+        const halfFace = faceSize / 2;
 
-        // Alternating label rows to avoid overlap
-        const labelY = i % 2 === 0
-          ? TRACK_Y - faceSize / 2 - 22
-          : TRACK_Y - faceSize / 2 - 4;
+        // Clamp xPos so face never overflows either edge
+        const rawX = PAD_L + trackW * pct;
+        const xPos = Math.max(PAD_L, Math.min(SVG_W - PAD_R, rawX));
+
+        // Clamp label x so text never overflows
+        const minLabelX = 30;
+        const maxLabelX = SVG_W - 30;
+        const labelX = Math.max(minLabelX, Math.min(maxLabelX, xPos));
 
         const shortName = racer.isPlayer && racer.rank > 3
           ? racer.name.split(' ')[0] + ' (You)'
           : racer.name.split(' ')[0] + (racer.name.split(' ')[1] ? ' ' + racer.name.split(' ')[1][0] + '.' : '');
 
-        // Name
+        // Name label — BELOW the track
         const nameEl = document.createElementNS(NS, 'text');
-        nameEl.setAttribute('x', String(xPos));
-        nameEl.setAttribute('y', String(labelY));
+        nameEl.setAttribute('x', String(labelX));
+        nameEl.setAttribute('y', String(LABEL_Y));
         nameEl.setAttribute('text-anchor', 'middle');
         nameEl.setAttribute('font-size', '8');
         nameEl.setAttribute('font-weight', '500');
@@ -767,10 +775,10 @@
         nameEl.textContent = shortName;
         svg.appendChild(nameEl);
 
-        // Metres
+        // Metres label — BELOW name
         const metresEl = document.createElementNS(NS, 'text');
-        metresEl.setAttribute('x', String(xPos));
-        metresEl.setAttribute('y', String(labelY + 11));
+        metresEl.setAttribute('x', String(labelX));
+        metresEl.setAttribute('y', String(LABEL_Y + 12));
         metresEl.setAttribute('text-anchor', 'middle');
         metresEl.setAttribute('font-size', '7');
         metresEl.setAttribute('fill', '#888');
@@ -778,21 +786,11 @@
         metresEl.textContent = `${Math.round(racer.total).toLocaleString()}m`;
         svg.appendChild(metresEl);
 
-        // Tick
-        const tick = document.createElementNS(NS, 'line');
-        tick.setAttribute('x1', String(xPos));
-        tick.setAttribute('y1', String(TRACK_Y - TRACK_H / 2 - 2));
-        tick.setAttribute('x2', String(xPos));
-        tick.setAttribute('y2', String(TRACK_Y + TRACK_H / 2 + 2));
-        tick.setAttribute('stroke', racer.isPlayer && racer.rank > 3 ? '#1a73e8' : '#f9a825');
-        tick.setAttribute('stroke-width', '1.5');
-        svg.appendChild(tick);
-
-        // Face
+        // Face — sits on the track line, centred vertically
         const faceGroup = document.createElementNS(NS, 'g');
         faceGroup.setAttribute('transform',
-          `translate(${PAD_L - faceSize / 2}, ${TRACK_Y - faceSize / 2})`);
-        faceGroup.style.transition = `transform 1.4s cubic-bezier(0.4,0,0.2,1)`;
+          `translate(${PAD_L - halfFace}, ${TRACK_Y - halfFace})`);
+        faceGroup.style.transition = 'transform 1.4s cubic-bezier(0.4,0,0.2,1)';
         const faceImg = document.createElementNS(NS, 'image');
         faceImg.setAttribute('href', icons[i]);
         faceImg.setAttribute('width', String(faceSize));
@@ -800,9 +798,10 @@
         faceGroup.appendChild(faceImg);
         svg.appendChild(faceGroup);
 
+        // Animate
         setTimeout(() => {
           faceGroup.setAttribute('transform',
-            `translate(${xPos - faceSize / 2}, ${TRACK_Y - faceSize / 2})`);
+            `translate(${xPos - halfFace}, ${TRACK_Y - halfFace})`);
           nameEl.style.transition   = 'opacity 0.4s ease';
           metresEl.style.transition = 'opacity 0.4s ease';
           nameEl.style.opacity   = '1';
