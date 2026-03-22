@@ -187,6 +187,8 @@
     const IMG_PATH_WEB   = '/img/';
     let allEmployees = [];
 
+    // Note: sb client is created in admin.js with sessionStorage adapter
+
     async function sendMagicLink() {
       const email = document.getElementById('loginEmail').value.trim();
       const msg   = document.getElementById('loginMsg');
