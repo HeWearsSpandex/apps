@@ -695,23 +695,24 @@
       }).sort((a, b) => a.rank - b.rank);
 
       const leaderTotal = racers[0].total;
-      const maxFaceSize = 36 + 10; // max face + halo
 
-      // Layout — generous padding so faces never clip
       const SVG_W   = 360;
-      const PAD_L   = maxFaceSize / 2 + 4;   // left pad = half face width
-      const PAD_R   = maxFaceSize / 2 + 4;   // right pad = half face width
-      const TRACK_Y = 70;
-      const FACE_D  = 32;
-      const TRACK_H = 7;
+      const FACE_D  = 26;          // smaller faces
+      const HALO    = 4;
+      const PAD_L   = FACE_D;      // enough room for leftmost face
+      const PAD_R   = FACE_D;      // enough room for rightmost face
+      const TRACK_Y = 50;
+      const TRACK_H = 6;
       const trackW  = SVG_W - PAD_L - PAD_R;
+      const LABEL_Y = TRACK_Y + FACE_D / 2 + 14;
+      const svgH    = LABEL_Y + 30;
 
-      // Labels go BELOW the track so they never push height above
-      const LABEL_Y = TRACK_Y + FACE_D / 2 + 16;
-      const svgH    = LABEL_Y + 36;  // extra height for staggered rows
-
+      // Draw icons — smaller, no halo for non-top-3 to save space
       const icons = await Promise.all(
-        racers.map(r => drawIcon(r.name, r.halo, FACE_D, r.halo ? 5 : 0))
+        racers.map(r => {
+          const fs = r.halo ? FACE_D + HALO * 2 : FACE_D;
+          return drawIcon(r.name, r.halo, FACE_D, r.halo ? HALO : 0);
+        })
       );
 
       const NS  = 'http://www.w3.org/2000/svg';
@@ -745,89 +746,125 @@
         leaderFill.setAttribute('width', String(trackW));
       }, 200);
 
-      racers.forEach((racer, i) => {
-        const pct      = leaderTotal > 0 ? racer.total / leaderTotal : 0;
-        const faceSize = FACE_D + (racer.halo ? 10 : 0);
-        const halfFace = faceSize / 2;
-
-        // Clamp xPos so face never overflows either edge
+      // Calculate raw positions
+      racers.forEach(r => {
+        const pct  = leaderTotal > 0 ? r.total / leaderTotal : 0;
         const rawX = PAD_L + trackW * pct;
-        const xPos = Math.max(PAD_L, Math.min(SVG_W - PAD_R, rawX));
+        r._rawX    = Math.max(PAD_L, Math.min(SVG_W - PAD_R, rawX));
+        r._faceSize = r.halo ? FACE_D + HALO * 2 : FACE_D;
+      });
 
-        // Clamp label x so text never overflows
-        const minLabelX = 30;
-        const maxLabelX = SVG_W - 30;
-        const labelX = Math.max(minLabelX, Math.min(maxLabelX, xPos));
+      // ── Collision resolution for faces ──
+      // Sort by position left to right, push apart if overlapping
+      const byPos = [...racers].sort((a, b) => a._rawX - b._rawX);
+      byPos.forEach(r => { r._faceX = r._rawX; });
 
-        // Stagger label rows — alternate above/below track
-        // Even = below track, Odd = further below (2 rows)
-        const labelRowY = LABEL_Y + (i % 2 === 0 ? 0 : 14);
+      const MIN_FACE_GAP = 4;
+      // Forward pass — push right
+      for (let i = 1; i < byPos.length; i++) {
+        const prev = byPos[i - 1];
+        const curr = byPos[i];
+        const minX = prev._faceX + (prev._faceSize + curr._faceSize) / 2 + MIN_FACE_GAP;
+        if (curr._faceX < minX) curr._faceX = Math.min(SVG_W - PAD_R, minX);
+      }
+      // Backward pass — push left if gone too far right
+      for (let i = byPos.length - 2; i >= 0; i--) {
+        const next = byPos[i + 1];
+        const curr = byPos[i];
+        const maxX = next._faceX - (next._faceSize + curr._faceSize) / 2 - MIN_FACE_GAP;
+        if (curr._faceX > maxX) curr._faceX = Math.max(PAD_L, maxX);
+      }
 
-        const shortName = racer.isPlayer && racer.rank > 3
-          ? racer.name.split(' ')[0] + ' (You)'
-          : racer.name.split(' ')[0] + (racer.name.split(' ')[1] ? ' ' + racer.name.split(' ')[1][0] + '.' : '');
+      // ── Label positions — start from face position then resolve collisions ──
+      racers.forEach(r => { r._labelX = r._faceX; });
+      const byLabel = [...racers].sort((a, b) => a._labelX - b._labelX);
 
-        // Name label
-        const nameEl = document.createElementNS(NS, 'text');
-        nameEl.setAttribute('x', String(labelX));
-        nameEl.setAttribute('y', String(labelRowY));
-        nameEl.setAttribute('text-anchor', 'middle');
-        nameEl.setAttribute('font-size', '8');
-        nameEl.setAttribute('font-weight', '500');
-        nameEl.setAttribute('fill', '#333');
-        nameEl.style.opacity = '0';
-        nameEl.textContent = shortName;
-        svg.appendChild(nameEl);
-
-        // Metres label
-        const metresEl = document.createElementNS(NS, 'text');
-        metresEl.setAttribute('x', String(labelX));
-        metresEl.setAttribute('y', String(labelRowY + 10));
-        metresEl.setAttribute('text-anchor', 'middle');
-        metresEl.setAttribute('font-size', '7');
-        metresEl.setAttribute('fill', '#888');
-        metresEl.style.opacity = '0';
-        metresEl.textContent = `${Math.round(racer.total).toLocaleString()}m`;
-        svg.appendChild(metresEl);
-
-        // Connector line from face to label when staggered
-        if (i % 2 !== 0) {
-          const connLine = document.createElementNS(NS, 'line');
-          connLine.setAttribute('x1', String(xPos));
-          connLine.setAttribute('y1', String(TRACK_Y + halfFace / 2 + 2));
-          connLine.setAttribute('x2', String(labelX));
-          connLine.setAttribute('y2', String(labelRowY - 2));
-          connLine.setAttribute('stroke', '#ccc');
-          connLine.setAttribute('stroke-width', '0.8');
-          connLine.setAttribute('stroke-dasharray', '2 2');
-          connLine.style.opacity = '0';
-          svg.appendChild(connLine);
-          setTimeout(() => {
-            connLine.style.transition = 'opacity 0.4s ease';
-            connLine.style.opacity = '1';
-          }, 200 + i * 100 + 800);
+      const MIN_LABEL_W = 36; // minimum px between label centres
+      // Forward pass
+      for (let i = 1; i < byLabel.length; i++) {
+        const prev = byLabel[i - 1];
+        const curr = byLabel[i];
+        if (curr._labelX - prev._labelX < MIN_LABEL_W) {
+          curr._labelX = Math.min(SVG_W - 20, prev._labelX + MIN_LABEL_W);
         }
+      }
+      // Backward pass
+      for (let i = byLabel.length - 2; i >= 0; i--) {
+        const next = byLabel[i + 1];
+        const curr = byLabel[i];
+        if (next._labelX - curr._labelX < MIN_LABEL_W) {
+          curr._labelX = Math.max(20, next._labelX - MIN_LABEL_W);
+        }
+      }
 
-        // Face
+      // ── Draw faces — player on top (drawn last) ──
+      // Sort so player is drawn last (highest z-order)
+      const drawOrder = [...racers].sort((a, b) => {
+        if (a.isPlayer) return 1;
+        if (b.isPlayer) return -1;
+        return b.rank - a.rank; // higher rank number = drawn earlier (lower z)
+      });
+
+      const faceGroups = {};
+
+      drawOrder.forEach((racer) => {
+        const halfFace  = racer._faceSize / 2;
         const faceGroup = document.createElementNS(NS, 'g');
         faceGroup.setAttribute('transform',
           `translate(${PAD_L - halfFace}, ${TRACK_Y - halfFace})`);
         faceGroup.style.transition = 'transform 1.4s cubic-bezier(0.4,0,0.2,1)';
         const faceImg = document.createElementNS(NS, 'image');
-        faceImg.setAttribute('href', icons[i]);
-        faceImg.setAttribute('width', String(faceSize));
-        faceImg.setAttribute('height', String(faceSize));
+        faceImg.setAttribute('href', icons[racers.indexOf(racer)]);
+        faceImg.setAttribute('width', String(racer._faceSize));
+        faceImg.setAttribute('height', String(racer._faceSize));
         faceGroup.appendChild(faceImg);
         svg.appendChild(faceGroup);
+        faceGroups[racer.name] = { group: faceGroup, halfFace, targetX: racer._faceX };
+      });
 
-        // Animate
+      // ── Draw labels ──
+      racers.forEach((racer, i) => {
+        const shortName = racer.isPlayer && racer.rank > 3
+          ? racer.name.split(' ')[0] + ' (You)'
+          : racer.name.split(' ')[0] + (racer.name.split(' ')[1] ? ' ' + racer.name.split(' ')[1][0] + '.' : '');
+
+        const lx = Math.max(20, Math.min(SVG_W - 20, racer._labelX));
+
+        const nameEl = document.createElementNS(NS, 'text');
+        nameEl.setAttribute('x', String(lx));
+        nameEl.setAttribute('y', String(LABEL_Y));
+        nameEl.setAttribute('text-anchor', 'middle');
+        nameEl.setAttribute('font-size', '7');
+        nameEl.setAttribute('font-weight', '500');
+        nameEl.setAttribute('fill', racer.isPlayer ? '#1a73e8' : '#333');
+        nameEl.style.opacity = '0';
+        nameEl.textContent = shortName;
+        svg.appendChild(nameEl);
+
+        const metresEl = document.createElementNS(NS, 'text');
+        metresEl.setAttribute('x', String(lx));
+        metresEl.setAttribute('y', String(LABEL_Y + 10));
+        metresEl.setAttribute('text-anchor', 'middle');
+        metresEl.setAttribute('font-size', '6');
+        metresEl.setAttribute('fill', '#aaa');
+        metresEl.style.opacity = '0';
+        metresEl.textContent = `${Math.round(racer.total).toLocaleString()}m`;
+        svg.appendChild(metresEl);
+
         setTimeout(() => {
-          faceGroup.setAttribute('transform',
-            `translate(${xPos - halfFace}, ${TRACK_Y - halfFace})`);
           nameEl.style.transition   = 'opacity 0.4s ease';
           metresEl.style.transition = 'opacity 0.4s ease';
           nameEl.style.opacity   = '1';
           metresEl.style.opacity = '1';
+        }, 200 + i * 100 + 800);
+      });
+
+      // ── Animate faces to final positions ──
+      racers.forEach((racer, i) => {
+        const fg = faceGroups[racer.name];
+        setTimeout(() => {
+          fg.group.setAttribute('transform',
+            `translate(${fg.targetX - fg.halfFace}, ${TRACK_Y - fg.halfFace})`);
         }, 200 + i * 100);
       });
 
