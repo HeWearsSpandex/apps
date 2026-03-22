@@ -595,6 +595,13 @@
     // ── Save employees.json to GitHub ────────────
 
     async function saveEmployeesJSON(commitMsg) {
+      // Always fetch fresh SHA to avoid mismatch
+      try {
+        const file = await ghGet(EMPLOYEES_PATH);
+        fileSHAs[EMPLOYEES_PATH] = file.sha;
+      } catch(e) {
+        fileSHAs[EMPLOYEES_PATH] = null;
+      }
       const content = JSON.stringify(allEmployees, null, 2);
       const res = await ghPut(EMPLOYEES_PATH, content, commitMsg, fileSHAs[EMPLOYEES_PATH] || null);
       fileSHAs[EMPLOYEES_PATH] = res.content.sha;
@@ -607,10 +614,13 @@
         .filter(e => e.status === 'active' || e.status === 'probation')
         .map(e => `'${e.full_name}'`);
       const content = `const PEOPLE = [\n  ${active.join(',')}\n];\n`;
+      // Always fetch fresh SHA to avoid mismatch
       try {
         const file = await ghGet(PEOPLE_JS_PATH);
         fileSHAs[PEOPLE_JS_PATH] = file.sha;
-      } catch(e) {}
+      } catch(e) {
+        fileSHAs[PEOPLE_JS_PATH] = null;
+      }
       await ghPut(PEOPLE_JS_PATH, content, 'Auto-update PEOPLE list from employee management', fileSHAs[PEOPLE_JS_PATH] || null);
     }
 
