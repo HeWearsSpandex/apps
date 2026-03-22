@@ -708,7 +708,7 @@
 
       // Labels go BELOW the track so they never push height above
       const LABEL_Y = TRACK_Y + FACE_D / 2 + 16;
-      const svgH    = LABEL_Y + 24;
+      const svgH    = LABEL_Y + 36;  // extra height for staggered rows
 
       const icons = await Promise.all(
         racers.map(r => drawIcon(r.name, r.halo, FACE_D, r.halo ? 5 : 0))
@@ -759,14 +759,18 @@
         const maxLabelX = SVG_W - 30;
         const labelX = Math.max(minLabelX, Math.min(maxLabelX, xPos));
 
+        // Stagger label rows — alternate above/below track
+        // Even = below track, Odd = further below (2 rows)
+        const labelRowY = LABEL_Y + (i % 2 === 0 ? 0 : 14);
+
         const shortName = racer.isPlayer && racer.rank > 3
           ? racer.name.split(' ')[0] + ' (You)'
           : racer.name.split(' ')[0] + (racer.name.split(' ')[1] ? ' ' + racer.name.split(' ')[1][0] + '.' : '');
 
-        // Name label — BELOW the track
+        // Name label
         const nameEl = document.createElementNS(NS, 'text');
         nameEl.setAttribute('x', String(labelX));
-        nameEl.setAttribute('y', String(LABEL_Y));
+        nameEl.setAttribute('y', String(labelRowY));
         nameEl.setAttribute('text-anchor', 'middle');
         nameEl.setAttribute('font-size', '8');
         nameEl.setAttribute('font-weight', '500');
@@ -775,10 +779,10 @@
         nameEl.textContent = shortName;
         svg.appendChild(nameEl);
 
-        // Metres label — BELOW name
+        // Metres label
         const metresEl = document.createElementNS(NS, 'text');
         metresEl.setAttribute('x', String(labelX));
-        metresEl.setAttribute('y', String(LABEL_Y + 12));
+        metresEl.setAttribute('y', String(labelRowY + 10));
         metresEl.setAttribute('text-anchor', 'middle');
         metresEl.setAttribute('font-size', '7');
         metresEl.setAttribute('fill', '#888');
@@ -786,7 +790,25 @@
         metresEl.textContent = `${Math.round(racer.total).toLocaleString()}m`;
         svg.appendChild(metresEl);
 
-        // Face — sits on the track line, centred vertically
+        // Connector line from face to label when staggered
+        if (i % 2 !== 0) {
+          const connLine = document.createElementNS(NS, 'line');
+          connLine.setAttribute('x1', String(xPos));
+          connLine.setAttribute('y1', String(TRACK_Y + halfFace / 2 + 2));
+          connLine.setAttribute('x2', String(labelX));
+          connLine.setAttribute('y2', String(labelRowY - 2));
+          connLine.setAttribute('stroke', '#ccc');
+          connLine.setAttribute('stroke-width', '0.8');
+          connLine.setAttribute('stroke-dasharray', '2 2');
+          connLine.style.opacity = '0';
+          svg.appendChild(connLine);
+          setTimeout(() => {
+            connLine.style.transition = 'opacity 0.4s ease';
+            connLine.style.opacity = '1';
+          }, 200 + i * 100 + 800);
+        }
+
+        // Face
         const faceGroup = document.createElementNS(NS, 'g');
         faceGroup.setAttribute('transform',
           `translate(${PAD_L - halfFace}, ${TRACK_Y - halfFace})`);
