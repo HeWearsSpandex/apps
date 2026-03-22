@@ -524,30 +524,70 @@
 
   <script>
     // ─────────────────────────────────────────────
-    // CONFIG — token entered at runtime, never in code
+    // CONFIG
     // ─────────────────────────────────────────────
+    const SUPABASE_URL   = 'https://oxgehlmalbvppjmdaswn.supabase.co';
+    const SUPABASE_KEY   = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
     const GITHUB_REPO    = 'HeWearsSpandex/apps';
     const GITHUB_BRANCH  = 'main';
-    const EMPLOYEES_PATH = 'bonus-metres/data/employees.json';
     const PEOPLE_JS_PATH = 'js/people.js';
     const IMG_PATH_REPO  = 'img';
     const IMG_PATH_WEB   = '/img/';
     // ─────────────────────────────────────────────
 
-    let GITHUB_TOKEN = sessionStorage.getItem('gh_token') || '';
-
+    let GITHUB_TOKEN  = sessionStorage.getItem('gh_token') || '';
     let allEmployees  = [];
     let currentFilter = 'all';
     let editingId     = null;
     let photoFile     = null;
-    let fileSHAs      = {}; // cache GitHub file SHAs
+    let peopleJsTimer = null;
+    let fileSHAs      = {};
 
-    // ── GitHub API helpers ──────────────────────
+    // ── Supabase helpers ─────────────────────────
+
+    const sbHeaders = {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    };
+
+    async function sbGet() {
+      const r = await fetch(
+        `${SUPABASE_URL}/rest/v1/employees?select=*&order=full_name.asc`,
+        { headers: sbHeaders }
+      );
+      if (!r.ok) throw new Error(`Supabase read failed: ${r.status}`);
+      return r.json();
+    }
+
+    async function sbInsert(data) {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/employees`, {
+        method: 'POST',
+        headers: { ...sbHeaders, Prefer: 'return=representation' },
+        body: JSON.stringify(data)
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.message || `Insert failed: ${r.status}`); }
+      return r.json();
+    }
+
+    async function sbUpdate(id, data) {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/employees?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: { ...sbHeaders, Prefer: 'return=representation' },
+        body: JSON.stringify({ ...data, updated_at: new Date().toISOString() })
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.message || `Update failed: ${r.status}`); }
+      return r.json();
+    }
+
+    // ── GitHub helpers (photos + people.js only) ─
 
     async function ghGet(path) {
-      const r = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${path}?ref=${GITHUB_BRANCH}`, {
-        headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
-      });
+      const r = await fetch(
+        `https://api.github.com/repos/${GITHUB_REPO}/contents/${path}?ref=${GITHUB_BRANCH}`,
+        { headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' } }
+      );
       if (!r.ok) throw new Error(`GitHub GET failed: ${r.status}`);
       return r.json();
     }
@@ -576,52 +616,17 @@
       return r.json();
     }
 
-    // ── Load employees ───────────────────────────
+    // ── Load employees from Supabase ─────────────
 
     async function loadEmployees() {
       try {
-        const file = await ghGet(EMPLOYEES_PATH);
-        fileSHAs[EMPLOYEES_PATH] = file.sha;
-        const json = decodeURIComponent(escape(atob(file.content.replace(/\n/g, ''))));
-        allEmployees = JSON.parse(json);
-      } catch (e) {
-        // File doesn't exist yet — start fresh
-        allEmployees = [];
-      }
-      renderGrid();
-      renderStats();
-    }
-
-    // ── Save employees.json to GitHub ────────────
-
-    async function saveEmployeesJSON(commitMsg) {
-      // Always fetch fresh SHA to avoid mismatch
-      try {
-        const file = await ghGet(EMPLOYEES_PATH);
-        fileSHAs[EMPLOYEES_PATH] = file.sha;
+        allEmployees = await sbGet();
+        renderGrid();
+        renderStats();
       } catch(e) {
-        fileSHAs[EMPLOYEES_PATH] = null;
+        document.getElementById('employeeGrid').innerHTML =
+          `<div class="empty-state"><div class="icon">⚠️</div><p>Error loading: ${e.message}</p></div>`;
       }
-      const content = JSON.stringify(allEmployees, null, 2);
-      const res = await ghPut(EMPLOYEES_PATH, content, commitMsg, fileSHAs[EMPLOYEES_PATH] || null);
-      fileSHAs[EMPLOYEES_PATH] = res.content.sha;
-    }
-
-    // ── Update people.js in GitHub ───────────────
-
-    async function updatePeopleJS() {
-      const active = allEmployees
-        .filter(e => e.status === 'active' || e.status === 'probation')
-        .map(e => `'${e.full_name}'`);
-      const content = `const PEOPLE = [\n  ${active.join(',')}\n];\n`;
-      // Always fetch fresh SHA to avoid mismatch
-      try {
-        const file = await ghGet(PEOPLE_JS_PATH);
-        fileSHAs[PEOPLE_JS_PATH] = file.sha;
-      } catch(e) {
-        fileSHAs[PEOPLE_JS_PATH] = null;
-      }
-      await ghPut(PEOPLE_JS_PATH, content, 'Auto-update PEOPLE list from employee management', fileSHAs[PEOPLE_JS_PATH] || null);
     }
 
     // ── Upload photo to GitHub ───────────────────
@@ -631,10 +636,9 @@
         const reader = new FileReader();
         reader.onload = async () => {
           try {
-            const base64 = reader.result.split(',')[1];
+            const base64   = reader.result.split(',')[1];
             const fileName = `${fullName}_cvface1.png`;
-            const path = `${IMG_PATH_REPO}/${fileName}`;
-            // Check if existing
+            const path     = `${IMG_PATH_REPO}/${fileName}`;
             let sha = null;
             try { const f = await ghGet(path); sha = f.sha; } catch(e) {}
             await ghPutBinary(path, base64, `Upload photo for ${fullName}`, sha);
@@ -646,28 +650,47 @@
       });
     }
 
+    // ── Update people.js — debounced 2s ──────────
+
+    function schedulePeopleJsUpdate() {
+      clearTimeout(peopleJsTimer);
+      peopleJsTimer = setTimeout(async () => {
+        try {
+          const active  = allEmployees
+            .filter(e => e.status === 'active' || e.status === 'probation')
+            .map(e => `'${e.full_name}'`);
+          const content = `const PEOPLE = [\n  ${active.join(',\n  ')}\n];\n`;
+          try { const f = await ghGet(PEOPLE_JS_PATH); fileSHAs[PEOPLE_JS_PATH] = f.sha; } catch(e) {}
+          await ghPut(PEOPLE_JS_PATH, content, 'Auto-update PEOPLE list', fileSHAs[PEOPLE_JS_PATH] || null);
+          showToast('Leaderboard updated', 'success');
+        } catch(e) {
+          showToast('people.js update failed: ' + e.message, 'error');
+        }
+      }, 2000);
+    }
+
     // ── Render ───────────────────────────────────
 
     function renderGrid() {
-      const grid    = document.getElementById('employeeGrid');
-      const search  = document.getElementById('searchBox').value.toLowerCase();
-      let filtered  = allEmployees.filter(e => {
+      const grid   = document.getElementById('employeeGrid');
+      const search = document.getElementById('searchBox').value.toLowerCase();
+      const filtered = allEmployees.filter(e => {
         const matchSearch = !search ||
           e.full_name.toLowerCase().includes(search) ||
           (e.nickname || '').toLowerCase().includes(search) ||
-          e.initials.toLowerCase().includes(search);
+          (e.initials || '').toLowerCase().includes(search);
         const matchFilter = currentFilter === 'all' || e.status === currentFilter;
         return matchSearch && matchFilter;
       });
 
       if (!filtered.length) {
         grid.innerHTML = `<div class="empty-state"><div class="icon">👥</div><p>No employees found</p></div>`;
+        document.getElementById('listTitle').textContent = '0 Employees';
         return;
       }
 
       grid.innerHTML = filtered.map(e => {
         const photoUrl = `${IMG_PATH_WEB}${encodeURIComponent(e.full_name + '_cvface1.png')}`;
-        const displayName = e.nickname || e.full_name;
         return `
           <div class="emp-card" onclick="openEditModal('${e.id}')">
             <div class="status-badge ${e.status}"></div>
@@ -704,10 +727,10 @@
     function setFilter(filter, el) {
       currentFilter = filter;
       document.querySelectorAll('.pill').forEach(p => p.className = 'pill');
-      if (filter === 'active')    el.className = 'pill active-green';
+      if      (filter === 'active')    el.className = 'pill active-green';
       else if (filter === 'probation') el.className = 'pill active-orange';
       else if (filter === 'inactive')  el.className = 'pill active';
-      else el.className = 'pill active';
+      else                             el.className = 'pill active';
       renderGrid();
     }
 
@@ -724,8 +747,8 @@
       document.getElementById('fStatus').value = 'active';
       document.getElementById('photoPreview').src = '';
       document.getElementById('photoInput').value = '';
-      photoFile  = null;
-      editingId  = null;
+      photoFile = null;
+      editingId = null;
     }
 
     function openAddModal() {
@@ -740,20 +763,17 @@
       const emp = allEmployees.find(e => e.id === id);
       if (!emp) return;
       editingId = id;
-
       const [first, ...rest] = emp.full_name.split(' ');
       document.getElementById('fFirstName').value   = first;
       document.getElementById('fLastName').value    = rest.join(' ');
       document.getElementById('fNickname').value    = emp.nickname || '';
-      document.getElementById('fEmail').value       = emp.email;
+      document.getElementById('fEmail').value       = emp.email || '';
       document.getElementById('fInitials').value    = emp.initials;
       document.getElementById('fStatus').value      = emp.status;
       document.getElementById('fStartDate').value   = emp.start_date || '';
       document.getElementById('fLeavingDate').value = emp.leaving_date || '';
-
-      const photoUrl = `${IMG_PATH_WEB}${encodeURIComponent(emp.full_name + '_cvface1.png')}`;
-      document.getElementById('photoPreview').src = photoUrl;
-
+      document.getElementById('photoPreview').src   =
+        `${IMG_PATH_WEB}${encodeURIComponent(emp.full_name + '_cvface1.png')}`;
       document.getElementById('modalTitle').textContent = `Edit — ${emp.full_name}`;
       document.getElementById('saveBtn').textContent    = 'Save Changes';
       openModal('empModal');
@@ -771,17 +791,17 @@
     // ── Save employee ─────────────────────────────
 
     async function saveEmployee() {
-      const firstName  = document.getElementById('fFirstName').value.trim();
-      const lastName   = document.getElementById('fLastName').value.trim();
-      const email      = document.getElementById('fEmail').value.trim();
-      const initials   = document.getElementById('fInitials').value.trim().toUpperCase();
-      const status     = document.getElementById('fStatus').value;
-      const nickname   = document.getElementById('fNickname').value.trim();
-      const startDate  = document.getElementById('fStartDate').value;
+      const firstName   = document.getElementById('fFirstName').value.trim();
+      const lastName    = document.getElementById('fLastName').value.trim();
+      const email       = document.getElementById('fEmail').value.trim();
+      const initials    = document.getElementById('fInitials').value.trim().toUpperCase();
+      const status      = document.getElementById('fStatus').value;
+      const nickname    = document.getElementById('fNickname').value.trim();
+      const startDate   = document.getElementById('fStartDate').value;
       const leavingDate = document.getElementById('fLeavingDate').value;
 
-      if (!firstName || !lastName || !email || !initials) {
-        showToast('Please fill in all required fields', 'error');
+      if (!firstName || !lastName || !initials) {
+        showToast('First name, last name and initials are required', 'error');
         return;
       }
 
@@ -791,29 +811,34 @@
       btn.textContent = 'Saving…';
 
       try {
-        // Upload photo if provided
-        if (photoFile) {
-          await uploadPhoto(photoFile, fullName);
-        }
+        // Upload photo to GitHub if provided
+        if (photoFile) await uploadPhoto(photoFile, fullName);
+
+        const payload = {
+          full_name:    fullName,
+          nickname:     nickname || null,
+          email:        email || null,
+          initials,
+          status,
+          start_date:   startDate || null,
+          leaving_date: leavingDate || null
+        };
 
         if (editingId) {
-          // Update existing
-          const idx = allEmployees.findIndex(e => e.id === editingId);
-          allEmployees[idx] = { ...allEmployees[idx], full_name: fullName, nickname: nickname || null, email, initials, status, start_date: startDate || null, leaving_date: leavingDate || null, updated_at: new Date().toISOString() };
-          await saveEmployeesJSON(`Update employee: ${fullName}`);
+          await sbUpdate(editingId, payload);
         } else {
-          // Add new
-          const newEmp = { id: crypto.randomUUID(), full_name: fullName, nickname: nickname || null, email, initials, status, start_date: startDate || null, leaving_date: leavingDate || null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-          allEmployees.push(newEmp);
-          await saveEmployeesJSON(`Add employee: ${fullName}`);
+          await sbInsert({ ...payload, created_at: new Date().toISOString() });
         }
 
-        // Update people.js
-        await updatePeopleJS();
-
-        closeModal('empModal');
+        // Reload from Supabase to stay in sync
+        allEmployees = await sbGet();
         renderGrid();
         renderStats();
+
+        // Update people.js in GitHub (debounced)
+        schedulePeopleJsUpdate();
+
+        closeModal('empModal');
         showToast(`${editingId ? 'Updated' : 'Added'}: ${fullName}`, 'success');
 
       } catch(e) {
@@ -834,52 +859,45 @@
       setTimeout(() => t.className = 'toast', 3500);
     }
 
-    // ── Token entry ───────────────────────────────
+    // ── Token entry (GitHub only — Supabase uses anon key) ──
 
     async function submitToken() {
       const input = document.getElementById('tokenInput').value.trim();
       const errEl = document.getElementById('tokenError');
       if (!input) { errEl.textContent = 'Please enter your token'; return; }
-
       errEl.textContent = 'Verifying…';
-
-      // Test the token with a lightweight API call
       try {
         const r = await fetch(`https://api.github.com/repos/${GITHUB_REPO}`, {
           headers: { Authorization: `token ${input}`, Accept: 'application/vnd.github.v3+json' }
         });
-        if (!r.ok) throw new Error('Invalid token or no access');
-
+        if (!r.ok) throw new Error('Invalid token or no repo access');
         GITHUB_TOKEN = input;
         sessionStorage.setItem('gh_token', input);
-        document.getElementById('tokenScreen').classList.remove('open');
-        document.getElementById('mainUI').style.display   = 'flex';
-        document.getElementById('pageContent').style.display = 'block';
-        loadEmployees();
+        showApp();
       } catch(e) {
-        errEl.textContent = '✗ ' + e.message + ' — check your token and try again';
+        errEl.textContent = '✗ ' + e.message;
       }
     }
 
     function lockSession() {
       sessionStorage.removeItem('gh_token');
       GITHUB_TOKEN = '';
-      document.getElementById('tokenInput').value = '';
+      document.getElementById('tokenInput').value       = '';
       document.getElementById('tokenError').textContent = '';
       document.getElementById('tokenScreen').classList.add('open');
-      document.getElementById('mainUI').style.display   = 'none';
+      document.getElementById('mainUI').style.display      = 'none';
       document.getElementById('pageContent').style.display = 'none';
     }
 
-    // ── Init ──────────────────────────────────────
-
-    // If token already in session, skip entry screen
-    if (GITHUB_TOKEN) {
+    function showApp() {
       document.getElementById('tokenScreen').classList.remove('open');
-      document.getElementById('mainUI').style.display   = 'flex';
+      document.getElementById('mainUI').style.display      = 'flex';
       document.getElementById('pageContent').style.display = 'block';
       loadEmployees();
     }
+
+    // ── Init ──────────────────────────────────────
+    if (GITHUB_TOKEN) showApp();
   </script>
 </body>
 </html>
