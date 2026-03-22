@@ -8,8 +8,15 @@ const SUPABASE_KEY  = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
 const GITHUB_REPO   = 'HeWearsSpandex/apps';
 const GITHUB_BRANCH = 'main';
 
-// Shared Supabase client — available to all pages
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Shared Supabase client with sessionStorage to bypass Edge tracking prevention
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    storage: window.sessionStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
 
 let currentUser  = null;
 let currentAdmin = null;
