@@ -209,11 +209,11 @@
     "nickname": null,
     "email": "james@jhbukltd.co.uk",
     "initials": "JHB",
-    "status": "inactive",
+    "status": "active",
     "start_date": null,
     "leaving_date": null,
     "created_at": "2026-03-22T09:47:20.451112Z",
-    "updated_at": "2026-03-22T10:04:26.525Z"
+    "updated_at": "2026-03-22T10:06:36.413Z"
   },
   {
     "id": "c32ab757-57fa-4c01-9afc-54ae2891b968",
