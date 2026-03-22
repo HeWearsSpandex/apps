@@ -366,16 +366,47 @@
 </head>
 <body>
 
-  <div class="topbar">
+  <!-- Token Entry Screen -->
+  <div class="overlay open" id="tokenScreen" style="background:rgba(0,0,0,0.7);">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <img src="/img/JHB Logo.png" style="height:28px;" alt="JHB">
+          <h2>Admin Access</h2>
+        </div>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6;">
+          Enter your GitHub Personal Access Token to continue. This is stored in your browser session only and never saved to any file.
+        </p>
+        <div class="form-group">
+          <label>GitHub Token</label>
+          <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxx"
+            style="font-family:monospace;"
+            onkeydown="if(event.key==='Enter') submitToken()">
+          <div class="field-hint">Requires repo write access on HeWearsSpandex/apps</div>
+        </div>
+        <div style="color:var(--red);font-size:12px;min-height:18px;" id="tokenError"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="submitToken()">Unlock →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="topbar" id="mainUI" style="display:none">
     <div class="topbar-left">
       <img src="/img/JHB Logo.png" alt="JHB">
       <div class="topbar-sep"></div>
       <h1>Employee Management</h1>
     </div>
-    <button class="btn btn-primary" onclick="openAddModal()">+ Add Employee</button>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn btn-ghost" onclick="lockSession()" style="font-size:12px;">🔒 Lock</button>
+      <button class="btn btn-primary" onclick="openAddModal()">+ Add Employee</button>
+    </div>
   </div>
 
-  <div class="page">
+  <div class="page" id="pageContent" style="display:none">
 
     <div class="stats-bar" id="statsBar"></div>
 
@@ -493,9 +524,8 @@
 
   <script>
     // ─────────────────────────────────────────────
-    // CONFIG — paste your GitHub token here
+    // CONFIG — token entered at runtime, never in code
     // ─────────────────────────────────────────────
-    const GITHUB_TOKEN   = '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';
     const GITHUB_REPO    = 'HeWearsSpandex/apps';
     const GITHUB_BRANCH  = 'main';
     const EMPLOYEES_PATH = 'bonus-metres/data/employees.json';
@@ -503,6 +533,8 @@
     const IMG_PATH_REPO  = 'img';
     const IMG_PATH_WEB   = '/img/';
     // ─────────────────────────────────────────────
+
+    let GITHUB_TOKEN = sessionStorage.getItem('gh_token') || '';
 
     let allEmployees  = [];
     let currentFilter = 'all';
@@ -792,8 +824,52 @@
       setTimeout(() => t.className = 'toast', 3500);
     }
 
+    // ── Token entry ───────────────────────────────
+
+    async function submitToken() {
+      const input = document.getElementById('tokenInput').value.trim();
+      const errEl = document.getElementById('tokenError');
+      if (!input) { errEl.textContent = 'Please enter your token'; return; }
+
+      errEl.textContent = 'Verifying…';
+
+      // Test the token with a lightweight API call
+      try {
+        const r = await fetch(`https://api.github.com/repos/${GITHUB_REPO}`, {
+          headers: { Authorization: `token ${input}`, Accept: 'application/vnd.github.v3+json' }
+        });
+        if (!r.ok) throw new Error('Invalid token or no access');
+
+        GITHUB_TOKEN = input;
+        sessionStorage.setItem('gh_token', input);
+        document.getElementById('tokenScreen').classList.remove('open');
+        document.getElementById('mainUI').style.display   = 'flex';
+        document.getElementById('pageContent').style.display = 'block';
+        loadEmployees();
+      } catch(e) {
+        errEl.textContent = '✗ ' + e.message + ' — check your token and try again';
+      }
+    }
+
+    function lockSession() {
+      sessionStorage.removeItem('gh_token');
+      GITHUB_TOKEN = '';
+      document.getElementById('tokenInput').value = '';
+      document.getElementById('tokenError').textContent = '';
+      document.getElementById('tokenScreen').classList.add('open');
+      document.getElementById('mainUI').style.display   = 'none';
+      document.getElementById('pageContent').style.display = 'none';
+    }
+
     // ── Init ──────────────────────────────────────
-    loadEmployees();
+
+    // If token already in session, skip entry screen
+    if (GITHUB_TOKEN) {
+      document.getElementById('tokenScreen').classList.remove('open');
+      document.getElementById('mainUI').style.display   = 'flex';
+      document.getElementById('pageContent').style.display = 'block';
+      loadEmployees();
+    }
   </script>
 </body>
 </html>
