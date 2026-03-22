@@ -7,5 +7,5 @@ const PEOPLE = [
   'Nicholas Kingshott','Richard Clanford','Robert Tamas','Ryan Breslan','Ryan Manners',
   'Tom Brooks','Tristan Allen','Tyler Webb','David Mahon','Jason Bligh','Rhys Grant',
   'Ross Wills','Ross Striplin','Jordan Reynolds','Mark Stafford','William Garratt',
-  'Chris Voisey','Ryan Turnstil','Jenna Turvey','Archie Beckett','Colby Mathews'
+  'Chris Voisey','Ryan Turnstil','Jenna Turvey','Archie Beckett','Colby Mathews','Mathew Hatfield'
 ];
