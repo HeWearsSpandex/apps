@@ -8,10 +8,25 @@ const SUPABASE_KEY  = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
 const GITHUB_REPO   = 'HeWearsSpandex/apps';
 const GITHUB_BRANCH = 'main';
 
-// Shared Supabase client with sessionStorage to bypass Edge tracking prevention
+// Cookie-based storage adapter — persists across page navigations
+// and isn't blocked by Edge tracking prevention like localStorage is
+const cookieStorage = {
+  getItem: (key) => {
+    const match = document.cookie.match(new RegExp('(^| )' + key + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+  },
+  setItem: (key, value) => {
+    document.cookie = `${key}=${encodeURIComponent(value)};path=/;max-age=86400;SameSite=Lax`;
+  },
+  removeItem: (key) => {
+    document.cookie = `${key}=;path=/;max-age=0`;
+  }
+};
+
+// Shared Supabase client — available to all pages
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
-    storage: window.sessionStorage,
+    storage: cookieStorage,
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true
