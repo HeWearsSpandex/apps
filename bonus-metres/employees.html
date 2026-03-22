@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JHB — Employee Management</title>
+  <style>
+    /* ── CONFIG ── paste your token into the JS below, not here */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red:     #c00;
+      --red-dk:  #900;
+      --red-lt:  #fff0f0;
+      --gold:    #f9a825;
+      --green:   #2a9d2a;
+      --orange:  #e65100;
+      --grey:    #f4f5f7;
+      --border:  #e0e0e0;
+      --text:    #1a1a1a;
+      --muted:   #888;
+      --white:   #fff;
+      --shadow:  0 2px 8px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.14);
+      --radius:  10px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--grey);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    .topbar img  { height: 32px; }
+    .topbar h1   { font-size: 15px; font-weight: 600; color: var(--text); }
+    .topbar-sep  { width: 1px; height: 20px; background: var(--border); }
+
+    /* ── MAIN LAYOUT ── */
+    .page { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .toolbar-title { font-size: 20px; font-weight: 700; flex: 1; }
+    .search-box {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      width: 200px;
+      outline: none;
+      background: var(--white);
+    }
+    .search-box:focus { border-color: var(--red); }
+
+    .filter-pills { display: flex; gap: 6px; }
+    .pill {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--white);
+      color: var(--muted);
+      transition: all 0.15s;
+    }
+    .pill.active        { background: var(--red); color: var(--white); border-color: var(--red); }
+    .pill.active-green  { background: var(--green); color: var(--white); border-color: var(--green); }
+    .pill.active-orange { background: var(--orange); color: var(--white); border-color: var(--orange); }
+
+    /* ── BTN ── */
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary   { background: var(--red); color: var(--white); }
+    .btn-primary:hover { background: var(--red-dk); }
+    .btn-ghost     { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--red); color: var(--red); }
+    .btn-danger    { background: #fee; color: var(--red); border: 1px solid #fcc; }
+    .btn-danger:hover { background: var(--red); color: var(--white); }
+    .btn-success   { background: var(--green); color: var(--white); }
+    .btn-success:hover { opacity: 0.9; }
+    .btn:disabled  { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── EMPLOYEE GRID ── */
+    .employee-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+    }
+
+    .emp-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: box-shadow 0.15s, transform 0.15s;
+      position: relative;
+      border: 2px solid transparent;
+    }
+    .emp-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+    .emp-card.selected { border-color: var(--red); }
+
+    .emp-avatar {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #eee;
+      border: 3px solid var(--border);
+    }
+    .emp-avatar.gold   { border-color: var(--gold); }
+    .emp-avatar.active { border-color: var(--green); }
+    .emp-avatar.probation { border-color: var(--orange); }
+    .emp-avatar.inactive { border-color: #ccc; filter: grayscale(60%); }
+
+    .emp-name {
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .emp-nick {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: -6px;
+    }
+    .emp-initials {
+      font-size: 11px;
+      background: var(--grey);
+      padding: 2px 8px;
+      border-radius: 10px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .status-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+    .status-badge.active    { background: var(--green); }
+    .status-badge.inactive  { background: #ccc; }
+    .status-badge.probation { background: var(--orange); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+      grid-column: 1 / -1;
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { font-size: 15px; }
+
+    /* ── MODAL OVERLAY ── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .overlay.open { display: flex; }
+
+    .modal {
+      background: var(--white);
+      border-radius: 14px;
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: slideUp 0.2s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .modal-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-header h2 { font-size: 17px; font-weight: 700; }
+    .modal-close {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: var(--grey);
+      cursor: pointer;
+      font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted);
+    }
+    .modal-close:hover { background: var(--border); }
+
+    .modal-body { padding: 20px 24px; }
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    /* ── FORM ── */
+    .form-group { margin-bottom: 16px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
+    input[type=text], input[type=email], input[type=date], select {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      background: var(--white);
+      transition: border-color 0.15s;
+    }
+    input:focus, select:focus { border-color: var(--red); }
+    .field-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    /* ── PHOTO UPLOAD ── */
+    .photo-upload-wrap {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .photo-preview {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--border);
+      background: var(--grey);
+      flex-shrink: 0;
+    }
+    .photo-upload-btn {
+      flex: 1;
+    }
+    .photo-upload-btn label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: var(--grey);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--muted);
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: 400;
+      transition: border-color 0.15s;
+      width: 100%;
+      justify-content: center;
+    }
+    .photo-upload-btn label:hover { border-color: var(--red); color: var(--red); }
+    .photo-upload-btn input { display: none; }
+
+    /* ── STATUS COLOURS in select ── */
+    .status-active    { color: var(--green); }
+    .status-inactive  { color: var(--muted); }
+    .status-probation { color: var(--orange); }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #222;
+      color: var(--white);
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      z-index: 999;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      animation: fadeIn 0.2s ease;
+    }
+    .toast.show { display: flex; }
+    .toast.success { background: var(--green); }
+    .toast.error   { background: var(--red); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── SPINNER ── */
+    .spinner-wrap { display: flex; justify-content: center; padding: 60px; grid-column: 1/-1; }
+    .spinner { width: 36px; height: 36px; border: 4px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── CONFIRM DIALOG ── */
+    .confirm-msg { font-size: 14px; line-height: 1.6; color: var(--text); }
+    .confirm-msg strong { color: var(--red); }
+
+    /* ── STATS BAR ── */
+    .stats-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .stat-chip {
+      background: var(--white);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 12px;
+      box-shadow: var(--shadow);
+      color: var(--muted);
+    }
+    .stat-chip strong { color: var(--text); }
+
+    @media (max-width: 480px) {
+      .form-row { grid-template-columns: 1fr; }
+      .toolbar  { flex-direction: column; align-items: stretch; }
+      .search-box { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <img src="/img/JHB Logo.png" alt="JHB">
+      <div class="topbar-sep"></div>
+      <h1>Employee Management</h1>
+    </div>
+    <button class="btn btn-primary" onclick="openAddModal()">+ Add Employee</button>
+  </div>
+
+  <div class="page">
+
+    <div class="stats-bar" id="statsBar"></div>
+
+    <div class="toolbar">
+      <div class="toolbar-title" id="listTitle">Employees</div>
+      <input class="search-box" type="text" placeholder="Search name or initials…" oninput="filterEmployees()" id="searchBox">
+      <div class="filter-pills">
+        <span class="pill active" data-filter="all"    onclick="setFilter('all',this)">All</span>
+        <span class="pill"        data-filter="active"    onclick="setFilter('active',this)">Active</span>
+        <span class="pill"        data-filter="probation" onclick="setFilter('probation',this)">Probation</span>
+        <span class="pill"        data-filter="inactive"  onclick="setFilter('inactive',this)">Inactive</span>
+      </div>
+    </div>
+
+    <div class="employee-grid" id="employeeGrid">
+      <div class="spinner-wrap"><div class="spinner"></div></div>
+    </div>
+
+  </div>
+
+  <!-- Add / Edit Modal -->
+  <div class="overlay" id="empModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">Add Employee</h2>
+        <button class="modal-close" onclick="closeModal('empModal')">✕</button>
+      </div>
+      <div class="modal-body">
+
+        <div class="photo-upload-wrap">
+          <img class="photo-preview" id="photoPreview" src="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 72 72%22><circle cx=%2236%22 cy=%2236%22 r=%2236%22 fill=%22%23eee%22/></svg>'">
+          <div class="photo-upload-btn">
+            <label>📷 Upload photo
+              <input type="file" id="photoInput" accept="image/*" onchange="previewPhoto(this)">
+            </label>
+            <div class="field-hint">Will be saved as Firstname Lastname_cvface1.png</div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>First Name *</label>
+            <input type="text" id="fFirstName" placeholder="Edward">
+          </div>
+          <div class="form-group">
+            <label>Last Name *</label>
+            <input type="text" id="fLastName" placeholder="Shanley">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Nickname <span style="font-weight:400;text-transform:none">(shown on leaderboard if set)</span></label>
+          <input type="text" id="fNickname" placeholder="e.g. Ed">
+        </div>
+
+        <div class="form-group">
+          <label>Email Address *</label>
+          <input type="email" id="fEmail" placeholder="edward@jhbukltd.co.uk">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Initials *</label>
+            <input type="text" id="fInitials" placeholder="ES" maxlength="5" style="text-transform:uppercase">
+            <div class="field-hint">Used for job matching (e.g. ES, BT)</div>
+          </div>
+          <div class="form-group">
+            <label>Status *</label>
+            <select id="fStatus">
+              <option value="active">Active</option>
+              <option value="probation">On Probation</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" id="fStartDate">
+          </div>
+          <div class="form-group">
+            <label>Leaving Date</label>
+            <input type="date" id="fLeavingDate">
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('empModal')">Cancel</button>
+        <button class="btn btn-primary" id="saveBtn" onclick="saveEmployee()">Save Employee</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Modal -->
+  <div class="overlay" id="confirmModal">
+    <div class="modal" style="max-width:380px">
+      <div class="modal-header">
+        <h2 id="confirmTitle">Confirm</h2>
+        <button class="modal-close" onclick="closeModal('confirmModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="confirm-msg" id="confirmMsg"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('confirmModal')">Cancel</button>
+        <button class="btn btn-danger" id="confirmBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ─────────────────────────────────────────────
+    // CONFIG — paste your GitHub token here
+    // ─────────────────────────────────────────────
+    const GITHUB_TOKEN  = 'PASTE_YOUR_TOKEN_HERE';
+    const GITHUB_REPO   = 'HeWearsSpandex/apps';
+    const GITHUB_BRANCH = 'main';
+    const EMPLOYEES_PATH = 'data/employees.json';
+    const PEOPLE_JS_PATH = 'js/people.js';
+    const IMG_PATH_REPO  = 'img';
+    const IMG_PATH_WEB   = '/img/';
+    // ─────────────────────────────────────────────
+
+    let allEmployees  = [];
+    let currentFilter = 'all';
+    let editingId     = null;
+    let photoFile     = null;
+    let fileSHAs      = {}; // cache GitHub file SHAs
+
+    // ── GitHub API helpers ──────────────────────
+
+    async function ghGet(path) {
+      const r = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${path}?ref=${GITHUB_BRANCH}`, {
+        headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
+      });
+      if (!r.ok) throw new Error(`GitHub GET failed: ${r.status}`);
+      return r.json();
+    }
+
+    async function ghPut(path, content, message, sha) {
+      const body = { message, content: btoa(unescape(encodeURIComponent(content))), branch: GITHUB_BRANCH };
+      if (sha) body.sha = sha;
+      const r = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`, {
+        method: 'PUT',
+        headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.message || `GitHub PUT failed: ${r.status}`); }
+      return r.json();
+    }
+
+    async function ghPutBinary(path, base64content, message, sha) {
+      const body = { message, content: base64content, branch: GITHUB_BRANCH };
+      if (sha) body.sha = sha;
+      const r = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`, {
+        method: 'PUT',
+        headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.message || `GitHub binary PUT failed: ${r.status}`); }
+      return r.json();
+    }
+
+    // ── Load employees ───────────────────────────
+
+    async function loadEmployees() {
+      try {
+        const file = await ghGet(EMPLOYEES_PATH);
+        fileSHAs[EMPLOYEES_PATH] = file.sha;
+        const json = decodeURIComponent(escape(atob(file.content.replace(/\n/g, ''))));
+        allEmployees = JSON.parse(json);
+      } catch (e) {
+        // File doesn't exist yet — start fresh
+        allEmployees = [];
+      }
+      renderGrid();
+      renderStats();
+    }
+
+    // ── Save employees.json to GitHub ────────────
+
+    async function saveEmployeesJSON(commitMsg) {
+      const content = JSON.stringify(allEmployees, null, 2);
+      const res = await ghPut(EMPLOYEES_PATH, content, commitMsg, fileSHAs[EMPLOYEES_PATH] || null);
+      fileSHAs[EMPLOYEES_PATH] = res.content.sha;
+    }
+
+    // ── Update people.js in GitHub ───────────────
+
+    async function updatePeopleJS() {
+      const active = allEmployees
+        .filter(e => e.status === 'active' || e.status === 'probation')
+        .map(e => `'${e.full_name}'`);
+      const content = `const PEOPLE = [\n  ${active.join(',')}\n];\n`;
+      try {
+        const file = await ghGet(PEOPLE_JS_PATH);
+        fileSHAs[PEOPLE_JS_PATH] = file.sha;
+      } catch(e) {}
+      await ghPut(PEOPLE_JS_PATH, content, 'Auto-update PEOPLE list from employee management', fileSHAs[PEOPLE_JS_PATH] || null);
+    }
+
+    // ── Upload photo to GitHub ───────────────────
+
+    async function uploadPhoto(file, fullName) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const base64 = reader.result.split(',')[1];
+            const fileName = `${fullName}_cvface1.png`;
+            const path = `${IMG_PATH_REPO}/${fileName}`;
+            // Check if existing
+            let sha = null;
+            try { const f = await ghGet(path); sha = f.sha; } catch(e) {}
+            await ghPutBinary(path, base64, `Upload photo for ${fullName}`, sha);
+            resolve(`${IMG_PATH_WEB}${encodeURIComponent(fileName)}`);
+          } catch(e) { reject(e); }
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // ── Render ───────────────────────────────────
+
+    function renderGrid() {
+      const grid    = document.getElementById('employeeGrid');
+      const search  = document.getElementById('searchBox').value.toLowerCase();
+      let filtered  = allEmployees.filter(e => {
+        const matchSearch = !search ||
+          e.full_name.toLowerCase().includes(search) ||
+          (e.nickname || '').toLowerCase().includes(search) ||
+          e.initials.toLowerCase().includes(search);
+        const matchFilter = currentFilter === 'all' || e.status === currentFilter;
+        return matchSearch && matchFilter;
+      });
+
+      if (!filtered.length) {
+        grid.innerHTML = `<div class="empty-state"><div class="icon">👥</div><p>No employees found</p></div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(e => {
+        const photoUrl = `${IMG_PATH_WEB}${encodeURIComponent(e.full_name + '_cvface1.png')}`;
+        const displayName = e.nickname || e.full_name;
+        return `
+          <div class="emp-card" onclick="openEditModal('${e.id}')">
+            <div class="status-badge ${e.status}"></div>
+            <img class="emp-avatar ${e.status}"
+                 src="${photoUrl}"
+                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 72 72%22><circle cx=%2236%22 cy=%2236%22 r=%2236%22 fill=%22%23ddd%22/><text x=%2236%22 y=%2242%22 text-anchor=%22middle%22 font-size=%2224%22 fill=%22%23999%22>${e.full_name.charAt(0)}</text></svg>'"
+                 alt="${e.full_name}">
+            <div class="emp-name">${e.full_name}</div>
+            ${e.nickname ? `<div class="emp-nick">"${e.nickname}"</div>` : ''}
+            <div class="emp-initials">${e.initials}</div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('listTitle').textContent =
+        `${filtered.length} Employee${filtered.length !== 1 ? 's' : ''}`;
+    }
+
+    function renderStats() {
+      const total    = allEmployees.length;
+      const active   = allEmployees.filter(e => e.status === 'active').length;
+      const prob     = allEmployees.filter(e => e.status === 'probation').length;
+      const inactive = allEmployees.filter(e => e.status === 'inactive').length;
+      document.getElementById('statsBar').innerHTML = `
+        <div class="stat-chip">Total: <strong>${total}</strong></div>
+        <div class="stat-chip" style="color:var(--green)">Active: <strong>${active}</strong></div>
+        <div class="stat-chip" style="color:var(--orange)">Probation: <strong>${prob}</strong></div>
+        <div class="stat-chip" style="color:var(--muted)">Inactive: <strong>${inactive}</strong></div>
+      `;
+    }
+
+    // ── Filters ──────────────────────────────────
+
+    function setFilter(filter, el) {
+      currentFilter = filter;
+      document.querySelectorAll('.pill').forEach(p => p.className = 'pill');
+      if (filter === 'active')    el.className = 'pill active-green';
+      else if (filter === 'probation') el.className = 'pill active-orange';
+      else if (filter === 'inactive')  el.className = 'pill active';
+      else el.className = 'pill active';
+      renderGrid();
+    }
+
+    function filterEmployees() { renderGrid(); }
+
+    // ── Modal helpers ─────────────────────────────
+
+    function openModal(id)  { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    function resetForm() {
+      ['fFirstName','fLastName','fNickname','fEmail','fInitials','fStartDate','fLeavingDate']
+        .forEach(id => document.getElementById(id).value = '');
+      document.getElementById('fStatus').value = 'active';
+      document.getElementById('photoPreview').src = '';
+      document.getElementById('photoInput').value = '';
+      photoFile  = null;
+      editingId  = null;
+    }
+
+    function openAddModal() {
+      resetForm();
+      document.getElementById('modalTitle').textContent = 'Add Employee';
+      document.getElementById('saveBtn').textContent    = 'Save Employee';
+      openModal('empModal');
+    }
+
+    function openEditModal(id) {
+      resetForm();
+      const emp = allEmployees.find(e => e.id === id);
+      if (!emp) return;
+      editingId = id;
+
+      const [first, ...rest] = emp.full_name.split(' ');
+      document.getElementById('fFirstName').value   = first;
+      document.getElementById('fLastName').value    = rest.join(' ');
+      document.getElementById('fNickname').value    = emp.nickname || '';
+      document.getElementById('fEmail').value       = emp.email;
+      document.getElementById('fInitials').value    = emp.initials;
+      document.getElementById('fStatus').value      = emp.status;
+      document.getElementById('fStartDate').value   = emp.start_date || '';
+      document.getElementById('fLeavingDate').value = emp.leaving_date || '';
+
+      const photoUrl = `${IMG_PATH_WEB}${encodeURIComponent(emp.full_name + '_cvface1.png')}`;
+      document.getElementById('photoPreview').src = photoUrl;
+
+      document.getElementById('modalTitle').textContent = `Edit — ${emp.full_name}`;
+      document.getElementById('saveBtn').textContent    = 'Save Changes';
+      openModal('empModal');
+    }
+
+    function previewPhoto(input) {
+      if (input.files && input.files[0]) {
+        photoFile = input.files[0];
+        const reader = new FileReader();
+        reader.onload = e => document.getElementById('photoPreview').src = e.target.result;
+        reader.readAsDataURL(photoFile);
+      }
+    }
+
+    // ── Save employee ─────────────────────────────
+
+    async function saveEmployee() {
+      const firstName  = document.getElementById('fFirstName').value.trim();
+      const lastName   = document.getElementById('fLastName').value.trim();
+      const email      = document.getElementById('fEmail').value.trim();
+      const initials   = document.getElementById('fInitials').value.trim().toUpperCase();
+      const status     = document.getElementById('fStatus').value;
+      const nickname   = document.getElementById('fNickname').value.trim();
+      const startDate  = document.getElementById('fStartDate').value;
+      const leavingDate = document.getElementById('fLeavingDate').value;
+
+      if (!firstName || !lastName || !email || !initials) {
+        showToast('Please fill in all required fields', 'error');
+        return;
+      }
+
+      const fullName = `${firstName} ${lastName}`;
+      const btn = document.getElementById('saveBtn');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+
+      try {
+        // Upload photo if provided
+        if (photoFile) {
+          await uploadPhoto(photoFile, fullName);
+        }
+
+        if (editingId) {
+          // Update existing
+          const idx = allEmployees.findIndex(e => e.id === editingId);
+          allEmployees[idx] = { ...allEmployees[idx], full_name: fullName, nickname: nickname || null, email, initials, status, start_date: startDate || null, leaving_date: leavingDate || null, updated_at: new Date().toISOString() };
+          await saveEmployeesJSON(`Update employee: ${fullName}`);
+        } else {
+          // Add new
+          const newEmp = { id: crypto.randomUUID(), full_name: fullName, nickname: nickname || null, email, initials, status, start_date: startDate || null, leaving_date: leavingDate || null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+          allEmployees.push(newEmp);
+          await saveEmployeesJSON(`Add employee: ${fullName}`);
+        }
+
+        // Update people.js
+        await updatePeopleJS();
+
+        closeModal('empModal');
+        renderGrid();
+        renderStats();
+        showToast(`${editingId ? 'Updated' : 'Added'}: ${fullName}`, 'success');
+
+      } catch(e) {
+        showToast(`Error: ${e.message}`, 'error');
+        console.error(e);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = editingId ? 'Save Changes' : 'Save Employee';
+      }
+    }
+
+    // ── Toast ─────────────────────────────────────
+
+    function showToast(msg, type = '') {
+      const t = document.getElementById('toast');
+      t.textContent = type === 'success' ? '✓ ' + msg : type === 'error' ? '✗ ' + msg : msg;
+      t.className = `toast show ${type}`;
+      setTimeout(() => t.className = 'toast', 3500);
+    }
+
+    // ── Init ──────────────────────────────────────
+    loadEmployees();
+  </script>
+</body>
+</html>
