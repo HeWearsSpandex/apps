@@ -695,26 +695,24 @@
       }).sort((a, b) => a.rank - b.rank);
 
       const leaderTotal = racers[0].total;
-      const numLanes    = racers.length;
 
-      // Layout
-      const SVG_W     = 360;
-      const FACE_D    = 28;
-      const PAD_L     = FACE_D + 6;   // left side for face
-      const PAD_R     = 18;            // right side for finish line
-      const LANE_H    = 44;
-      const BAR_H     = 18;
-      const trackW    = SVG_W - PAD_L - PAD_R;
-      const svgH      = numLanes * LANE_H + 10;
+      const SVG_W   = 360;
+      const FACE_D  = 26;          // smaller faces
+      const HALO    = 4;
+      const PAD_L   = FACE_D;      // enough room for leftmost face
+      const PAD_R   = FACE_D;      // enough room for rightmost face
+      const TRACK_Y = 50;
+      const TRACK_H = 6;
+      const trackW  = SVG_W - PAD_L - PAD_R;
+      const LABEL_Y = TRACK_Y + FACE_D / 2 + 14;
+      const svgH    = LABEL_Y + 30;
 
-      // Lane colours
-      const laneColors  = ['#fff8e1', '#f3f3f3', '#fff3e0', '#e8f4fd'];
-      const barColors   = ['#f9a825', '#9e9e9e', '#cd7f32', '#1a73e8'];
-      const barDark     = ['#e65100', '#555', '#7b3f00', '#0d47a1'];
-
-      // Draw icons in parallel
+      // Draw icons — smaller, no halo for non-top-3 to save space
       const icons = await Promise.all(
-        racers.map(r => drawIcon(r.name, r.halo, FACE_D, r.halo ? 4 : 0))
+        racers.map(r => {
+          const fs = r.halo ? FACE_D + HALO * 2 : FACE_D;
+          return drawIcon(r.name, r.halo, FACE_D, r.halo ? HALO : 0);
+        })
       );
 
       const NS  = 'http://www.w3.org/2000/svg';
@@ -724,161 +722,150 @@
       svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
       svg.style.display = 'block';
 
-      // ── Finish line (right edge, behind lanes) ──
-      const finishX = SVG_W - PAD_R;
-      for (let fy = 0; fy < svgH; fy += 6) {
-        const sq = document.createElementNS(NS, 'rect');
-        sq.setAttribute('x', String(finishX));
-        sq.setAttribute('y', String(fy));
-        sq.setAttribute('width', String(PAD_R));
-        sq.setAttribute('height', '3');
-        sq.setAttribute('fill', fy % 12 === 0 ? '#333' : '#fff');
-        svg.appendChild(sq);
+      // Track background
+      const trackBg = document.createElementNS(NS, 'rect');
+      trackBg.setAttribute('x', String(PAD_L));
+      trackBg.setAttribute('y', String(TRACK_Y - TRACK_H / 2));
+      trackBg.setAttribute('width', String(trackW));
+      trackBg.setAttribute('height', String(TRACK_H));
+      trackBg.setAttribute('rx', String(TRACK_H / 2));
+      trackBg.setAttribute('fill', '#e8e8e8');
+      svg.appendChild(trackBg);
+
+      // Leader fill
+      const leaderFill = document.createElementNS(NS, 'rect');
+      leaderFill.setAttribute('x', String(PAD_L));
+      leaderFill.setAttribute('y', String(TRACK_Y - TRACK_H / 2));
+      leaderFill.setAttribute('width', '0');
+      leaderFill.setAttribute('height', String(TRACK_H));
+      leaderFill.setAttribute('rx', String(TRACK_H / 2));
+      leaderFill.setAttribute('fill', '#ffe082');
+      svg.appendChild(leaderFill);
+      setTimeout(() => {
+        leaderFill.style.transition = 'width 1.4s cubic-bezier(0.4,0,0.2,1)';
+        leaderFill.setAttribute('width', String(trackW));
+      }, 200);
+
+      // Calculate raw positions
+      racers.forEach(r => {
+        const pct  = leaderTotal > 0 ? r.total / leaderTotal : 0;
+        const rawX = PAD_L + trackW * pct;
+        r._rawX    = Math.max(PAD_L, Math.min(SVG_W - PAD_R, rawX));
+        r._faceSize = r.halo ? FACE_D + HALO * 2 : FACE_D;
+      });
+
+      // ── Collision resolution for faces ──
+      // Sort by position left to right, push apart if overlapping
+      const byPos = [...racers].sort((a, b) => a._rawX - b._rawX);
+      byPos.forEach(r => { r._faceX = r._rawX; });
+
+      const MIN_FACE_GAP = 4;
+      // Forward pass — push right
+      for (let i = 1; i < byPos.length; i++) {
+        const prev = byPos[i - 1];
+        const curr = byPos[i];
+        const minX = prev._faceX + (prev._faceSize + curr._faceSize) / 2 + MIN_FACE_GAP;
+        if (curr._faceX < minX) curr._faceX = Math.min(SVG_W - PAD_R, minX);
+      }
+      // Backward pass — push left if gone too far right
+      for (let i = byPos.length - 2; i >= 0; i--) {
+        const next = byPos[i + 1];
+        const curr = byPos[i];
+        const maxX = next._faceX - (next._faceSize + curr._faceSize) / 2 - MIN_FACE_GAP;
+        if (curr._faceX > maxX) curr._faceX = Math.max(PAD_L, maxX);
       }
 
-      // ── Lanes ──
-      racers.forEach((racer, i) => {
-        const laneTop  = i * LANE_H;
-        const laneMid  = laneTop + LANE_H / 2;
-        const barTop   = laneMid - BAR_H / 2;
-        const pct      = leaderTotal > 0 ? racer.total / leaderTotal : 0;
-        const fullBarW = trackW * pct;
-        const faceSize = racer.halo ? FACE_D + 8 : FACE_D;
-        const isTop3   = racer.rank <= 3;
-        const colorIdx = isTop3 ? racer.rank - 1 : 3;
-        const barColor = racer.isPlayer && racer.rank > 3 ? '#1a73e8' : barColors[colorIdx];
-        const darkColor = racer.isPlayer && racer.rank > 3 ? '#0d47a1' : barDark[colorIdx];
+      // ── Label positions — start from face position then resolve collisions ──
+      racers.forEach(r => { r._labelX = r._faceX; });
+      const byLabel = [...racers].sort((a, b) => a._labelX - b._labelX);
 
-        // Lane background
-        const laneBg = document.createElementNS(NS, 'rect');
-        laneBg.setAttribute('x', '0');
-        laneBg.setAttribute('y', String(laneTop));
-        laneBg.setAttribute('width', String(SVG_W));
-        laneBg.setAttribute('height', String(LANE_H));
-        laneBg.setAttribute('fill', laneColors[i % laneColors.length]);
-        svg.appendChild(laneBg);
-
-        // Lane divider
-        if (i > 0) {
-          const div = document.createElementNS(NS, 'line');
-          div.setAttribute('x1', '0');
-          div.setAttribute('y1', String(laneTop));
-          div.setAttribute('x2', String(SVG_W));
-          div.setAttribute('y2', String(laneTop));
-          div.setAttribute('stroke', '#e0e0e0');
-          div.setAttribute('stroke-width', '1');
-          svg.appendChild(div);
+      const MIN_LABEL_W = 36; // minimum px between label centres
+      // Forward pass
+      for (let i = 1; i < byLabel.length; i++) {
+        const prev = byLabel[i - 1];
+        const curr = byLabel[i];
+        if (curr._labelX - prev._labelX < MIN_LABEL_W) {
+          curr._labelX = Math.min(SVG_W - 20, prev._labelX + MIN_LABEL_W);
         }
+      }
+      // Backward pass
+      for (let i = byLabel.length - 2; i >= 0; i--) {
+        const next = byLabel[i + 1];
+        const curr = byLabel[i];
+        if (next._labelX - curr._labelX < MIN_LABEL_W) {
+          curr._labelX = Math.max(20, next._labelX - MIN_LABEL_W);
+        }
+      }
 
-        // Track bed (grey full width bar)
-        const trackBed = document.createElementNS(NS, 'rect');
-        trackBed.setAttribute('x', String(PAD_L));
-        trackBed.setAttribute('y', String(barTop));
-        trackBed.setAttribute('width', String(trackW));
-        trackBed.setAttribute('height', String(BAR_H));
-        trackBed.setAttribute('rx', '4');
-        trackBed.setAttribute('fill', '#e0e0e0');
-        svg.appendChild(trackBed);
+      // ── Draw faces — player on top (drawn last) ──
+      // Sort so player is drawn last (highest z-order)
+      const drawOrder = [...racers].sort((a, b) => {
+        if (a.isPlayer) return 1;
+        if (b.isPlayer) return -1;
+        return b.rank - a.rank; // higher rank number = drawn earlier (lower z)
+      });
 
-        // Progress bar — starts at 0, animates to fullBarW
-        const bar = document.createElementNS(NS, 'rect');
-        bar.setAttribute('x', String(PAD_L));
-        bar.setAttribute('y', String(barTop));
-        bar.setAttribute('width', '0');
-        bar.setAttribute('height', String(BAR_H));
-        bar.setAttribute('rx', '4');
-        bar.setAttribute('fill', barColor);
-        svg.appendChild(bar);
+      const faceGroups = {};
 
-        // Bar shine overlay
-        const shine = document.createElementNS(NS, 'rect');
-        shine.setAttribute('x', String(PAD_L));
-        shine.setAttribute('y', String(barTop));
-        shine.setAttribute('width', '0');
-        shine.setAttribute('height', String(BAR_H / 2));
-        shine.setAttribute('rx', '4');
-        shine.setAttribute('fill', 'rgba(255,255,255,0.2)');
-        svg.appendChild(shine);
+      drawOrder.forEach((racer) => {
+        const halfFace  = racer._faceSize / 2;
+        const faceGroup = document.createElementNS(NS, 'g');
+        faceGroup.setAttribute('transform',
+          `translate(${PAD_L - halfFace}, ${TRACK_Y - halfFace})`);
+        faceGroup.style.transition = 'transform 1.4s cubic-bezier(0.4,0,0.2,1)';
+        const faceImg = document.createElementNS(NS, 'image');
+        faceImg.setAttribute('href', icons[racers.indexOf(racer)]);
+        faceImg.setAttribute('width', String(racer._faceSize));
+        faceImg.setAttribute('height', String(racer._faceSize));
+        faceGroup.appendChild(faceImg);
+        svg.appendChild(faceGroup);
+        faceGroups[racer.name] = { group: faceGroup, halfFace, targetX: racer._faceX };
+      });
 
-        // Name on bar
+      // ── Draw labels ──
+      racers.forEach((racer, i) => {
         const shortName = racer.isPlayer && racer.rank > 3
           ? racer.name.split(' ')[0] + ' (You)'
-          : racer.name.split(' ')[0] + ' ' + (racer.name.split(' ')[1] ? racer.name.split(' ')[1][0] + '.' : '');
+          : racer.name.split(' ')[0] + (racer.name.split(' ')[1] ? ' ' + racer.name.split(' ')[1][0] + '.' : '');
+
+        const lx = Math.max(20, Math.min(SVG_W - 20, racer._labelX));
 
         const nameEl = document.createElementNS(NS, 'text');
-        nameEl.setAttribute('x', String(PAD_L + 6));
-        nameEl.setAttribute('y', String(laneMid - 1));
-        nameEl.setAttribute('dominant-baseline', 'central');
-        nameEl.setAttribute('font-size', '8');
+        nameEl.setAttribute('x', String(lx));
+        nameEl.setAttribute('y', String(LABEL_Y));
+        nameEl.setAttribute('text-anchor', 'middle');
+        nameEl.setAttribute('font-size', '7');
         nameEl.setAttribute('font-weight', '500');
-        nameEl.setAttribute('fill', '#fff');
+        nameEl.setAttribute('fill', racer.isPlayer ? '#1a73e8' : '#333');
         nameEl.style.opacity = '0';
         nameEl.textContent = shortName;
         svg.appendChild(nameEl);
 
-        // Metres label — right of bar
         const metresEl = document.createElementNS(NS, 'text');
-        metresEl.setAttribute('x', String(PAD_L + 6));
-        metresEl.setAttribute('y', String(laneMid + 8));
-        metresEl.setAttribute('dominant-baseline', 'central');
+        metresEl.setAttribute('x', String(lx));
+        metresEl.setAttribute('y', String(LABEL_Y + 10));
+        metresEl.setAttribute('text-anchor', 'middle');
         metresEl.setAttribute('font-size', '6');
-        metresEl.setAttribute('fill', 'rgba(255,255,255,0.85)');
+        metresEl.setAttribute('fill', '#aaa');
         metresEl.style.opacity = '0';
         metresEl.textContent = `${Math.round(racer.total).toLocaleString()}m`;
         svg.appendChild(metresEl);
 
-        // Face image — left of lane
-        const faceImg = document.createElementNS(NS, 'image');
-        faceImg.setAttribute('href', icons[i]);
-        faceImg.setAttribute('x', String((PAD_L - faceSize) / 2 - 2));
-        faceImg.setAttribute('y', String(laneMid - faceSize / 2));
-        faceImg.setAttribute('width', String(faceSize));
-        faceImg.setAttribute('height', String(faceSize));
-        svg.appendChild(faceImg);
-
-        // Rank badge
-        const badgeR = 8;
-        const badgeX = 4;
-        const badgeY = laneTop + 4;
-        const badge  = document.createElementNS(NS, 'circle');
-        badge.setAttribute('cx', String(badgeX + badgeR));
-        badge.setAttribute('cy', String(badgeY + badgeR));
-        badge.setAttribute('r', String(badgeR));
-        badge.setAttribute('fill', barColor);
-        svg.appendChild(badge);
-
-        const badgeTxt = document.createElementNS(NS, 'text');
-        badgeTxt.setAttribute('x', String(badgeX + badgeR));
-        badgeTxt.setAttribute('y', String(badgeY + badgeR + 1));
-        badgeTxt.setAttribute('text-anchor', 'middle');
-        badgeTxt.setAttribute('dominant-baseline', 'central');
-        badgeTxt.setAttribute('font-size', '7');
-        badgeTxt.setAttribute('font-weight', '500');
-        badgeTxt.setAttribute('fill', '#fff');
-        badgeTxt.textContent = racer.isPlayer && racer.rank > 3 ? '★' : `${racer.rank}`;
-        svg.appendChild(badgeTxt);
-
-        // ── Animate bar growing ──
         setTimeout(() => {
-          const duration = 1200;
-          const start    = performance.now();
-          function grow(now) {
-            const t    = Math.min((now - start) / duration, 1);
-            const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
-            const w    = fullBarW * ease;
-            bar.setAttribute('width', String(w));
-            shine.setAttribute('width', String(w));
-            if (t < 1) requestAnimationFrame(grow);
-            else {
-              // Show labels once bar is done
-              nameEl.style.transition   = 'opacity 0.3s ease';
-              metresEl.style.transition = 'opacity 0.3s ease';
-              nameEl.style.opacity   = '1';
-              metresEl.style.opacity = '1';
-            }
-          }
-          requestAnimationFrame(grow);
-        }, 200 + i * 150);
+          nameEl.style.transition   = 'opacity 0.4s ease';
+          metresEl.style.transition = 'opacity 0.4s ease';
+          nameEl.style.opacity   = '1';
+          metresEl.style.opacity = '1';
+        }, 200 + i * 100 + 800);
+      });
+
+      // ── Animate faces to final positions ──
+      racers.forEach((racer, i) => {
+        const fg = faceGroups[racer.name];
+        setTimeout(() => {
+          fg.group.setAttribute('transform',
+            `translate(${fg.targetX - fg.halfFace}, ${TRACK_Y - fg.halfFace})`);
+        }, 200 + i * 100);
       });
 
       document.getElementById('racetrack').appendChild(svg);
