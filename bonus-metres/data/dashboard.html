@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JHB — Admin Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red:      #c00;
+      --red-dk:   #900;
+      --red-lt:   #fff0f0;
+      --gold:     #f9a825;
+      --green:    #2a9d2a;
+      --green-lt: #f0fff0;
+      --orange:   #e65100;
+      --orange-lt:#fff3e0;
+      --blue:     #1a73e8;
+      --blue-lt:  #e8f0fe;
+      --grey:     #f4f5f7;
+      --border:   #e0e0e0;
+      --text:     #1a1a1a;
+      --muted:    #888;
+      --white:    #fff;
+      --shadow:   0 2px 8px rgba(0,0,0,0.08);
+      --shadow-lg:0 8px 32px rgba(0,0,0,0.14);
+      --radius:   10px;
+      --sidebar:  220px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--grey);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── LOGIN SCREEN ── */
+    .login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a1a2e 0%, #c00 100%);
+      padding: 20px;
+    }
+    .login-card {
+      background: var(--white);
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+    .login-card img   { max-width: 120px; margin-bottom: 24px; }
+    .login-card h1    { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .login-card p     { font-size: 13px; color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
+    .login-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+      margin-bottom: 12px;
+      transition: border-color 0.15s;
+    }
+    .login-input:focus { border-color: var(--red); }
+    .login-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--red);
+      color: var(--white);
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .login-btn:hover    { background: var(--red-dk); }
+    .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .login-msg {
+      margin-top: 14px;
+      font-size: 13px;
+      min-height: 20px;
+      line-height: 1.5;
+    }
+    .login-msg.success { color: var(--green); }
+    .login-msg.error   { color: var(--red); }
+
+    /* ── APP SHELL ── */
+    .app { display: none; min-height: 100vh; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: var(--sidebar);
+      height: 100vh;
+      background: #1a1a2e;
+      display: flex;
+      flex-direction: column;
+      z-index: 50;
+      overflow: hidden;
+    }
+    .sidebar-logo {
+      padding: 20px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sidebar-logo img { height: 28px; }
+    .sidebar-logo span {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.9);
+      letter-spacing: 0.3px;
+    }
+
+    .sidebar-nav { flex: 1; padding: 12px 8px; overflow-y: auto; }
+    .nav-section {
+      font-size: 10px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 12px 8px 6px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      color: rgba(255,255,255,0.65);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s;
+      margin-bottom: 2px;
+    }
+    .nav-item:hover  { background: rgba(255,255,255,0.08); color: #fff; }
+    .nav-item.active { background: var(--red); color: #fff; }
+    .nav-item .icon  { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-badge {
+      margin-left: auto;
+      background: var(--red);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 10px;
+      min-width: 18px;
+      text-align: center;
+    }
+    .nav-item.active .nav-badge { background: rgba(255,255,255,0.3); }
+
+    .sidebar-footer {
+      padding: 12px 8px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+    }
+    .sidebar-user-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--red);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .sidebar-user-info { flex: 1; min-width: 0; }
+    .sidebar-user-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.9);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sidebar-user-role {
+      font-size: 10px;
+      color: rgba(255,255,255,0.4);
+      text-transform: capitalize;
+    }
+    .logout-btn {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.4);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+      border-radius: 4px;
+      transition: color 0.15s;
+    }
+    .logout-btn:hover { color: rgba(255,255,255,0.9); }
+
+    /* ── MAIN CONTENT ── */
+    .main {
+      margin-left: var(--sidebar);
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      margin-bottom: 24px;
+    }
+    .page-header h2 { font-size: 22px; font-weight: 700; }
+    .page-header p  { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+    /* ── STATS ROW ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .stat-card .stat-icon { font-size: 22px; margin-bottom: 4px; }
+    .stat-card .stat-val  { font-size: 26px; font-weight: 700; line-height: 1; }
+    .stat-card .stat-lbl  { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+    .stat-card .stat-sub  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .stat-card.green .stat-val { color: var(--green); }
+    .stat-card.red   .stat-val { color: var(--red); }
+    .stat-card.gold  .stat-val { color: var(--gold); }
+    .stat-card.blue  .stat-val { color: var(--blue); }
+
+    /* ── GRID LAYOUT ── */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .panel {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .panel.full { grid-column: 1 / -1; }
+    .panel-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .panel-header h3 {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel-body { padding: 16px 18px; }
+
+    /* ── TASK ITEMS ── */
+    .task-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .task-item:last-child { border-bottom: none; }
+    .task-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    .task-icon.warn    { background: var(--orange-lt); }
+    .task-icon.info    { background: var(--blue-lt); }
+    .task-icon.success { background: var(--green-lt); }
+    .task-icon.danger  { background: var(--red-lt); }
+    .task-body { flex: 1; min-width: 0; }
+    .task-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .task-desc  { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+    .task-action {
+      font-size: 11px;
+      color: var(--blue);
+      cursor: pointer;
+      text-decoration: underline;
+      margin-top: 4px;
+      display: inline-block;
+    }
+    .all-clear {
+      text-align: center;
+      padding: 24px;
+      color: var(--green);
+      font-size: 14px;
+    }
+    .all-clear .icon { font-size: 36px; margin-bottom: 8px; }
+
+    /* ── LEAVER / PROBATION ITEMS ── */
+    .people-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .people-item:last-child { border-bottom: none; }
+    .people-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 2px solid var(--border);
+    }
+    .people-name  { font-size: 13px; font-weight: 600; flex: 1; }
+    .people-meta  { font-size: 11px; color: var(--muted); }
+    .days-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      white-space: nowrap;
+    }
+    .days-badge.urgent  { background: var(--red-lt);    color: var(--red); }
+    .days-badge.soon    { background: var(--orange-lt); color: var(--orange); }
+    .days-badge.future  { background: var(--blue-lt);   color: var(--blue); }
+
+    /* ── QUICK ACTIONS ── */
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+    }
+    .action-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 12px;
+      background: var(--grey);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s;
+      color: var(--text);
+    }
+    .action-btn:hover { border-color: var(--red); background: var(--red-lt); }
+    .action-btn .action-icon { font-size: 24px; }
+    .action-btn .action-label { font-size: 12px; font-weight: 600; text-align: center; }
+
+    /* ── SPINNER ── */
+    .spin-wrap { display: flex; justify-content: center; padding: 30px; }
+    .spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      padding: 12px 18px; border-radius: 10px;
+      font-size: 13px; font-weight: 500;
+      box-shadow: var(--shadow-lg); z-index: 999;
+      display: none; align-items: center; gap: 8px;
+      color: #fff;
+    }
+    .toast.show    { display: flex; }
+    .toast.success { background: var(--green); }
+    .toast.error   { background: var(--red); }
+    .toast.info    { background: var(--blue); }
+
+    /* ── SYNC STATUS ── */
+    .sync-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 4px;
+    }
+    .sync-dot.ok      { background: var(--green); }
+    .sync-dot.warning { background: var(--orange); }
+    .sync-dot.error   { background: var(--red); }
+
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .main { margin-left: 0; padding: 16px; }
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── LOGIN SCREEN ── -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <img src="/img/JHB Logo.png" alt="JHB">
+      <h1>Admin Portal</h1>
+      <p>Enter your email address and we'll send you a magic link to sign in securely.</p>
+      <input class="login-input" type="email" id="loginEmail"
+        placeholder="your@jhbukltd.co.uk"
+        onkeydown="if(event.key==='Enter') sendMagicLink()">
+      <button class="login-btn" id="loginBtn" onclick="sendMagicLink()">
+        Send Magic Link →
+      </button>
+      <div class="login-msg" id="loginMsg"></div>
+    </div>
+  </div>
+
+  <!-- ── APP SHELL ── -->
+  <div class="app" id="app">
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-logo">
+        <img src="/img/JHB Logo.png" alt="JHB">
+        <span>Bonus Admin</span>
+      </div>
+
+      <div class="sidebar-nav">
+        <div class="nav-section">Main</div>
+        <a class="nav-item active" href="dashboard.html">
+          <span class="icon">🏠</span> Dashboard
+          <span class="nav-badge" id="taskBadge" style="display:none">0</span>
+        </a>
+        <a class="nav-item" href="employees.html">
+          <span class="icon">👥</span> Employees
+        </a>
+
+        <div class="nav-section">Operations</div>
+        <a class="nav-item" href="#" onclick="showToast('Month End coming soon', 'info')">
+          <span class="icon">📅</span> Month End
+        </a>
+        <a class="nav-item" href="#" onclick="showToast('Finance view coming soon', 'info')">
+          <span class="icon">💷</span> Finance
+        </a>
+        <a class="nav-item" href="#" onclick="showToast('Notifications coming soon', 'info')">
+          <span class="icon">🔔</span> Notifications
+        </a>
+
+        <div class="nav-section">System</div>
+        <a class="nav-item" href="#" onclick="showToast('Audit log coming soon', 'info')">
+          <span class="icon">📋</span> Audit Log
+        </a>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-user-avatar" id="userAvatar">?</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="userName">Loading…</div>
+            <div class="sidebar-user-role" id="userRole">—</div>
+          </div>
+          <button class="logout-btn" onclick="signOut()" title="Sign out">⏻</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main content -->
+    <main class="main">
+      <div class="page-header">
+        <h2>Dashboard</h2>
+        <p id="dashSubtitle">Loading…</p>
+      </div>
+
+      <!-- Stats row -->
+      <div class="stats-row" id="statsRow">
+        <div class="spin-wrap" style="grid-column:1/-1"><div class="spinner"></div></div>
+      </div>
+
+      <!-- Dashboard grid -->
+      <div class="dashboard-grid" id="dashGrid" style="display:none">
+
+        <!-- Tasks panel -->
+        <div class="panel">
+          <div class="panel-header">
+            <h3>⚠️ Tasks <span id="taskCount" style="font-weight:400;color:var(--muted);font-size:12px;"></span></h3>
+          </div>
+          <div class="panel-body" id="tasksPanel">
+            <div class="spin-wrap"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- Upcoming leavers -->
+        <div class="panel">
+          <div class="panel-header">
+            <h3>🚪 Upcoming Leavers</h3>
+          </div>
+          <div class="panel-body" id="leaversPanel">
+            <div class="spin-wrap"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- On probation -->
+        <div class="panel">
+          <div class="panel-header">
+            <h3>🔍 On Probation</h3>
+          </div>
+          <div class="panel-body" id="probationPanel">
+            <div class="spin-wrap"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- Leaderboard sync status -->
+        <div class="panel">
+          <div class="panel-header">
+            <h3>🔄 Leaderboard Sync</h3>
+          </div>
+          <div class="panel-body" id="syncPanel">
+            <div class="spin-wrap"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="panel full">
+          <div class="panel-header">
+            <h3>⚡ Quick Actions</h3>
+          </div>
+          <div class="panel-body">
+            <div class="actions-grid">
+              <a class="action-btn" href="employees.html">
+                <span class="action-icon">👥</span>
+                <span class="action-label">Manage Employees</span>
+              </a>
+              <a class="action-btn" href="#" onclick="syncLeaderboard(event)">
+                <span class="action-icon">🔄</span>
+                <span class="action-label">Sync Leaderboard</span>
+              </a>
+              <a class="action-btn" href="#" onclick="showToast('Month End coming soon', 'info')">
+                <span class="action-icon">📅</span>
+                <span class="action-label">Run Month End</span>
+              </a>
+              <a class="action-btn" href="#" onclick="showToast('Notifications coming soon', 'info')">
+                <span class="action-icon">🔔</span>
+                <span class="action-label">Send Notifications</span>
+              </a>
+              <a class="action-btn" href="/bonus-metres/this-month.html" target="_blank">
+                <span class="action-icon">🏆</span>
+                <span class="action-label">View Leaderboard</span>
+              </a>
+              <a class="action-btn" href="/bonus-metres/index.html" target="_blank">
+                <span class="action-icon">🗺️</span>
+                <span class="action-label">View Map</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    // ─────────────────────────────────────────────
+    // CONFIG
+    // ─────────────────────────────────────────────
+    const SUPABASE_URL  = 'https://oxgehlmalbvppjmdaswn.supabase.co';
+    const SUPABASE_KEY  = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
+    const GITHUB_REPO   = 'HeWearsSpandex/apps';
+    const GITHUB_BRANCH = 'main';
+    const PEOPLE_JS_PATH = 'js/people.js';
+    const IMG_PATH_WEB   = '/img/';
+    // ─────────────────────────────────────────────
+
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser   = null;
+    let currentAdmin  = null;
+    let allEmployees  = [];
+    let githubToken   = sessionStorage.getItem('gh_token') || '';
+    let fileSHAs      = {};
+
+    // ── Auth ─────────────────────────────────────
+
+    async function sendMagicLink() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const msg   = document.getElementById('loginMsg');
+      const btn   = document.getElementById('loginBtn');
+      if (!email) { msg.textContent = 'Please enter your email'; msg.className = 'login-msg error'; return; }
+
+      btn.disabled    = true;
+      btn.textContent = 'Sending…';
+      msg.textContent = '';
+      msg.className   = 'login-msg';
+
+      const { error } = await sb.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: `${location.origin}/bonus-metres/dashboard.html` }
+      });
+
+      if (error) {
+        msg.textContent = '✗ ' + error.message;
+        msg.className   = 'login-msg error';
+        btn.disabled    = false;
+        btn.textContent = 'Send Magic Link →';
+      } else {
+        msg.innerHTML   = `✓ Magic link sent to <strong>${email}</strong><br>Check your inbox and click the link to sign in.`;
+        msg.className   = 'login-msg success';
+        btn.textContent = 'Link Sent ✓';
+      }
+    }
+
+    async function signOut() {
+      await sb.auth.signOut();
+      sessionStorage.removeItem('gh_token');
+      location.reload();
+    }
+
+    async function checkAuth() {
+      // Handle magic link token in URL hash
+      const { data: { session }, error } = await sb.auth.getSession();
+
+      if (!session) {
+        // Show login
+        document.getElementById('loginScreen').style.display = 'flex';
+        return;
+      }
+
+      currentUser = session.user;
+
+      // Check admin_users table
+      const { data: adminData, error: adminError } = await sb
+        .from('admin_users')
+        .select('*')
+        .eq('id', currentUser.id)
+        .eq('active', true)
+        .single();
+
+      if (adminError || !adminData) {
+        await sb.auth.signOut();
+        const msg = document.getElementById('loginMsg');
+        msg.textContent = '✗ You do not have admin access. Contact your system administrator.';
+        msg.className   = 'login-msg error';
+        document.getElementById('loginScreen').style.display = 'flex';
+        return;
+      }
+
+      currentAdmin = adminData;
+      showApp();
+    }
+
+    function showApp() {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('app').style.display         = 'block';
+
+      // Set user info in sidebar
+      const initials = currentAdmin.name
+        ? currentAdmin.name.split(' ').map(n => n[0]).join('').toUpperCase()
+        : currentUser.email[0].toUpperCase();
+      document.getElementById('userAvatar').textContent   = initials;
+      document.getElementById('userName').textContent     = currentAdmin.name || currentUser.email;
+      document.getElementById('userRole').textContent     = currentAdmin.role.replace('_', ' ');
+      document.getElementById('dashSubtitle').textContent =
+        `Welcome back, ${currentAdmin.name || 'Admin'} — ${new Date().toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}`;
+
+      loadDashboard();
+    }
+
+    // ── Load dashboard data ───────────────────────
+
+    async function loadDashboard() {
+      try {
+        // Load employees from Supabase
+        const { data, error } = await sb.from('employees').select('*').order('full_name');
+        if (error) throw error;
+        allEmployees = data;
+
+        renderStats();
+        await renderTasks();
+        renderLeavers();
+        renderProbation();
+        await renderSyncStatus();
+
+        document.getElementById('dashGrid').style.display = 'grid';
+      } catch(e) {
+        showToast('Error loading dashboard: ' + e.message, 'error');
+      }
+    }
+
+    // ── Stats row ─────────────────────────────────
+
+    function renderStats() {
+      const total    = allEmployees.length;
+      const active   = allEmployees.filter(e => e.status === 'active').length;
+      const prob     = allEmployees.filter(e => e.status === 'probation').length;
+      const today    = new Date().toISOString().split('T')[0];
+      const leaving  = allEmployees.filter(e =>
+        e.status === 'inactive' && e.leaving_date && e.leaving_date >= today
+      ).length;
+
+      const now   = new Date();
+      const month = now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
+      document.getElementById('statsRow').innerHTML = `
+        <div class="stat-card green">
+          <div class="stat-icon">👥</div>
+          <div class="stat-val">${active}</div>
+          <div class="stat-lbl">Active Staff</div>
+          <div class="stat-sub">${prob} on probation</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-icon">📅</div>
+          <div class="stat-val">${month}</div>
+          <div class="stat-lbl">Current Month</div>
+          <div class="stat-sub">Month end not yet run</div>
+        </div>
+        <div class="stat-card ${leaving > 0 ? 'red' : 'green'}">
+          <div class="stat-icon">🚪</div>
+          <div class="stat-val">${leaving}</div>
+          <div class="stat-lbl">Upcoming Leavers</div>
+          <div class="stat-sub">Within next 30 days</div>
+        </div>
+        <div class="stat-card gold">
+          <div class="stat-icon">💷</div>
+          <div class="stat-val">—</div>
+          <div class="stat-lbl">Bonus Pot</div>
+          <div class="stat-sub">Run month end to calculate</div>
+        </div>
+      `;
+    }
+
+    // ── Tasks panel ───────────────────────────────
+
+    async function renderTasks() {
+      const tasks = [];
+
+      // Check for missing photos
+      const missingPhotos = await checkMissingPhotos();
+      if (missingPhotos.length > 0) {
+        tasks.push({
+          icon: '🖼️',
+          type: 'warn',
+          title: `${missingPhotos.length} employee${missingPhotos.length > 1 ? 's' : ''} missing photo`,
+          desc: missingPhotos.slice(0, 3).map(e => e.full_name).join(', ') +
+                (missingPhotos.length > 3 ? ` +${missingPhotos.length - 3} more` : ''),
+          action: 'Fix in Employee Management',
+          href: 'employees.html'
+        });
+      }
+
+      // Check for missing emails
+      const missingEmails = allEmployees.filter(e =>
+        (e.status === 'active' || e.status === 'probation') && !e.email
+      );
+      if (missingEmails.length > 0) {
+        tasks.push({
+          icon: '📧',
+          type: 'warn',
+          title: `${missingEmails.length} employee${missingEmails.length > 1 ? 's' : ''} missing email`,
+          desc: missingEmails.slice(0, 3).map(e => e.full_name).join(', ') +
+                (missingEmails.length > 3 ? ` +${missingEmails.length - 3} more` : ''),
+          action: 'Fix in Employee Management',
+          href: 'employees.html'
+        });
+      }
+
+      // Upcoming leavers within 7 days
+      const today   = new Date();
+      const in7days = new Date(today); in7days.setDate(today.getDate() + 7);
+      const urgentLeavers = allEmployees.filter(e => {
+        if (e.status !== 'inactive' || !e.leaving_date) return false;
+        const ld = new Date(e.leaving_date);
+        return ld >= today && ld <= in7days;
+      });
+      if (urgentLeavers.length > 0) {
+        tasks.push({
+          icon: '🚨',
+          type: 'danger',
+          title: `${urgentLeavers.length} staff leaving within 7 days`,
+          desc: urgentLeavers.map(e => `${e.full_name} (${e.leaving_date})`).join(', '),
+          action: null
+        });
+      }
+
+      // Update task badge
+      const badge = document.getElementById('taskBadge');
+      if (tasks.length > 0) {
+        badge.textContent    = tasks.length;
+        badge.style.display  = 'inline-block';
+      } else {
+        badge.style.display  = 'none';
+      }
+      document.getElementById('taskCount').textContent =
+        tasks.length > 0 ? `(${tasks.length})` : '';
+
+      if (tasks.length === 0) {
+        document.getElementById('tasksPanel').innerHTML = `
+          <div class="all-clear">
+            <div class="icon">✅</div>
+            <div>All clear — no tasks outstanding</div>
+          </div>`;
+        return;
+      }
+
+      document.getElementById('tasksPanel').innerHTML = tasks.map(t => `
+        <div class="task-item">
+          <div class="task-icon ${t.type}">${t.icon}</div>
+          <div class="task-body">
+            <div class="task-title">${t.title}</div>
+            <div class="task-desc">${t.desc}</div>
+            ${t.action ? `<a class="task-action" href="${t.href}">${t.action} →</a>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ── Check missing photos ──────────────────────
+
+    async function checkMissingPhotos() {
+      const active = allEmployees.filter(e =>
+        e.status === 'active' || e.status === 'probation'
+      );
+      const checks = await Promise.all(active.map(async e => {
+        const url = `${IMG_PATH_WEB}${encodeURIComponent(e.full_name + '_cvface1.png')}`;
+        try {
+          const r = await fetch(url, { method: 'HEAD' });
+          return r.ok ? null : e;
+        } catch { return e; }
+      }));
+      return checks.filter(Boolean);
+    }
+
+    // ── Leavers panel ─────────────────────────────
+
+    function renderLeavers() {
+      const today = new Date();
+      const in30  = new Date(today); in30.setDate(today.getDate() + 30);
+
+      const leavers = allEmployees
+        .filter(e => {
+          if (e.status !== 'inactive' || !e.leaving_date) return false;
+          const ld = new Date(e.leaving_date);
+          return ld >= today && ld <= in30;
+        })
+        .sort((a, b) => new Date(a.leaving_date) - new Date(b.leaving_date));
+
+      if (!leavers.length) {
+        document.getElementById('leaversPanel').innerHTML =
+          `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No upcoming leavers in the next 30 days</div>`;
+        return;
+      }
+
+      document.getElementById('leaversPanel').innerHTML = leavers.map(e => {
+        const ld      = new Date(e.leaving_date);
+        const daysLeft = Math.ceil((ld - today) / (1000 * 60 * 60 * 24));
+        const badgeCls = daysLeft <= 7 ? 'urgent' : daysLeft <= 14 ? 'soon' : 'future';
+        const photoUrl = `${IMG_PATH_WEB}${encodeURIComponent(e.full_name + '_cvface1.png')}`;
+        return `
+          <div class="people-item">
+            <img class="people-avatar" src="${photoUrl}"
+              onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 36 36%22><circle cx=%2218%22 cy=%2218%22 r=%2218%22 fill=%22%23ddd%22/><text x=%2218%22 y=%2223%22 text-anchor=%22middle%22 font-size=%2214%22 fill=%22%23999%22>${e.full_name.charAt(0)}</text></svg>'">
+            <div style="flex:1;min-width:0;">
+              <div class="people-name">${e.full_name}</div>
+              <div class="people-meta">Leaving ${new Date(e.leaving_date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}</div>
+            </div>
+            <span class="days-badge ${badgeCls}">${daysLeft}d</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ── Probation panel ───────────────────────────
+
+    function renderProbation() {
+      const onProb = allEmployees.filter(e => e.status === 'probation');
+
+      if (!onProb.length) {
+        document.getElementById('probationPanel').innerHTML =
+          `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No staff currently on probation</div>`;
+        return;
+      }
+
+      document.getElementById('probationPanel').innerHTML = onProb.map(e => {
+        const photoUrl = `${IMG_PATH_WEB}${encodeURIComponent(e.full_name + '_cvface1.png')}`;
+        const since    = e.start_date
+          ? `Since ${new Date(e.start_date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}`
+          : 'Start date not set';
+        return `
+          <div class="people-item">
+            <img class="people-avatar" src="${photoUrl}"
+              onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 36 36%22><circle cx=%2218%22 cy=%2218%22 r=%2218%22 fill=%22%23ddd%22/><text x=%2218%22 y=%2223%22 text-anchor=%22middle%22 font-size=%2214%22 fill=%22%23999%22>${e.full_name.charAt(0)}</text></svg>'"
+              style="border-color:var(--orange)">
+            <div style="flex:1;min-width:0;">
+              <div class="people-name">${e.full_name}</div>
+              <div class="people-meta">${since}</div>
+            </div>
+            <a href="employees.html" style="font-size:11px;color:var(--blue);">Review →</a>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ── Sync status panel ─────────────────────────
+
+    async function renderSyncStatus() {
+      const panel = document.getElementById('syncPanel');
+      try {
+        // Get latest updated_at from employees
+        const lastUpdate = allEmployees.reduce((latest, e) => {
+          return e.updated_at > latest ? e.updated_at : latest;
+        }, '');
+
+        // Get people.js last commit date from GitHub
+        const r = await fetch(
+          `https://api.github.com/repos/${GITHUB_REPO}/commits?path=${PEOPLE_JS_PATH}&per_page=1`,
+          { headers: { Accept: 'application/vnd.github.v3+json' } }
+        );
+        const commits = await r.json();
+        const lastSync = commits?.[0]?.commit?.committer?.date || null;
+
+        const outOfSync = lastUpdate && lastSync && new Date(lastUpdate) > new Date(lastSync);
+        const lastSyncFormatted = lastSync
+          ? new Date(lastSync).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })
+          : 'Unknown';
+
+        panel.innerHTML = `
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="sync-dot ${outOfSync ? 'warning' : 'ok'}"></span>
+              <span style="font-size:13px;font-weight:600;">
+                ${outOfSync ? '⚠️ Leaderboard may be out of sync' : '✅ Leaderboard is up to date'}
+              </span>
+            </div>
+            <div style="font-size:12px;color:var(--muted);">
+              Last synced: ${lastSyncFormatted}
+            </div>
+            ${outOfSync ? `
+            <div style="font-size:12px;color:var(--orange);">
+              Employee data has changed since last sync. Run a sync to update the leaderboard.
+            </div>` : ''}
+            <button class="action-btn" onclick="syncLeaderboard(event)" style="flex-direction:row;justify-content:center;gap:8px;padding:10px;">
+              <span>🔄</span>
+              <span style="font-size:13px;">Sync Leaderboard Now</span>
+            </button>
+          </div>
+        `;
+      } catch(e) {
+        panel.innerHTML = `<div style="font-size:13px;color:var(--muted);">Could not check sync status</div>`;
+      }
+    }
+
+    // ── Sync leaderboard ──────────────────────────
+
+    async function syncLeaderboard(e) {
+      if (e) e.preventDefault();
+      if (!githubToken) {
+        const token = prompt('Enter your GitHub token to sync the leaderboard:');
+        if (!token) return;
+        githubToken = token;
+        sessionStorage.setItem('gh_token', token);
+      }
+      try {
+        const today  = new Date().toISOString().split('T')[0];
+        const active = allEmployees
+          .filter(emp =>
+            emp.status === 'active' ||
+            emp.status === 'probation' ||
+            (emp.status === 'inactive' && emp.leaving_date && emp.leaving_date >= today)
+          )
+          .map(emp => `'${emp.full_name}'`);
+        const content = `const PEOPLE = [\n  ${active.join(',\n  ')}\n];\n`;
+
+        // Get current SHA
+        let sha = null;
+        try {
+          const f = await fetch(
+            `https://api.github.com/repos/${GITHUB_REPO}/contents/${PEOPLE_JS_PATH}?ref=${GITHUB_BRANCH}`,
+            { headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github.v3+json' } }
+          );
+          const fj = await f.json();
+          sha = fj.sha;
+        } catch(err) {}
+
+        const body = { message: 'Manual sync PEOPLE list from dashboard', content: btoa(unescape(encodeURIComponent(content))), branch: GITHUB_BRANCH };
+        if (sha) body.sha = sha;
+
+        const r = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${PEOPLE_JS_PATH}`, {
+          method: 'PUT',
+          headers: { Authorization: `token ${githubToken}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (!r.ok) { const err = await r.json(); throw new Error(err.message); }
+
+        showToast(`✓ Leaderboard synced — ${active.length} active staff`, 'success');
+        await renderSyncStatus();
+      } catch(err) {
+        showToast('Sync failed: ' + err.message, 'error');
+        if (err.message.includes('Bad credentials')) {
+          githubToken = '';
+          sessionStorage.removeItem('gh_token');
+        }
+      }
+    }
+
+    // ── Toast ─────────────────────────────────────
+
+    function showToast(msg, type = 'info') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className   = `toast show ${type}`;
+      setTimeout(() => t.className = 'toast', 4000);
+    }
+
+    // ── Init ──────────────────────────────────────
+
+    // Listen for auth state changes (handles magic link redirect)
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        checkAuth();
+      }
+    });
+
+    checkAuth();
+  </script>
+</body>
+</html>
