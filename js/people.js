@@ -9,7 +9,6 @@ const PEOPLE = [
   'Cameron Gill',
   'Chris Voisey',
   'Christopher Scourfield',
-  'Colby Mathews',
   'Craig Dolan',
   'David Mahon',
   'Edward Shanley',
