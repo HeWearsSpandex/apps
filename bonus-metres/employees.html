@@ -403,6 +403,7 @@
       <h1>Employee Management</h1>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn btn-ghost" onclick="forceSyncPeopleJS()" id="syncBtn" style="font-size:12px;">🔄 Sync Leaderboard</button>
       <button class="btn btn-ghost" onclick="lockSession()" style="font-size:12px;">🔒 Lock</button>
       <button class="btn btn-primary" onclick="openAddModal()">+ Add Employee</button>
     </div>
@@ -652,7 +653,36 @@
       });
     }
 
-    // ── Update people.js — debounced 2s ──────────
+    // ── Force sync people.js ─────────────────────
+
+    async function forceSyncPeopleJS() {
+      if (!GITHUB_TOKEN) {
+        showToast('No GitHub token — please lock and re-enter your token', 'error');
+        return;
+      }
+      const btn = document.getElementById('syncBtn');
+      btn.disabled = true;
+      btn.textContent = '🔄 Syncing…';
+      try {
+        const today  = new Date().toISOString().split('T')[0];
+        const active = allEmployees
+          .filter(e =>
+            e.status === 'active' ||
+            e.status === 'probation' ||
+            (e.status === 'inactive' && e.leaving_date && e.leaving_date >= today)
+          )
+          .map(e => `'${e.full_name}'`);
+        const content = `const PEOPLE = [\n  ${active.join(',\n  ')}\n];\n`;
+        try { const f = await ghGet(PEOPLE_JS_PATH); fileSHAs[PEOPLE_JS_PATH] = f.sha; } catch(e) {}
+        await ghPut(PEOPLE_JS_PATH, content, 'Manual sync PEOPLE list from employee management', fileSHAs[PEOPLE_JS_PATH] || null);
+        showToast(`✓ Leaderboard synced — ${active.length} active staff`, 'success');
+      } catch(e) {
+        showToast('Sync failed: ' + e.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔄 Sync Leaderboard';
+      }
+    }
 
     function schedulePeopleJsUpdate() {
       clearTimeout(peopleJsTimer);
