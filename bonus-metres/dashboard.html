@@ -213,39 +213,27 @@
       console.log('URL hash:', location.hash);
       console.log('URL search:', location.search);
 
-      // Edge blocks localStorage — manually extract tokens from URL hash
+      // Handle OAuth callback — extract tokens from URL hash and let Supabase
+      // set the full session (including fetching the user object) via setSession()
+      // Note: manual cookieStorage writes omitted — setSession() writes via the
+      // adapter automatically, including the user object that getSession() needs.
       if (location.hash && location.hash.includes('access_token')) {
         console.log('Found access_token in hash');
         const params       = new URLSearchParams(location.hash.replace('#', ''));
         const accessToken  = params.get('access_token');
         const refreshToken = params.get('refresh_token');
-        const expiresIn    = params.get('expires_in');
         console.log('access_token found:', !!accessToken);
 
         if (accessToken) {
-          // FIX: also decode the user object from the hash so getSession() returns session.user
-          let userObj = undefined;
-          const userStr = params.get('user');
-          if (userStr) {
-            try { userObj = JSON.parse(decodeURIComponent(userStr)); } catch {}
+          try {
+            const { data, error } = await sb.auth.setSession({
+              access_token:  accessToken,
+              refresh_token: refreshToken || ''
+            });
+            console.log('setSession result — user:', data?.session?.user?.email ?? 'none', '| error:', error?.message ?? 'none');
+          } catch (err) {
+            console.log('setSession failed:', err.message);
           }
-
-          const sessionKey = `sb-${SUPABASE_URL.split('//')[1].split('.')[0]}-auth-token`;
-          console.log('Storing session with key:', sessionKey);
-          const sessionData = {
-            access_token:  accessToken,
-            refresh_token: refreshToken,
-            expires_in:    parseInt(expiresIn || '3600'),
-            expires_at:    Math.floor(Date.now() / 1000) + parseInt(expiresIn || '3600'),
-            token_type:    'bearer',
-            user:          userObj   // ← was missing; caused session.user = undefined
-          };
-          cookieStorage.setItem(sessionKey, JSON.stringify(sessionData));
-          console.log('Session stored in cookie, user:', userObj?.email ?? 'not in hash params');
-
-          // Let Supabase also parse the hash natively — belt and braces
-          try { await sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }); } catch {}
-
           history.replaceState(null, '', location.pathname);
         }
       } else {
