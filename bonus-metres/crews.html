@@ -208,6 +208,7 @@
     .crew-metric.bonus .m-val  { color: var(--gold); }
     .crew-metric.metres .m-val { color: var(--blue); }
     .crew-metric.jobs .m-val   { color: var(--green); }
+    .crew-metric.highlighted   { background: var(--grey); border-radius: 8px; padding: 4px 2px; }
 
     .crew-bar-wrap {
       margin-top: 10px;
@@ -290,7 +291,14 @@
         <span class="size-pill" data-size="5" onclick="setSizePill(this)">5+</span>
       </div>
       <div class="filter-sep"></div>
-      <button class="btn btn-primary" id="analyse-btn" onclick="runAnalysis()">🔍 Analyse</button>
+      <label>Sort By</label>
+      <div class="size-pills" id="sort-pills">
+        <span class="size-pill active" data-sort="bonus"   onclick="setSortPill(this)">Total Bonus</span>
+        <span class="size-pill"        data-sort="avg"     onclick="setSortPill(this)">Avg / Job</span>
+        <span class="size-pill"        data-sort="metres"  onclick="setSortPill(this)">Metres</span>
+        <span class="size-pill"        data-sort="jobs"    onclick="setSortPill(this)">Most Jobs</span>
+      </div>
+      <div class="filter-sep"></div>
     </div>
 
     <!-- Summary stats -->
@@ -330,6 +338,7 @@
   <script>
     let allEmployeeMap = {}; // id -> employee
     let currentSizeFilter = 0;
+    let currentSort = 'bonus';
     let allCrews = [];
 
     // ── Init ──────────────────────────────────────────────────────────────────
@@ -364,6 +373,13 @@
       document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('active'));
       el.classList.add('active');
       currentSizeFilter = parseInt(el.dataset.size);
+      renderCrews();
+    }
+
+    function setSortPill(el) {
+      document.querySelectorAll('#sort-pills .size-pill').forEach(p => p.classList.remove('active'));
+      el.classList.add('active');
+      currentSort = el.dataset.sort;
       renderCrews();
     }
 
@@ -459,6 +475,24 @@
         return c.ids.length === currentSizeFilter;
       });
 
+      // Sort by selected metric
+      const sortFn = {
+        bonus:  (a, b) => b.bonus - a.bonus,
+        avg:    (a, b) => (b.bonus / b.jobs) - (a.bonus / a.jobs),
+        metres: (a, b) => b.metres - a.metres,
+        jobs:   (a, b) => b.jobs - a.jobs,
+      };
+      filtered = [...filtered].sort(sortFn[currentSort] || sortFn.bonus);
+
+      const sortLabels = {
+        bonus:  'Total Bonus',
+        avg:    'Avg / Job',
+        metres: 'Total Metres',
+        jobs:   'Most Jobs',
+      };
+      document.getElementById('results-header').querySelector('h3').textContent =
+        `Top Crews by ${sortLabels[currentSort]}`;
+
       document.getElementById('results-count').textContent =
         `${filtered.length} crew combination${filtered.length !== 1 ? 's' : ''}`;
 
@@ -467,12 +501,23 @@
         return;
       }
 
-      const maxBonus = filtered[0]?.bonus || 1;
+      // Bar is relative to the top value of the current sort metric
+      const topVal = currentSort === 'avg'    ? (filtered[0].bonus / filtered[0].jobs)
+                   : currentSort === 'metres' ? filtered[0].metres
+                   : currentSort === 'jobs'   ? filtered[0].jobs
+                   : filtered[0].bonus;
 
       grid.innerHTML = filtered.map((crew, idx) => {
-        const rank   = idx + 1;
-        const size   = crew.ids.length;
-        const pct    = (crew.bonus / maxBonus) * 100;
+        const rank      = idx + 1;
+        const size      = crew.ids.length;
+        const avgPerJob = crew.jobs > 0 ? crew.bonus / crew.jobs : 0;
+
+        // Bar width based on current sort metric
+        const sortVal = currentSort === 'avg'    ? avgPerJob
+                      : currentSort === 'metres' ? crew.metres
+                      : currentSort === 'jobs'   ? crew.jobs
+                      : crew.bonus;
+        const pct = topVal > 0 ? (sortVal / topVal) * 100 : 0;
 
         let rankHtml;
         if      (rank === 1) rankHtml = `<div class="crew-rank gold-rank">🥇</div>`;
@@ -482,7 +527,6 @@
 
         const sizeCls = `size-${Math.min(size, 6)}`;
 
-        // Avatars
         const avatarHtml = crew.ids.map(id => {
           const emp = allEmployeeMap[id];
           if (!emp) return '';
@@ -491,11 +535,13 @@
           return `<img class="crew-avatar" src="${src}" onerror="this.src='${fb}'" title="${emp.full_name}">`;
         }).join('');
 
-        // Names and initials
         const names    = crew.ids.map(id => allEmployeeMap[id]?.full_name || 'Unknown').join(', ');
         const initials = crew.ids.map(id => allEmployeeMap[id]?.initials  || '?').join(' · ');
 
-        const avgPerJob = crew.jobs > 0 ? crew.bonus / crew.jobs : 0;
+        // Highlight the active sort metric
+        const bonusCls  = currentSort === 'bonus'  ? 'bonus highlighted'  : 'bonus';
+        const metresCls = currentSort === 'metres' ? 'metres highlighted' : 'metres';
+        const jobsCls   = currentSort === 'jobs'   ? 'jobs highlighted'   : 'jobs';
 
         return `<div class="crew-card">
           <div class="crew-card-header">
@@ -507,15 +553,15 @@
             <div class="crew-names">${names}</div>
             <div class="crew-initials">${initials}</div>
             <div class="crew-metrics">
-              <div class="crew-metric bonus">
+              <div class="crew-metric ${bonusCls}">
                 <div class="m-val">£${crew.bonus.toFixed(0)}</div>
                 <div class="m-lbl">Total Bonus</div>
               </div>
-              <div class="crew-metric metres">
+              <div class="crew-metric ${metresCls}">
                 <div class="m-val">${(crew.metres/1000).toFixed(1)}k</div>
                 <div class="m-lbl">Metres</div>
               </div>
-              <div class="crew-metric jobs">
+              <div class="crew-metric ${jobsCls}">
                 <div class="m-val">${crew.jobs}</div>
                 <div class="m-lbl">Jobs</div>
               </div>
@@ -523,8 +569,9 @@
             <div class="crew-bar-wrap">
               <div class="crew-bar" style="width:${pct}%"></div>
             </div>
-            <div style="font-size:11px;color:var(--muted);margin-top:6px;text-align:right">
-              Avg £${avgPerJob.toFixed(0)} per job
+            <div style="font-size:11px;color:var(--muted);margin-top:6px;display:flex;justify-content:space-between">
+              <span>Avg <strong style="color:var(--text)">£${avgPerJob.toFixed(0)}</strong> / job</span>
+              <span>Avg <strong style="color:var(--text)">${(crew.metres/crew.jobs).toFixed(0)}m</strong> / job</span>
             </div>
           </div>
         </div>`;
