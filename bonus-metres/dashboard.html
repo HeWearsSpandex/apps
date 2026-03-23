@@ -94,11 +94,6 @@
     .action-btn .action-icon  { font-size:24px; }
     .action-btn .action-label { font-size:12px; font-weight:600; text-align:center; }
 
-    /* Sync */
-    .sync-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:4px; }
-    .sync-dot.ok      { background:var(--green); }
-    .sync-dot.warning { background:var(--orange); }
-
     /* Spinner */
     .spin-wrap { display:flex; justify-content:center; padding:30px; }
     .spinner   { width:28px; height:28px; border:3px solid var(--border); border-top-color:var(--red); border-radius:50%; animation:spin 0.8s linear infinite; }
@@ -157,17 +152,12 @@
           <div class="panel-body" id="probationPanel"><div class="spin-wrap"><div class="spinner"></div></div></div>
         </div>
 
-        <div class="panel">
-          <div class="panel-header"><h3>🔄 Leaderboard Sync</h3></div>
-          <div class="panel-body" id="syncPanel"><div class="spin-wrap"><div class="spinner"></div></div></div>
-        </div>
-
         <div class="panel full">
           <div class="panel-header"><h3>⚡ Quick Actions</h3></div>
           <div class="panel-body">
             <div class="actions-grid">
               <a class="action-btn" href="employees.html"><span class="action-icon">👥</span><span class="action-label">Manage Employees</span></a>
-              <a class="action-btn" href="#" onclick="syncLeaderboard(event)"><span class="action-icon">🔄</span><span class="action-label">Sync Leaderboard</span></a>
+              <a class="action-btn" href="transactions.html"><span class="action-icon">🔧</span><span class="action-label">Transactions</span></a>
               <a class="action-btn" href="month-end.html"><span class="action-icon">📅</span><span class="action-label">Run Month End</span></a>
               <a class="action-btn" href="notifications.html"><span class="action-icon">🔔</span><span class="action-label">Send Notifications</span></a>
               <a class="action-btn" href="/bonus-metres/this-month.html" target="_blank"><span class="action-icon">🏆</span><span class="action-label">View Leaderboard</span></a>
@@ -183,7 +173,6 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="admin.js"></script>
   <script>
-    const PEOPLE_JS_PATH = 'js/people.js';
     const IMG_PATH_WEB   = '/img/';
     let allEmployees = [];
 
@@ -271,7 +260,7 @@
       const { data, error } = await sb.from('employees').select('*').order('full_name');
       if (error) { showToast('Error: ' + error.message, 'error'); return; }
       allEmployees = data;
-      renderStats(); await renderTasks(); renderLeavers(); renderProbation(); await renderSyncStatus();
+      renderStats(); await renderTasks(); renderLeavers(); renderProbation();
       document.getElementById('dashGrid').style.display = 'grid';
     }
 
@@ -330,37 +319,8 @@
         : onProb.map(e=>`<div class="people-item"><img class="people-avatar" src="${IMG_PATH_WEB}${encodeURIComponent(e.full_name+'_cvface1.png')}" onerror="this.src='${fallback(e)}'" style="border-color:var(--orange)"><div style="flex:1;min-width:0;"><div class="people-name">${e.full_name}</div><div class="people-meta">${e.start_date?'Since '+new Date(e.start_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'Start date not set'}</div></div><a href="employees.html" style="font-size:11px;color:var(--blue);">Review →</a></div>`).join('');
     }
 
-    async function renderSyncStatus() {
-      const panel=document.getElementById('syncPanel');
-      try {
-        const lastUpdate=allEmployees.reduce((l,e)=>e.updated_at>l?e.updated_at:l,'');
-        const r=await fetch(`https://api.github.com/repos/${GITHUB_REPO}/commits?path=${PEOPLE_JS_PATH}&per_page=1`,{headers:{Accept:'application/vnd.github.v3+json'}});
-        const commits=await r.json(); const lastSync=commits?.[0]?.commit?.committer?.date||null;
-        const outOfSync=lastUpdate&&lastSync&&new Date(lastUpdate)>new Date(lastSync);
-        const syncFmt=lastSync?new Date(lastSync).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'Unknown';
-        panel.innerHTML=`<div style="display:flex;flex-direction:column;gap:12px;"><div style="display:flex;align-items:center;gap:8px;"><span class="sync-dot ${outOfSync?'warning':'ok'}"></span><span style="font-size:13px;font-weight:600;">${outOfSync?'⚠️ May be out of sync':'✅ Up to date'}</span></div><div style="font-size:12px;color:var(--muted);">Last synced: ${syncFmt}</div>${outOfSync?`<div style="font-size:12px;color:var(--orange);">Employee data changed since last sync.</div>`:''}<button onclick="syncLeaderboard(event)" style="padding:10px;border:1.5px solid var(--border);border-radius:8px;background:var(--grey);cursor:pointer;font-size:13px;font-weight:500;">🔄 Sync Leaderboard Now</button></div>`;
-      } catch(e) { panel.innerHTML=`<div style="font-size:13px;color:var(--muted);">Could not check sync status</div>`; }
-    }
-
-    async function syncLeaderboard(e) {
-      if(e) e.preventDefault();
-      let token=sessionStorage.getItem('gh_token')||'';
-      if(!token){token=prompt('Enter your GitHub token to sync the leaderboard:')||'';if(!token)return;sessionStorage.setItem('gh_token',token);}
-      try {
-        const today=new Date().toISOString().split('T')[0];
-        const active=allEmployees.filter(emp=>emp.status==='active'||emp.status==='probation'||(emp.status==='inactive'&&emp.leaving_date&&emp.leaving_date>=today)).map(emp=>`'${emp.full_name}'`);
-        const content=`const PEOPLE = [\n  ${active.join(',\n  ')}\n];\n`;
-        let sha=null; try{const f=await ghGet(PEOPLE_JS_PATH,token);sha=f.sha;}catch(err){}
-        await ghPut(PEOPLE_JS_PATH,content,'Manual sync from dashboard',sha,token);
-        showToast(`✓ Synced — ${active.length} active staff`,'success');
-        await renderSyncStatus();
-      } catch(err) {
-        showToast('Sync failed: '+err.message,'error');
-        if(err.message.includes('Bad credentials'))sessionStorage.removeItem('gh_token');
-      }
-    }
-
     init();
+
   </script>
 </body>
 </html>
