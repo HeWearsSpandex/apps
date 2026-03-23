@@ -518,9 +518,9 @@
 
     // ── Sync people.js ────────────────────────────
 
-    // Manual sync button — prompts for token via getGithubToken() if not cached
+    // Manual sync button — shows token modal via getGithubToken() if not cached
     async function forceSyncPeopleJS() {
-      const token = getGithubToken();
+      const token = await getGithubToken();
       if (!token) return;
       const btn = document.getElementById('syncBtn');
       btn.disabled = true; btn.textContent = '🔄 Syncing…';
@@ -535,9 +535,9 @@
       }
     }
 
-    // Auto-sync after save — prompts for token now (synchronous), then pushes after 2s
-    function schedulePeopleJsUpdate() {
-      const token = getGithubToken(); // prompt while user is still engaged, not mid-delay
+    // Auto-sync after save — shows token modal if not cached, then pushes after 2s
+    async function schedulePeopleJsUpdate() {
+      const token = await getGithubToken();
       if (!token) return;
       clearTimeout(peopleJsTimer);
       peopleJsTimer = setTimeout(async () => {
