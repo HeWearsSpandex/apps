@@ -61,32 +61,12 @@ if (location.search.includes('code=')) {
 // dashboard.html (login) if not authenticated
 
 async function requireAuth() {
-  // Give Supabase time to process the session from URL hash
-  await new Promise(resolve => setTimeout(resolve, 500));
+  await new Promise(resolve => setTimeout(resolve, 300));
 
-  let session = null;
+  const { data, error: sessionError } = await sb.auth.getSession();
+  const session = data?.session;
 
-  // Try getting session normally first
-  const { data } = await sb.auth.getSession();
-  session = data?.session;
-
-  // If no session, check URL hash for tokens (implicit flow)
-  if (!session && location.hash.includes('access_token')) {
-    const params = new URLSearchParams(location.hash.substring(1));
-    const accessToken  = params.get('access_token');
-    const refreshToken = params.get('refresh_token');
-    if (accessToken) {
-      const { data: setData } = await sb.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken
-      });
-      session = setData?.session;
-      // Clean up URL
-      history.replaceState(null, '', location.pathname);
-    }
-  }
-
-  if (!session) {
+  if (!session || !session.user) {
     window.location.href = 'dashboard.html';
     return false;
   }
