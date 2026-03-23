@@ -8,23 +8,30 @@ const SUPABASE_KEY  = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
 const GITHUB_REPO   = 'HeWearsSpandex/apps';
 const GITHUB_BRANCH = 'main';
 
-// Shared Supabase client — available to all pages
-// Use default storage but handle Edge tracking prevention by
-// catching storage errors gracefully
-const sb = (() => {
-  try {
-    return supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-        flowType: 'implicit'
-      }
-    });
-  } catch(e) {
-    return supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Cookie-based storage adapter — persists across page navigations
+// and isn't blocked by Edge tracking prevention like localStorage is
+const cookieStorage = {
+  getItem: (key) => {
+    const match = document.cookie.match(new RegExp('(^| )' + key + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+  },
+  setItem: (key, value) => {
+    document.cookie = `${key}=${encodeURIComponent(value)};path=/;max-age=86400;SameSite=Lax`;
+  },
+  removeItem: (key) => {
+    document.cookie = `${key}=;path=/;max-age=0`;
   }
-})();
+};
+
+// Shared Supabase client — available to all pages
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    storage: cookieStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
 
 let currentUser  = null;
 let currentAdmin = null;
@@ -51,38 +58,18 @@ if (location.search.includes('code=')) {
 // dashboard.html (login) if not authenticated
 
 async function requireAuth() {
-  // Give Supabase time to process the session from URL hash
-  await new Promise(resolve => setTimeout(resolve, 500));
-
-  let session = null;
-
-  // Try getting session normally first
-  const { data } = await sb.auth.getSession();
-  session = data?.session;
-
-  // If no session, check URL hash for tokens (implicit flow)
-  if (!session && location.hash.includes('access_token')) {
-    const params = new URLSearchParams(location.hash.substring(1));
-    const accessToken  = params.get('access_token');
-    const refreshToken = params.get('refresh_token');
-    if (accessToken) {
-      const { data: setData } = await sb.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken
-      });
-      session = setData?.session;
-      // Clean up URL
-      history.replaceState(null, '', location.pathname);
-    }
-  }
+  // Load Supabase session
+  const { data: { session } } = await sb.auth.getSession();
 
   if (!session) {
+    // Not logged in — redirect to dashboard login
     window.location.href = 'dashboard.html';
     return false;
   }
 
   currentUser = session.user;
 
+  // Check admin_users table
   const { data: adminData, error } = await sb
     .from('admin_users')
     .select('*')
@@ -98,6 +85,7 @@ async function requireAuth() {
 
   currentAdmin = adminData;
 
+  // Populate sidebar user info
   await loadSidebar();
 
   const initials = currentAdmin.name
