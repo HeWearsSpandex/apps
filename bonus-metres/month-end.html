@@ -777,6 +777,24 @@
           .lte('date', cutoffDate);
         if (beErr) throw new Error(beErr.message);
 
+        // 5. Create carry-over deduction entries for next month
+        const carryOvers = previewData
+          .filter(l => l.carry_over_out > 0)
+          .map(l => ({
+            date:        paymentDate,
+            type:        'deduction',
+            employee_id: l.employee.id,
+            amount:      l.carry_over_out,
+            reason:      `Carry-over from ${periodName}`,
+            date_paid:   null,
+            created_by:  currentUser.id
+          }));
+
+        if (carryOvers.length) {
+          const { error: coErr } = await sb.from('bonus_entries').insert(carryOvers);
+          if (coErr) throw new Error(coErr.message);
+        }
+
         // Show committed panel
         document.getElementById('panel-preview').style.display   = 'none';
         document.getElementById('panel-committed').style.display = 'block';
