@@ -12,14 +12,23 @@ const GITHUB_BRANCH = 'main';
 // and isn't blocked by Edge tracking prevention like localStorage is
 const cookieStorage = {
   getItem: (key) => {
-    const match = document.cookie.match(new RegExp('(^| )' + key + '=([^;]+)'));
-    return match ? decodeURIComponent(match[2]) : null;
+    try {
+      const safeKey = 'sb_' + key.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const match = document.cookie.match(new RegExp('(^| )' + safeKey + '=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : null;
+    } catch(e) { return null; }
   },
   setItem: (key, value) => {
-    document.cookie = `${key}=${encodeURIComponent(value)};path=/;max-age=86400;SameSite=Lax`;
+    try {
+      const safeKey = 'sb_' + key.replace(/[^a-zA-Z0-9_-]/g, '_');
+      document.cookie = `${safeKey}=${encodeURIComponent(value)};path=/;max-age=86400;SameSite=Lax`;
+    } catch(e) {}
   },
   removeItem: (key) => {
-    document.cookie = `${key}=;path=/;max-age=0`;
+    try {
+      const safeKey = 'sb_' + key.replace(/[^a-zA-Z0-9_-]/g, '_');
+      document.cookie = `${safeKey}=;path=/;max-age=0`;
+    } catch(e) {}
   }
 };
 
@@ -29,7 +38,8 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
     storage: cookieStorage,
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    flowType: 'pkce'
   }
 });
 
