@@ -198,7 +198,8 @@
         provider: 'azure',
         options: {
           scopes: 'email',
-          redirectTo: `${location.origin}/bonus-metres/dashboard.html`
+          redirectTo: 'https://apps-nu-sand.vercel.app/bonus-metres/dashboard.html',
+          skipBrowserRedirect: false
         }
       });
       if (error) {
@@ -210,18 +211,39 @@
     }
 
     async function init() {
-      // Handle OAuth callback — Supabase puts session in URL hash/params
-      const { data: { session: urlSession } } = await sb.auth.getSession();
+      // Edge blocks localStorage — manually extract tokens from URL hash
+      // and store them in our cookie adapter before Supabase tries localStorage
+      if (location.hash && location.hash.includes('access_token')) {
+        const params = new URLSearchParams(location.hash.replace('#', ''));
+        const accessToken  = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+        const expiresIn    = params.get('expires_in');
+        if (accessToken) {
+          // Manually store session in cookie storage
+          const sessionKey = `sb-${SUPABASE_URL.split('//')[1].split('.')[0]}-auth-token`;
+          const sessionData = {
+            access_token:  accessToken,
+            refresh_token: refreshToken,
+            expires_in:    parseInt(expiresIn || '3600'),
+            expires_at:    Math.floor(Date.now() / 1000) + parseInt(expiresIn || '3600'),
+            token_type:    'bearer'
+          };
+          cookieStorage.setItem(sessionKey, JSON.stringify(sessionData));
+          // Clean URL
+          history.replaceState(null, '', location.pathname);
+        }
+      }
 
       sb.auth.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_IN' && session) await showDashboard();
       });
 
-      if (urlSession) {
-        await showDashboard();
-      } else {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) {
         document.getElementById('loginScreen').style.display = 'flex';
+        return;
       }
+      await showDashboard();
     }
 
     async function showDashboard() {
