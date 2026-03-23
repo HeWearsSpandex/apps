@@ -277,28 +277,34 @@
 
     <!-- Filter bar -->
     <div class="filter-bar">
-      <label>From</label>
-      <input type="date" id="date-from">
-      <label>To</label>
-      <input type="date" id="date-to">
-      <div class="filter-sep"></div>
-      <label>Crew Size</label>
-      <div class="size-pills">
-        <span class="size-pill active" data-size="0" onclick="setSizePill(this)">All</span>
-        <span class="size-pill" data-size="2" onclick="setSizePill(this)">2</span>
-        <span class="size-pill" data-size="3" onclick="setSizePill(this)">3</span>
-        <span class="size-pill" data-size="4" onclick="setSizePill(this)">4</span>
-        <span class="size-pill" data-size="5" onclick="setSizePill(this)">5+</span>
+      <!-- Row 1: dates + analyse button -->
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;">
+        <label>From</label>
+        <input type="date" id="date-from">
+        <label>To</label>
+        <input type="date" id="date-to">
+        <div class="filter-sep"></div>
+        <label>Crew Size</label>
+        <div class="size-pills">
+          <span class="size-pill active" data-size="0" onclick="setSizePill(this)">All</span>
+          <span class="size-pill" data-size="2" onclick="setSizePill(this)">2</span>
+          <span class="size-pill" data-size="3" onclick="setSizePill(this)">3</span>
+          <span class="size-pill" data-size="4" onclick="setSizePill(this)">4</span>
+          <span class="size-pill" data-size="5" onclick="setSizePill(this)">5+</span>
+        </div>
+        <div class="filter-sep"></div>
+        <button class="btn btn-primary" id="analyse-btn" onclick="runAnalysis()">🔍 Analyse</button>
       </div>
-      <div class="filter-sep"></div>
-      <label>Sort By</label>
-      <div class="size-pills" id="sort-pills">
-        <span class="size-pill active" data-sort="bonus"   onclick="setSortPill(this)">Total Bonus</span>
-        <span class="size-pill"        data-sort="avg"     onclick="setSortPill(this)">Avg / Job</span>
-        <span class="size-pill"        data-sort="metres"  onclick="setSortPill(this)">Metres</span>
-        <span class="size-pill"        data-sort="jobs"    onclick="setSortPill(this)">Most Jobs</span>
+      <!-- Row 2: sort pills -->
+      <div style="display:flex;align-items:center;gap:10px;width:100%;padding-top:8px;border-top:1px solid var(--border);">
+        <label>Sort By</label>
+        <div class="size-pills" id="sort-pills">
+          <span class="size-pill active" data-sort="bonus"  onclick="setSortPill(this)">Total Bonus</span>
+          <span class="size-pill"        data-sort="avg"    onclick="setSortPill(this)">Avg / Job</span>
+          <span class="size-pill"        data-sort="metres" onclick="setSortPill(this)">Metres</span>
+          <span class="size-pill"        data-sort="jobs"   onclick="setSortPill(this)">Most Jobs</span>
+        </div>
       </div>
-      <div class="filter-sep"></div>
     </div>
 
     <!-- Summary stats -->
