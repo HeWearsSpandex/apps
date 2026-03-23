@@ -211,16 +211,21 @@
     }
 
     async function init() {
+      console.log('init() called');
+      console.log('URL hash:', location.hash);
+      console.log('URL search:', location.search);
+
       // Edge blocks localStorage — manually extract tokens from URL hash
-      // and store them in our cookie adapter before Supabase tries localStorage
       if (location.hash && location.hash.includes('access_token')) {
+        console.log('Found access_token in hash');
         const params = new URLSearchParams(location.hash.replace('#', ''));
         const accessToken  = params.get('access_token');
         const refreshToken = params.get('refresh_token');
         const expiresIn    = params.get('expires_in');
+        console.log('access_token found:', !!accessToken);
         if (accessToken) {
-          // Manually store session in cookie storage
           const sessionKey = `sb-${SUPABASE_URL.split('//')[1].split('.')[0]}-auth-token`;
+          console.log('Storing session with key:', sessionKey);
           const sessionData = {
             access_token:  accessToken,
             refresh_token: refreshToken,
@@ -229,20 +234,24 @@
             token_type:    'bearer'
           };
           cookieStorage.setItem(sessionKey, JSON.stringify(sessionData));
-          // Clean URL
+          console.log('Session stored in cookie');
           history.replaceState(null, '', location.pathname);
         }
+      } else {
+        console.log('No access_token in hash');
       }
 
-      sb.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session) await showDashboard();
-      });
+      console.log('Checking getSession...');
+      const { data: { session }, error } = await sb.auth.getSession();
+      console.log('Session result:', session ? 'found' : 'null', 'Error:', error);
 
-      const { data: { session } } = await sb.auth.getSession();
       if (!session) {
+        console.log('No session — showing login screen');
         document.getElementById('loginScreen').style.display = 'flex';
         return;
       }
+
+      console.log('Session found — showing dashboard');
       await showDashboard();
     }
 
