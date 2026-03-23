@@ -157,7 +157,25 @@
     }
     .computed-field.has-value { color: var(--text); }
 
-    /* ── OPERATIVE PICKER ── */
+    /* ── PIN BUTTON ── */
+    .pin-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      opacity: 0.3;
+      padding: 0 2px;
+      transition: opacity 0.15s, transform 0.15s;
+      line-height: 1;
+    }
+    .pin-btn:hover   { opacity: 0.7; }
+    .pin-btn.pinned  { opacity: 1; transform: rotate(-45deg); }
+
+    /* ── PINNED FIELD HIGHLIGHT ── */
+    .pinned-field {
+      border-color: #f9a825 !important;
+      background: #fffdf0 !important;
+    }
     .operative-picker {
       border: 1.5px solid var(--border);
       border-radius: 8px;
@@ -454,11 +472,17 @@
             <input type="date" id="job-date" tabindex="1" oninput="onJobDateChange()">
           </div>
           <div class="form-group">
-            <label>Job Reference</label>
+            <label style="display:flex;align-items:center;justify-content:space-between;">
+              Job Reference
+              <button type="button" class="pin-btn" id="pin-btn-ref" onclick="togglePin('ref')" title="Pin this field">📌</button>
+            </label>
             <input type="text" id="job-ref" placeholder="R40209" tabindex="2">
           </div>
           <div class="form-group">
-            <label>Site Name <span class="required">*</span></label>
+            <label style="display:flex;align-items:center;justify-content:space-between;">
+              Site Name <span class="required">*</span>
+              <button type="button" class="pin-btn" id="pin-btn-site" onclick="togglePin('site')" title="Pin this field">📌</button>
+            </label>
             <input type="text" id="job-site" placeholder="Tesco Bristol" tabindex="3">
           </div>
           <div class="form-group">
@@ -467,7 +491,7 @@
           </div>
         </div>
 
-        <div class="form-row cols-4">
+        <div class="form-row cols-3">
           <div class="form-group">
             <label>Bonus Metres <span class="required">*</span></label>
             <input type="number" id="job-metres" placeholder="1385" min="0" step="1" tabindex="5" oninput="recalcJob()">
@@ -481,25 +505,20 @@
             <label>Total Value</label>
             <div class="computed-field" id="job-total-display">—</div>
           </div>
-          <div class="form-group">
-            <label>Remedial Cost (£)</label>
-            <input type="number" id="job-remedial" placeholder="0.00" min="0" step="0.01" value="0" tabindex="6" oninput="recalcJob()">
-          </div>
         </div>
 
         <div class="form-row cols-2" style="margin-bottom:8px">
           <div class="form-group">
-            <label>Net Value</label>
-            <div class="computed-field" id="job-net-display">—</div>
-          </div>
-          <div class="form-group">
             <label>Details / Notes</label>
-            <input type="text" id="job-details" placeholder="Optional notes" tabindex="7">
+            <input type="text" id="job-details" placeholder="Optional notes" tabindex="6">
           </div>
         </div>
 
         <div class="form-group" style="margin-bottom:8px">
-          <label>Operatives <span class="required">*</span></label>
+          <label style="display:flex;align-items:center;justify-content:space-between;">
+            Operatives <span class="required">*</span>
+            <button type="button" class="pin-btn" id="pin-btn-ops" onclick="togglePin('ops')" title="Pin this field">📌</button>
+          </label>
           <div class="operative-picker" id="op-picker">
             <input class="operative-search" type="text" placeholder="Search employees…"
                    id="op-search" tabindex="8" oninput="filterOperatives()" autocomplete="off">
@@ -593,7 +612,30 @@
     let currentRate    = null;
     let employeeRowCount = 0;
 
-    // ── Auth & init ───────────────────────────────────────────────────────────
+    // ── Pin state ─────────────────────────────────────────────────────────────
+    const pinned = { ref: false, site: false, ops: false };
+
+    function togglePin(field) {
+      pinned[field] = !pinned[field];
+      const btn = document.getElementById('pin-btn-' + field);
+      btn.classList.toggle('pinned', pinned[field]);
+      btn.title = pinned[field] ? 'Unpin this field' : 'Pin this field';
+
+      // Highlight the associated input
+      if (field === 'ref')  document.getElementById('job-ref').classList.toggle('pinned-field', pinned[field]);
+      if (field === 'site') document.getElementById('job-site').classList.toggle('pinned-field', pinned[field]);
+      if (field === 'ops')  document.getElementById('op-picker').classList.toggle('pinned-field', pinned[field]);
+    }
+
+    function applyPinnedValues(savedRef, savedSite, savedOps) {
+      if (pinned.ref  && savedRef)  { document.getElementById('job-ref').value  = savedRef;  }
+      if (pinned.site && savedSite) { document.getElementById('job-site').value = savedSite; }
+      if (pinned.ops  && savedOps.length) {
+        selectedOps = [...savedOps];
+        renderSelectedChips();
+        renderOperativeList(document.getElementById('op-search').value);
+      }
+    }
     async function init() {
       const ok = await requireAuth();
       if (!ok) return;
@@ -682,21 +724,13 @@
 
     // ── Job recalc ────────────────────────────────────────────────────────────
     function recalcJob() {
-      const metres   = parseFloat(document.getElementById('job-metres').value)   || 0;
-      const remedial = parseFloat(document.getElementById('job-remedial').value) || 0;
-      const rate     = currentRate || 0;
-
-      const total = metres * rate;
-      const net   = total - remedial;
+      const metres = parseFloat(document.getElementById('job-metres').value) || 0;
+      const rate   = currentRate || 0;
+      const total  = metres * rate;
 
       const totalEl = document.getElementById('job-total-display');
-      const netEl   = document.getElementById('job-net-display');
-
       totalEl.textContent = metres && rate ? '£' + total.toFixed(2) : '—';
       totalEl.classList.toggle('has-value', !!(metres && rate));
-
-      netEl.textContent = metres && rate ? '£' + net.toFixed(2) : '—';
-      netEl.classList.toggle('has-value', !!(metres && rate));
 
       updateSharePreview();
     }
@@ -751,14 +785,13 @@
 
     function updateSharePreview() {
       const preview = document.getElementById('share-preview');
-      const metres   = parseFloat(document.getElementById('job-metres').value)   || 0;
-      const remedial = parseFloat(document.getElementById('job-remedial').value) || 0;
-      const rate     = currentRate || 0;
-      const net      = metres * rate - remedial;
-      const count    = selectedOps.length;
+      const metres  = parseFloat(document.getElementById('job-metres').value) || 0;
+      const rate    = currentRate || 0;
+      const total   = metres * rate;
+      const count   = selectedOps.length;
 
-      if (count > 0 && net > 0) {
-        const share = net / count;
+      if (count > 0 && total > 0) {
+        const share = total / count;
         const names = selectedOps.map(id => allEmployees.find(e => e.id === id)?.initials || '').join(', ');
         preview.textContent = `Each of ${count} operative${count > 1 ? 's' : ''} (${names}) receives £${share.toFixed(2)}`;
         preview.classList.add('visible');
@@ -817,36 +850,33 @@
       const jobRef   = document.getElementById('job-ref').value.trim();
       const site     = document.getElementById('job-site').value.trim();
       const metres   = parseFloat(document.getElementById('job-metres').value);
-      const remedial = parseFloat(document.getElementById('job-remedial').value) || 0;
       const datePaid = document.getElementById('job-date-paid').value || null;
       const details  = document.getElementById('job-details').value.trim() || null;
 
-      if (!date)              { showToast('Date is required', 'error'); return; }
-      if (!site)              { showToast('Site name is required', 'error'); return; }
+      if (!date)                  { showToast('Date is required', 'error'); return; }
+      if (!site)                  { showToast('Site name is required', 'error'); return; }
       if (!metres || metres <= 0) { showToast('Bonus metres must be greater than 0', 'error'); return; }
-      if (!currentRate)       { showToast('No rate found for this date — check rate periods', 'error'); return; }
-      if (!selectedOps.length){ showToast('Select at least one operative', 'error'); return; }
+      if (!currentRate)           { showToast('No rate found for this date — check rate periods', 'error'); return; }
+      if (!selectedOps.length)    { showToast('Select at least one operative', 'error'); return; }
 
       const btn = document.getElementById('job-save-btn');
       btn.disabled = true; btn.textContent = 'Saving…';
 
       try {
-        const netValue  = metres * currentRate - remedial;
-        const shareVal  = netValue / selectedOps.length;
+        const totalValue = metres * currentRate;
+        const shareVal   = totalValue / selectedOps.length;
 
-        // Insert transaction
         const { data: tx, error: txErr } = await sb
           .from('transactions')
           .insert({
-            date:          date,
-            job_ref:       jobRef || null,
-            site_name:     site,
-            details:       details,
-            bonus_metres:  metres,
-            rate:          currentRate,
-            remedial_cost: remedial,
-            date_paid:     datePaid,
-            created_by:    currentUser.id
+            date:         date,
+            job_ref:      jobRef || null,
+            site_name:    site,
+            details:      details,
+            bonus_metres: metres,
+            rate:         currentRate,
+            date_paid:    datePaid,
+            created_by:   currentUser.id
           })
           .select()
           .single();
@@ -861,7 +891,7 @@
         const { error: opsErr } = await sb.from('transaction_operatives').insert(ops);
         if (opsErr) throw new Error(opsErr.message);
 
-        showToast(`✓ Job saved — ${selectedOps.length} operative${selectedOps.length > 1 ? 's' : ''}, £${netValue.toFixed(2)} net`, 'success');
+        showToast(`✓ Job saved — ${selectedOps.length} operative${selectedOps.length > 1 ? 's' : ''}, £${totalValue.toFixed(2)} total`, 'success');
         resetJob();
         await loadRecent();
 
@@ -925,23 +955,38 @@
 
     // ── Reset forms ───────────────────────────────────────────────────────────
     function resetJob() {
+      // Capture pinned values before clearing
+      const savedRef  = pinned.ref  ? document.getElementById('job-ref').value  : '';
+      const savedSite = pinned.site ? document.getElementById('job-site').value : '';
+      const savedOps  = pinned.ops  ? [...selectedOps] : [];
+
       const today = new Date().toISOString().split('T')[0];
-      document.getElementById('job-date').value     = today;
-      document.getElementById('job-ref').value      = '';
-      document.getElementById('job-site').value     = '';
-      document.getElementById('job-metres').value   = '';
-      document.getElementById('job-remedial').value = '0';
-      document.getElementById('job-details').value  = '';
+      document.getElementById('job-date').value      = today;
+      document.getElementById('job-ref').value       = '';
+      document.getElementById('job-site').value      = '';
+      document.getElementById('job-metres').value    = '';
+      document.getElementById('job-details').value   = '';
       document.getElementById('job-date-paid').value = '';
-      document.getElementById('op-search').value    = '';
+      document.getElementById('op-search').value     = '';
       selectedOps = [];
       renderSelectedChips();
       renderOperativeList('');
       document.getElementById('share-preview').classList.remove('visible');
       document.getElementById('job-total-display').textContent = '—';
-      document.getElementById('job-net-display').textContent   = '—';
       onJobDateChange();
-      document.getElementById('job-date').focus();
+
+      // Restore pinned values
+      applyPinnedValues(savedRef, savedSite, savedOps);
+      updateSharePreview();
+
+      // Focus first unpinned field
+      if (!pinned.ref && !pinned.site) {
+        document.getElementById('job-date').focus();
+      } else if (pinned.ref && pinned.site) {
+        document.getElementById('job-metres').focus();
+      } else {
+        document.getElementById(pinned.ref ? 'job-site' : 'job-ref').focus();
+      }
     }
 
     function resetEntry() {
