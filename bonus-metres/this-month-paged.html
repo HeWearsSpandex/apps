@@ -7,8 +7,7 @@
   <title>Bonus Metres – Current Month's Leaderboard</title>
   <style>
     html, body {
-      margin: 0; padding: 0;
-      height: 100%;
+      margin: 0; padding: 0; height: 100%;
       font-family: Arial, sans-serif;
       display: flex; flex-direction: column;
     }
@@ -58,18 +57,11 @@
     }
     .scrollable-inner::-webkit-scrollbar { display: none; }
     .highlight-row { background-color: #fff7c2; transition: background-color 1s ease; }
-
-    /* Spinner */
-    .spinner-wrap {
-      display: flex; justify-content: center;
-      align-items: center; padding: 40px 0;
-    }
+    .spinner-wrap { display: flex; justify-content: center; align-items: center; padding: 40px 0; }
     .spinner {
       width: 48px; height: 48px;
-      border: 5px solid #f4f4f4;
-      border-top-color: #c00;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      border: 5px solid #f4f4f4; border-top-color: #c00;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
@@ -77,9 +69,7 @@
 <body>
 
   <div class="static-section">
-    <div class="logo">
-      <img src="/img/JHB Logo.png" alt="JHB Logo">
-    </div>
+    <div class="logo"><img src="/img/JHB Logo.png" alt="JHB Logo"></div>
     <div class="title-block">
       <div class="title-main">Bonus Metres – Current Month's Leaderboard</div>
       <div class="nav-row">
@@ -95,12 +85,8 @@
     <table>
       <thead>
         <tr>
-          <th>Rank</th>
-          <th>Face</th>
-          <th>Name</th>
-          <th>Positional Change</th>
-          <th>Bonus Metres</th>
-          <th>Diff. from Leader</th>
+          <th>Rank</th><th>Face</th><th>Name</th>
+          <th>Positional Change</th><th>Bonus Metres</th><th>Diff. from Leader</th>
         </tr>
       </thead>
       <tbody id="top-rank"></tbody>
@@ -109,53 +95,56 @@
 
   <div class="scrollable-section">
     <div class="scrollable-inner" id="scroll-container">
-      <div class="spinner-wrap" id="spinner">
-        <div class="spinner"></div>
-      </div>
-      <table>
-        <tbody id="other-ranks"></tbody>
-      </table>
+      <div class="spinner-wrap" id="spinner"><div class="spinner"></div></div>
+      <table><tbody id="other-ranks"></tbody></table>
     </div>
   </div>
 
-  <!-- Shared people list -->
-  <script src="/js/people.js"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
+    const SUPABASE_URL = 'https://oxgehlmalbvppjmdaswn.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
     const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
     const IMG_PATH = '/img/';
     const ITEMS_PER_PAGE = 8;
 
     let ALL_ROWS  = [];
-    let ALL_ICONS = [];  // pre-drawn icons cached here
+    let ALL_ICONS = [];
+
+    async function fetchPeople() {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await sb
+        .from('employees')
+        .select('full_name, status, leaving_date')
+        .or(`status.eq.active,status.eq.probation,and(status.eq.inactive,leaving_date.gte.${today})`);
+      if (error) throw new Error('Failed to load employees: ' + error.message);
+      return data.map(e => e.full_name);
+    }
 
     function getPage() {
       const p = parseInt(new URLSearchParams(location.search).get('page'), 10);
       return Number.isInteger(p) && p > 0 ? p : 1;
     }
-
     function getHighlightName() {
       return new URLSearchParams(location.search).get('highlight') || null;
     }
-
     function gotoPage(newPage, highlightName) {
       const params = new URLSearchParams(location.search);
       params.set('page', newPage);
-      if (highlightName) { params.set('highlight', highlightName); }
-      else { params.delete('highlight'); }
+      if (highlightName) params.set('highlight', highlightName);
+      else params.delete('highlight');
       location.search = params.toString();
     }
 
     async function loadImageElement(src, size) {
       return new Promise(res => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
+        const img = new Image(); img.crossOrigin = 'anonymous';
         img.onload = () => res(img);
         img.onerror = () => {
-          const c = document.createElement('canvas');
-          c.width = c.height = size;
-          const ctx = c.getContext('2d');
-          ctx.fillStyle = '#ccc';
-          ctx.fillRect(0, 0, size, size);
+          const c = document.createElement('canvas'); c.width = c.height = size;
+          const ctx = c.getContext('2d'); ctx.fillStyle = '#ccc'; ctx.fillRect(0,0,size,size);
           res(c);
         };
         img.src = src;
@@ -163,10 +152,9 @@
     }
 
     async function drawIcon(name, haloColor) {
-      const base = 64, halo = haloColor ? 10 : 0, total = base + 2 * halo;
-      const canvas = document.createElement('canvas');
+      const base = 64, halo = haloColor ? 10 : 0, total = base + 2*halo;
+      const canvas = document.createElement('canvas'); canvas.width = canvas.height = total;
       const ctx = canvas.getContext('2d');
-      canvas.width = canvas.height = total;
       if (haloColor) {
         ctx.fillStyle = haloColor;
         ctx.beginPath();
@@ -192,19 +180,16 @@
     }
 
     async function build() {
-      const data = await fetchData();
+      const [PEOPLE, data] = await Promise.all([fetchPeople(), fetchData()]);
+
       const rows = data
         .filter(r => r['T/M RANK'] && PEOPLE.includes(r['NAME']))
         .sort((a, b) => +a['T/M RANK'] - +b['T/M RANK']);
 
-      if (!rows.length) return;
+      if (!rows.length) { document.getElementById('spinner').style.display = 'none'; return; }
 
       const leaderValue = parseFloat((rows[0]['THIS MONTH'] || '0').replace(/,/g, '')) || 0;
-      const counts = rows.reduce((acc, r) => {
-        const rk = +r['T/M RANK'];
-        acc[rk] = (acc[rk] || 0) + 1;
-        return acc;
-      }, {});
+      const counts = rows.reduce((acc, r) => { const rk = +r['T/M RANK']; acc[rk] = (acc[rk]||0)+1; return acc; }, {});
 
       let lastRank = null, displayRank = 0;
       rows.forEach((r, idx) => {
@@ -212,26 +197,20 @@
         if (v !== lastRank) { displayRank = idx + 1; lastRank = v; }
         r._display = displayRank;
         r._value = parseFloat((r['THIS MONTH'] || '0').replace(/,/g, '')) || 0;
-        r._diff   = leaderValue - r._value;
-        r._isTie  = counts[v] > 1;
-        r._halo   = r._display === 1 ? 'gold'
-                  : r._display === 2 ? 'silver'
-                  : r._display === 3 ? '#cd7f32' : null;
+        r._diff  = leaderValue - r._value;
+        r._isTie = counts[v] > 1;
+        r._halo  = r._display === 1 ? 'gold' : r._display === 2 ? 'silver' : r._display === 3 ? '#cd7f32' : null;
       });
 
-      ALL_ROWS = rows;
-
-      // Draw ALL icons in parallel and cache them
+      ALL_ROWS  = rows;
       ALL_ICONS = await Promise.all(rows.map(r => drawIcon(r['NAME'], r._halo)));
 
-      // Hide spinner
       document.getElementById('spinner').style.display = 'none';
-
       setupSearch();
-      await renderCurrentPage();
+      renderCurrentPage();
     }
 
-    async function renderCurrentPage() {
+    function renderCurrentPage() {
       const rows = ALL_ROWS;
       if (!rows.length) return;
 
@@ -261,20 +240,15 @@
         const tm   = +r['T/M RANK'];
         const lm   = +r['T/M LAST RANK'] || Infinity;
         const arrowImg  = tm < lm ? 'Green%20Arrow.png' : tm > lm ? 'Red%20Arrow.png' : '';
-        const rankTxt   = (r._isTie ? '=' : '') + r._display;
-        const metresTxt = r._value.toLocaleString() + 'm';
-        const diffTxt   = r._diff === 0 ? 'Leader' : '-' + r._diff.toLocaleString() + 'm';
-
         const tr = document.createElement('tr');
         tr.dataset.name = r['NAME'];
         tr.innerHTML = `
-          <td class="rank">${rankTxt}</td>
+          <td class="rank">${(r._isTie ? '=' : '') + r._display}</td>
           <td><img src="${icon}" width="${size}" height="${size}" class="face"></td>
           <td>${r['NAME']}</td>
           <td>${arrowImg ? `<img src="${IMG_PATH}${arrowImg}" width="32" height="32">` : ''}</td>
-          <td>${metresTxt}</td>
-          <td>${diffTxt}</td>
-        `;
+          <td>${r._value.toLocaleString()}m</td>
+          <td>${r._diff === 0 ? 'Leader' : '-' + r._diff.toLocaleString() + 'm'}</td>`;
         (r._display === 1 && page === 1 ? topEl : otherEl).appendChild(tr);
       }
 
@@ -285,11 +259,7 @@
           match.classList.add('highlight-row');
           if (otherEl.contains(match)) {
             const ct = document.getElementById('scroll-container');
-            const rect = match.getBoundingClientRect();
-            const crect = ct.getBoundingClientRect();
-            if (rect.top < crect.top || rect.bottom > crect.bottom) {
-              ct.scrollTop = match.offsetTop - 20;
-            }
+            ct.scrollTop = match.offsetTop - 20;
           }
         }
       }
@@ -310,23 +280,19 @@
       const input    = document.getElementById('searchBox');
       const dropdown = document.getElementById('searchDropdown');
       if (!input || !dropdown) return;
-
       const closeDropdown = () => { dropdown.style.display = 'none'; dropdown.innerHTML = ''; };
 
       input.addEventListener('focus', clearHighlightState);
-
       input.addEventListener('input', () => {
         const query = input.value.trim().toLowerCase();
         dropdown.innerHTML = '';
         if (!query) { closeDropdown(); return; }
-
         const matches = ALL_ROWS.filter(r => r['NAME'].toLowerCase().includes(query));
         if (!matches.length) {
           dropdown.innerHTML = '<div class="search-item disabled">No matches</div>';
           dropdown.style.display = 'block';
           return;
         }
-
         const frag = document.createDocumentFragment();
         matches.forEach(r => {
           const div = document.createElement('div');
@@ -360,7 +326,7 @@
       console.error(err);
       document.getElementById('spinner').style.display = 'none';
       document.getElementById('top-rank').innerHTML =
-        '<tr><td colspan="6" style="color:red">Error loading leaderboard</td></tr>';
+        '<tr><td colspan="6" style="color:red">Error: ' + err.message + '</td></tr>';
     });
   </script>
 </body>
