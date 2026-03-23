@@ -277,14 +277,21 @@
         .select('share_value, transactions!inner(date_paid)')
         .is('transactions.date_paid', null);
 
+      let outstandingPot = (unpaidTx || []).reduce((s, r) => s + parseFloat(r.share_value), 0);
+
       // Fetch outstanding unpaid special bonuses minus deductions
+      // Exclude deductions against employees who have already left
       const { data: unpaidEntries } = await sb
         .from('bonus_entries')
-        .select('type, amount')
+        .select('type, amount, employees(status, leaving_date)')
         .is('date_paid', null);
 
-      let outstandingPot = (unpaidTx || []).reduce((s, r) => s + parseFloat(r.share_value), 0);
+      const today2 = today; // reuse today
       (unpaidEntries || []).forEach(e => {
+        const emp = e.employees;
+        const hasLeft = emp && emp.status === 'inactive' &&
+                        emp.leaving_date && emp.leaving_date < today2;
+        if (hasLeft) return; // ignore amounts owed by leavers
         if (e.type === 'special_bonus') outstandingPot += parseFloat(e.amount);
         if (e.type === 'deduction')     outstandingPot -= parseFloat(e.amount);
       });
