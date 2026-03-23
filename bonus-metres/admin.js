@@ -13,15 +13,20 @@ const DEBUG_AUTH = false;
 const dbg = (...args) => DEBUG_AUTH && console.debug('[requireAuth]', ...args);
 
 // Storage adapter using cookies — not blocked by Edge tracking prevention
+// Important: Supabase passes pre-serialised JSON strings to storage adapters
+// (matching the Web Storage API contract). Do NOT JSON.stringify/parse — that
+// causes double-encoding and loses the user object on getSession() reads.
 const cookieStorage = {
   getItem: (key) => {
     const name = 'sb_' + btoa(key).replace(/[^a-zA-Z0-9]/g, '');
     const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-    try { return match ? JSON.parse(decodeURIComponent(match[2])) : null; } catch { return null; }
+    if (!match) return null;
+    try { return decodeURIComponent(match[2]); } catch { return null; }
   },
   setItem: (key, value) => {
     const name = 'sb_' + btoa(key).replace(/[^a-zA-Z0-9]/g, '');
-    document.cookie = `${name}=${encodeURIComponent(JSON.stringify(value))};path=/;max-age=86400;SameSite=Lax`;
+    // value is already a JSON string — just encode for cookie transport
+    document.cookie = `${name}=${encodeURIComponent(value)};path=/;max-age=86400;SameSite=Lax`;
   },
   removeItem: (key) => {
     const name = 'sb_' + btoa(key).replace(/[^a-zA-Z0-9]/g, '');
@@ -115,7 +120,7 @@ async function requireAuth() {
 
   const initials = currentAdmin.name
     ? currentAdmin.name.split(' ').map(n => n[0]).join('').toUpperCase()
-    : currentUser.email[0].toUpperCase();
+    : (currentUser?.email?.[0] ?? '?').toUpperCase();
 
   const avatarEl = document.getElementById('userAvatar');
   const nameEl   = document.getElementById('userName');
