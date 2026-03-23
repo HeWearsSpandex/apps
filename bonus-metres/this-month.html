@@ -74,7 +74,6 @@
 
   <div class="scrollable-section">
     <div class="scrollable-inner" id="scroll-container">
-      <!-- Spinner shown while loading -->
       <div class="spinner-wrap" id="spinner">
         <div class="spinner"></div>
       </div>
@@ -84,11 +83,29 @@
     </div>
   </div>
 
-  <!-- Shared people list -->
-  <script src="/js/people.js"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
+    // ── Supabase config ───────────────────────────
+    const SUPABASE_URL = 'https://oxgehlmalbvppjmdaswn.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
     const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
     const IMG_PATH = '/img/';
+
+    // ── Fetch active employees from Supabase ──────
+    // Replaces the static people.js PEOPLE array.
+    // Active = status 'active', 'probation', or
+    // 'inactive' with a leaving_date in the future.
+    async function fetchPeople() {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await sb
+        .from('employees')
+        .select('full_name, status, leaving_date')
+        .or(`status.eq.active,status.eq.probation,and(status.eq.inactive,leaving_date.gte.${today})`);
+      if (error) throw new Error('Failed to load employees: ' + error.message);
+      return data.map(e => e.full_name);
+    }
 
     async function loadImageElement(src, size) {
       return new Promise(res => {
@@ -137,12 +154,17 @@
     }
 
     async function build() {
-      const data = await fetchData();
+      // Fetch people and CSV data in parallel
+      const [PEOPLE, data] = await Promise.all([fetchPeople(), fetchData()]);
+
       const rows = data
         .filter(r => r['T/M RANK'] && PEOPLE.includes(r['NAME']))
         .sort((a, b) => +a['T/M RANK'] - +b['T/M RANK']);
 
-      if (!rows.length) return;
+      if (!rows.length) {
+        document.getElementById('spinner').style.display = 'none';
+        return;
+      }
 
       const leaderValue = parseFloat(rows[0]['THIS MONTH']?.replace(/,/g, '') || '0');
       const counts = rows.reduce((a, r) => {
@@ -164,10 +186,8 @@
                 : r._display === 3 ? '#cd7f32' : null;
       });
 
-      // Draw ALL icons in parallel instead of one by one
       const icons = await Promise.all(rows.map(r => drawIcon(r['NAME'], r._halo)));
 
-      // Hide spinner now that we're ready to render
       document.getElementById('spinner').style.display = 'none';
 
       const topEl   = document.getElementById('top-rank');
@@ -179,10 +199,10 @@
         const tm = +r['T/M RANK'];
         const lm = +r['T/M LAST RANK'] || Infinity;
         const size = 64 + (r._halo ? 10 : 0);
-        const rankTxt = (r._isTie ? '=' : '') + r._display;
+        const rankTxt  = (r._isTie ? '=' : '') + r._display;
         const metresTxt = r._value.toLocaleString() + 'm';
-        const diffTxt = r._diff === 0 ? 'Leader' : `-${r._diff.toLocaleString()}m`;
-        const arrow = tm < lm ? 'Green%20Arrow.png' : tm > lm ? 'Red%20Arrow.png' : '';
+        const diffTxt  = r._diff === 0 ? 'Leader' : `-${r._diff.toLocaleString()}m`;
+        const arrow    = tm < lm ? 'Green%20Arrow.png' : tm > lm ? 'Red%20Arrow.png' : '';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -225,7 +245,7 @@
       console.error(e);
       document.getElementById('spinner').style.display = 'none';
       document.querySelector('#top-rank').innerHTML =
-        '<tr><td colspan="6" style="color:red">Error loading leaderboard</td></tr>';
+        '<tr><td colspan="6" style="color:red">Error loading leaderboard: ' + e.message + '</td></tr>';
     });
   </script>
 </body>
