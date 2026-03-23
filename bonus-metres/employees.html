@@ -535,15 +535,12 @@
       }
     }
 
-    // Auto-sync after save — prompts for token via getGithubToken() if not cached
+    // Auto-sync after save — prompts for token now (synchronous), then pushes after 2s
     function schedulePeopleJsUpdate() {
+      const token = getGithubToken(); // prompt while user is still engaged, not mid-delay
+      if (!token) return;
       clearTimeout(peopleJsTimer);
       peopleJsTimer = setTimeout(async () => {
-        const token = getGithubToken();
-        if (!token) {
-          showToast('Leaderboard not synced — no GitHub token provided', 'error');
-          return;
-        }
         try {
           await writePeopleJs(token);
           showToast('✓ Leaderboard updated', 'success');
