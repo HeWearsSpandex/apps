@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JHB — Transactions</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red:      #c00;
+      --red-dk:   #900;
+      --red-lt:   #fff0f0;
+      --green:    #2a9d2a;
+      --green-lt: #f0fff0;
+      --orange:   #e65100;
+      --orange-lt:#fff3e0;
+      --blue:     #1a73e8;
+      --blue-lt:  #e8f0fe;
+      --grey:     #f4f5f7;
+      --border:   #e0e0e0;
+      --text:     #1a1a1a;
+      --muted:    #888;
+      --white:    #fff;
+      --shadow:   0 2px 8px rgba(0,0,0,0.08);
+      --shadow-lg:0 8px 32px rgba(0,0,0,0.14);
+      --radius:   10px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--grey);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .main { margin-left: 220px; padding: 28px 32px; min-height: 100vh; }
+
+    .page-header { margin-bottom: 24px; }
+    .page-header h2 { font-size: 22px; font-weight: 700; }
+    .page-header p  { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+    /* ── TYPE SELECTOR ── */
+    .type-selector {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .type-btn {
+      flex: 1;
+      padding: 16px 12px;
+      border-radius: var(--radius);
+      border: 2px solid var(--border);
+      background: var(--white);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+      box-shadow: var(--shadow);
+    }
+    .type-btn:hover { border-color: var(--red); }
+    .type-btn.active-job      { border-color: var(--blue);   background: var(--blue-lt); }
+    .type-btn.active-bonus    { border-color: var(--green);  background: var(--green-lt); }
+    .type-btn.active-deduction{ border-color: var(--orange); background: var(--orange-lt); }
+    .type-btn .type-icon  { font-size: 24px; margin-bottom: 6px; }
+    .type-btn .type-label { font-size: 13px; font-weight: 700; color: var(--text); }
+    .type-btn .type-desc  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ── FORM CARD ── */
+    .form-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: none;
+    }
+    .form-card.visible { display: block; }
+
+    .form-card-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .form-card-header h3 { font-size: 16px; font-weight: 700; }
+    .form-card-header .header-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .badge-job       { background: var(--blue-lt);   color: var(--blue); }
+    .badge-bonus     { background: var(--green-lt);  color: var(--green); }
+    .badge-deduction { background: var(--orange-lt); color: var(--orange); }
+
+    .form-body { padding: 24px; }
+
+    /* ── FORM ELEMENTS ── */
+    .form-row   { display: grid; gap: 16px; margin-bottom: 16px; }
+    .form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+    .form-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .form-row.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+
+    label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    label .required { color: var(--red); margin-left: 2px; }
+
+    input[type=text],
+    input[type=date],
+    input[type=number],
+    select,
+    textarea {
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      background: var(--white);
+      transition: border-color 0.15s, box-shadow 0.15s;
+      width: 100%;
+    }
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px rgba(204,0,0,0.08);
+    }
+    textarea { resize: vertical; min-height: 72px; }
+
+    .field-hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── COMPUTED DISPLAY ── */
+    .computed-field {
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      background: var(--grey);
+      color: var(--muted);
+      font-weight: 600;
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+    }
+    .computed-field.has-value { color: var(--text); }
+
+    /* ── OPERATIVE PICKER ── */
+    .operative-picker {
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .operative-picker:focus-within { border-color: var(--red); box-shadow: 0 0 0 3px rgba(204,0,0,0.08); }
+
+    .operative-search {
+      padding: 9px 12px;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      outline: none;
+      width: 100%;
+      font-family: inherit;
+    }
+
+    .operative-selected {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 8px 10px;
+      min-height: 40px;
+      border-bottom: 1px solid var(--border);
+      background: #fafafa;
+    }
+    .operative-selected:empty::before {
+      content: 'No operatives selected';
+      font-size: 12px;
+      color: var(--muted);
+      align-self: center;
+    }
+
+    .op-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px 3px 10px;
+      background: var(--blue-lt);
+      border: 1px solid #c5d8f8;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--blue);
+    }
+    .op-chip button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--blue);
+      font-size: 14px;
+      line-height: 1;
+      padding: 0;
+      opacity: 0.6;
+    }
+    .op-chip button:hover { opacity: 1; }
+
+    .operative-list {
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .op-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.1s;
+    }
+    .op-option:hover   { background: var(--grey); }
+    .op-option.selected { background: var(--blue-lt); }
+    .op-option img {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1.5px solid var(--border);
+      flex-shrink: 0;
+    }
+    .op-option .op-name     { flex: 1; font-weight: 500; }
+    .op-option .op-initials {
+      font-size: 10px;
+      background: var(--grey);
+      padding: 1px 6px;
+      border-radius: 8px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .op-option.selected .op-initials { background: #c5d8f8; color: var(--blue); }
+
+    /* ── SHARE PREVIEW ── */
+    .share-preview {
+      padding: 10px 14px;
+      background: var(--blue-lt);
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--blue);
+      font-weight: 600;
+      margin-top: 8px;
+      display: none;
+    }
+    .share-preview.visible { display: block; }
+
+    /* ── MULTI-EMPLOYEE PICKER (bonus/deduction) ── */
+    .employee-rows { display: flex; flex-direction: column; gap: 8px; }
+    .employee-row {
+      display: grid;
+      grid-template-columns: 1fr 140px auto;
+      gap: 8px;
+      align-items: center;
+    }
+    .employee-row select { margin: 0; }
+    .add-row-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 7px 14px;
+      border: 1.5px dashed var(--border);
+      border-radius: 8px;
+      background: none;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .add-row-btn:hover { border-color: var(--red); color: var(--red); }
+    .remove-row-btn {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      border: none;
+      background: var(--grey);
+      color: var(--muted);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .remove-row-btn:hover { background: var(--red-lt); color: var(--red); }
+
+    /* ── FORM FOOTER ── */
+    .form-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .form-footer-left { font-size: 12px; color: var(--muted); }
+
+    .btn {
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-family: inherit;
+    }
+    .btn-primary       { background: var(--red); color: var(--white); }
+    .btn-primary:hover { background: var(--red-dk); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-ghost         { background: var(--grey); color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover   { border-color: var(--red); color: var(--red); }
+
+    /* ── RECENT TRANSACTIONS ── */
+    .recent-section { margin-top: 32px; }
+    .recent-header  {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .recent-header h3 { font-size: 15px; font-weight: 700; }
+
+    .tx-table {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .tx-table table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .tx-table th {
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--muted);
+      background: var(--grey);
+      border-bottom: 1px solid var(--border);
+    }
+    .tx-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .tx-table tr:last-child td { border-bottom: none; }
+    .tx-table tr:hover td { background: #fafafa; }
+
+    .tx-type-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      white-space: nowrap;
+    }
+    .tx-type-badge.job       { background: var(--blue-lt);   color: var(--blue); }
+    .tx-type-badge.bonus     { background: var(--green-lt);  color: var(--green); }
+    .tx-type-badge.deduction { background: var(--orange-lt); color: var(--orange); }
+
+    .tx-empty {
+      text-align: center;
+      padding: 40px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* ── SPINNER ── */
+    .spinner-wrap { display: flex; justify-content: center; padding: 30px; }
+    .spinner {
+      width: 28px; height: 28px;
+      border: 3px solid var(--border);
+      border-top-color: var(--red);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 900px) {
+      .main { margin-left: 0; padding: 16px; }
+      .form-row.cols-3,
+      .form-row.cols-4 { grid-template-columns: 1fr 1fr; }
+      .form-row.cols-2 { grid-template-columns: 1fr; }
+      .type-selector   { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="admin.js"></script>
+  <div id="sidebarMount"></div>
+
+  <div class="main" id="mainContent" style="display:none">
+
+    <div class="page-header">
+      <h2>Transactions</h2>
+      <p>Enter job bonuses, special bonuses and deductions</p>
+    </div>
+
+    <!-- Type selector -->
+    <div class="type-selector">
+      <div class="type-btn" id="btn-job" onclick="setType('job')">
+        <div class="type-icon">🔧</div>
+        <div class="type-label">Job Bonus</div>
+        <div class="type-desc">Metres-based bonus for a site job</div>
+      </div>
+      <div class="type-btn" id="btn-special_bonus" onclick="setType('special_bonus')">
+        <div class="type-icon">⭐</div>
+        <div class="type-label">Special Bonus</div>
+        <div class="type-desc">One-off bonus for one or more employees</div>
+      </div>
+      <div class="type-btn" id="btn-deduction" onclick="setType('deduction')">
+        <div class="type-icon">➖</div>
+        <div class="type-label">Deduction</div>
+        <div class="type-desc">Deduction against one or more employees</div>
+      </div>
+    </div>
+
+    <!-- ── JOB BONUS FORM ── -->
+    <div class="form-card" id="form-job">
+      <div class="form-card-header">
+        <span style="font-size:20px">🔧</span>
+        <h3>New Job Bonus</h3>
+        <span class="header-badge badge-job">Job</span>
+      </div>
+      <div class="form-body">
+
+        <div class="form-row cols-4">
+          <div class="form-group">
+            <label>Date <span class="required">*</span></label>
+            <input type="date" id="job-date" tabindex="1" oninput="onJobDateChange()">
+          </div>
+          <div class="form-group">
+            <label>Job Reference</label>
+            <input type="text" id="job-ref" placeholder="R40209" tabindex="2">
+          </div>
+          <div class="form-group">
+            <label>Site Name <span class="required">*</span></label>
+            <input type="text" id="job-site" placeholder="Tesco Bristol" tabindex="3">
+          </div>
+          <div class="form-group">
+            <label>Date Paid</label>
+            <input type="date" id="job-date-paid" tabindex="4">
+          </div>
+        </div>
+
+        <div class="form-row cols-4">
+          <div class="form-group">
+            <label>Bonus Metres <span class="required">*</span></label>
+            <input type="number" id="job-metres" placeholder="1385" min="0" step="1" tabindex="5" oninput="recalcJob()">
+          </div>
+          <div class="form-group">
+            <label>Rate (£/m)</label>
+            <div class="computed-field has-value" id="job-rate-display">—</div>
+            <div class="field-hint" id="job-rate-hint">Set by date</div>
+          </div>
+          <div class="form-group">
+            <label>Total Value</label>
+            <div class="computed-field" id="job-total-display">—</div>
+          </div>
+          <div class="form-group">
+            <label>Remedial Cost (£)</label>
+            <input type="number" id="job-remedial" placeholder="0.00" min="0" step="0.01" value="0" tabindex="6" oninput="recalcJob()">
+          </div>
+        </div>
+
+        <div class="form-row cols-2" style="margin-bottom:8px">
+          <div class="form-group">
+            <label>Net Value</label>
+            <div class="computed-field" id="job-net-display">—</div>
+          </div>
+          <div class="form-group">
+            <label>Details / Notes</label>
+            <input type="text" id="job-details" placeholder="Optional notes" tabindex="7">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:8px">
+          <label>Operatives <span class="required">*</span></label>
+          <div class="operative-picker" id="op-picker">
+            <input class="operative-search" type="text" placeholder="Search employees…"
+                   id="op-search" tabindex="8" oninput="filterOperatives()" autocomplete="off">
+            <div class="operative-selected" id="op-selected"></div>
+            <div class="operative-list" id="op-list"></div>
+          </div>
+          <div class="share-preview" id="share-preview"></div>
+        </div>
+
+      </div>
+      <div class="form-footer">
+        <div class="form-footer-left" id="job-footer-hint">Fill in date to auto-load rate</div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-ghost" tabindex="10" onclick="resetJob()">Clear</button>
+          <button class="btn btn-primary" tabindex="9" id="job-save-btn" onclick="saveJob()">💾 Save Job Bonus</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SPECIAL BONUS / DEDUCTION FORM ── -->
+    <div class="form-card" id="form-entry">
+      <div class="form-card-header" id="entry-header">
+        <span style="font-size:20px" id="entry-icon">⭐</span>
+        <h3 id="entry-title">New Special Bonus</h3>
+        <span class="header-badge" id="entry-badge">Special Bonus</span>
+      </div>
+      <div class="form-body">
+
+        <div class="form-row cols-3">
+          <div class="form-group">
+            <label>Date <span class="required">*</span></label>
+            <input type="date" id="entry-date" tabindex="1">
+          </div>
+          <div class="form-group">
+            <label>Date Paid</label>
+            <input type="date" id="entry-date-paid" tabindex="2">
+          </div>
+          <div class="form-group">
+            <label>Reason</label>
+            <input type="text" id="entry-reason" placeholder="e.g. End of year bonus" tabindex="3">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:16px">
+          <label>Employees & Amounts <span class="required">*</span></label>
+          <div class="employee-rows" id="employee-rows"></div>
+          <button class="add-row-btn" tabindex="99" onclick="addEmployeeRow()">+ Add another employee</button>
+        </div>
+
+      </div>
+      <div class="form-footer">
+        <div class="form-footer-left" id="entry-total-display">Total: £0.00</div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-ghost" tabindex="100" onclick="resetEntry()">Clear</button>
+          <button class="btn btn-primary" tabindex="98" id="entry-save-btn" onclick="saveEntry()">💾 Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent transactions -->
+    <div class="recent-section">
+      <div class="recent-header">
+        <h3>Recent Transactions</h3>
+      </div>
+      <div class="tx-table">
+        <div class="spinner-wrap" id="recent-spinner"><div class="spinner"></div></div>
+        <table id="recent-table" style="display:none">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Job Ref / Reason</th>
+              <th>Site / Employee(s)</th>
+              <th style="text-align:right">Value</th>
+              <th>Paid</th>
+            </tr>
+          </thead>
+          <tbody id="recent-body"></tbody>
+        </table>
+        <div class="tx-empty" id="recent-empty" style="display:none">No transactions yet</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ── State ─────────────────────────────────────────────────────────────────
+    let allEmployees   = [];
+    let selectedOps    = [];   // operative ids for job form
+    let currentType    = null;
+    let currentRate    = null;
+    let employeeRowCount = 0;
+
+    // ── Auth & init ───────────────────────────────────────────────────────────
+    async function init() {
+      const ok = await requireAuth();
+      if (!ok) return;
+      document.getElementById('mainContent').style.display = 'block';
+      await loadEmployees();
+      renderOperativeList('');
+      await loadRecent();
+      // Default to job type
+      setType('job');
+      // Set today's date as default
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('job-date').value   = today;
+      document.getElementById('entry-date').value = today;
+      onJobDateChange();
+    }
+
+    // ── Employees ─────────────────────────────────────────────────────────────
+    async function loadEmployees() {
+      const { data } = await sb.from('employees')
+        .select('id, full_name, initials, status')
+        .in('status', ['active', 'probation'])
+        .order('full_name');
+      allEmployees = data || [];
+    }
+
+    // ── Type selector ─────────────────────────────────────────────────────────
+    function setType(type) {
+      currentType = type;
+
+      // Update buttons
+      ['job','special_bonus','deduction'].forEach(t => {
+        const btn = document.getElementById('btn-' + t);
+        btn.className = 'type-btn';
+        if (t === type) {
+          btn.className = 'type-btn active-' + (t === 'job' ? 'job' : t === 'special_bonus' ? 'bonus' : 'deduction');
+        }
+      });
+
+      // Show correct form
+      document.getElementById('form-job').classList.toggle('visible', type === 'job');
+      document.getElementById('form-entry').classList.toggle('visible', type !== 'job');
+
+      if (type !== 'job') {
+        const isBonus = type === 'special_bonus';
+        document.getElementById('entry-icon').textContent  = isBonus ? '⭐' : '➖';
+        document.getElementById('entry-title').textContent = isBonus ? 'New Special Bonus' : 'New Deduction';
+        document.getElementById('entry-badge').textContent = isBonus ? 'Special Bonus' : 'Deduction';
+        document.getElementById('entry-badge').className   = 'header-badge ' + (isBonus ? 'badge-bonus' : 'badge-deduction');
+        document.getElementById('entry-save-btn').textContent = isBonus ? '💾 Save Bonus' : '💾 Save Deduction';
+        // Init with one row if empty
+        if (!document.getElementById('employee-rows').children.length) addEmployeeRow();
+      }
+    }
+
+    // ── Rate lookup ───────────────────────────────────────────────────────────
+    async function onJobDateChange() {
+      const date = document.getElementById('job-date').value;
+      if (!date) { currentRate = null; updateRateDisplay(); return; }
+
+      const { data } = await sb
+        .from('rate_periods')
+        .select('rate, valid_from, valid_to')
+        .lte('valid_from', date)
+        .or(`valid_to.is.null,valid_to.gte.${date}`)
+        .order('valid_from', { ascending: false })
+        .limit(1);
+
+      currentRate = data?.[0]?.rate ?? null;
+      updateRateDisplay();
+      recalcJob();
+    }
+
+    function updateRateDisplay() {
+      const el   = document.getElementById('job-rate-display');
+      const hint = document.getElementById('job-rate-hint');
+      if (currentRate !== null) {
+        el.textContent = '£' + parseFloat(currentRate).toFixed(4);
+        el.classList.add('has-value');
+        hint.textContent = 'From rate periods';
+      } else {
+        el.textContent = '—';
+        el.classList.remove('has-value');
+        hint.textContent = 'No rate found for this date';
+      }
+    }
+
+    // ── Job recalc ────────────────────────────────────────────────────────────
+    function recalcJob() {
+      const metres   = parseFloat(document.getElementById('job-metres').value)   || 0;
+      const remedial = parseFloat(document.getElementById('job-remedial').value) || 0;
+      const rate     = currentRate || 0;
+
+      const total = metres * rate;
+      const net   = total - remedial;
+
+      const totalEl = document.getElementById('job-total-display');
+      const netEl   = document.getElementById('job-net-display');
+
+      totalEl.textContent = metres && rate ? '£' + total.toFixed(2) : '—';
+      totalEl.classList.toggle('has-value', !!(metres && rate));
+
+      netEl.textContent = metres && rate ? '£' + net.toFixed(2) : '—';
+      netEl.classList.toggle('has-value', !!(metres && rate));
+
+      updateSharePreview();
+    }
+
+    // ── Operative picker ──────────────────────────────────────────────────────
+    function renderOperativeList(query) {
+      const list = document.getElementById('op-list');
+      const q    = query.toLowerCase();
+      const filtered = allEmployees.filter(e =>
+        !q || e.full_name.toLowerCase().includes(q) || e.initials.toLowerCase().includes(q)
+      );
+
+      list.innerHTML = filtered.map(e => {
+        const sel     = selectedOps.includes(e.id);
+        const imgSrc  = `/img/${encodeURIComponent(e.full_name)}_cvface1.png`;
+        const fallback = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'><circle cx='14' cy='14' r='14' fill='%23ddd'/><text x='14' y='19' text-anchor='middle' font-size='12' fill='%23999'>${e.full_name.charAt(0)}</text></svg>`;
+        return `<div class="op-option ${sel ? 'selected' : ''}" data-id="${e.id}" onclick="toggleOperative('${e.id}')">
+          <img src="${imgSrc}" onerror="this.src='${fallback}'" width="28" height="28">
+          <span class="op-name">${e.full_name}</span>
+          <span class="op-initials">${e.initials}</span>
+          ${sel ? '<span style="color:var(--blue);font-size:16px">✓</span>' : ''}
+        </div>`;
+      }).join('') || '<div style="padding:12px;font-size:13px;color:var(--muted);text-align:center">No matches</div>';
+    }
+
+    function filterOperatives() {
+      renderOperativeList(document.getElementById('op-search').value);
+    }
+
+    function toggleOperative(id) {
+      if (selectedOps.includes(id)) {
+        selectedOps = selectedOps.filter(x => x !== id);
+      } else {
+        selectedOps.push(id);
+      }
+      renderSelectedChips();
+      renderOperativeList(document.getElementById('op-search').value);
+      updateSharePreview();
+    }
+
+    function renderSelectedChips() {
+      const el = document.getElementById('op-selected');
+      el.innerHTML = selectedOps.map(id => {
+        const emp = allEmployees.find(e => e.id === id);
+        if (!emp) return '';
+        return `<div class="op-chip">
+          ${emp.initials}
+          <button type="button" onclick="toggleOperative('${id}')" title="Remove">×</button>
+        </div>`;
+      }).join('');
+    }
+
+    function updateSharePreview() {
+      const preview = document.getElementById('share-preview');
+      const metres   = parseFloat(document.getElementById('job-metres').value)   || 0;
+      const remedial = parseFloat(document.getElementById('job-remedial').value) || 0;
+      const rate     = currentRate || 0;
+      const net      = metres * rate - remedial;
+      const count    = selectedOps.length;
+
+      if (count > 0 && net > 0) {
+        const share = net / count;
+        const names = selectedOps.map(id => allEmployees.find(e => e.id === id)?.initials || '').join(', ');
+        preview.textContent = `Each of ${count} operative${count > 1 ? 's' : ''} (${names}) receives £${share.toFixed(2)}`;
+        preview.classList.add('visible');
+      } else {
+        preview.classList.remove('visible');
+      }
+    }
+
+    // ── Employee rows (bonus/deduction) ───────────────────────────────────────
+    function addEmployeeRow(empId = '', amount = '') {
+      employeeRowCount++;
+      const idx  = employeeRowCount;
+      const div  = document.createElement('div');
+      div.className = 'employee-row';
+      div.id = `emp-row-${idx}`;
+
+      const options = allEmployees.map(e =>
+        `<option value="${e.id}" ${e.id === empId ? 'selected' : ''}>${e.full_name} [${e.initials}]</option>`
+      ).join('');
+
+      div.innerHTML = `
+        <select tabindex="${10 + idx * 2}" onchange="updateEntryTotal()">
+          <option value="">Select employee…</option>
+          ${options}
+        </select>
+        <input type="number" placeholder="£0.00" min="0.01" step="0.01"
+               value="${amount}" tabindex="${11 + idx * 2}"
+               oninput="updateEntryTotal()" style="margin:0">
+        <button class="remove-row-btn" type="button" onclick="removeEmployeeRow(${idx})" title="Remove">×</button>
+      `;
+      document.getElementById('employee-rows').appendChild(div);
+      // Focus the new select
+      div.querySelector('select').focus();
+    }
+
+    function removeEmployeeRow(idx) {
+      const row = document.getElementById(`emp-row-${idx}`);
+      if (row) row.remove();
+      // Keep at least one row
+      if (!document.getElementById('employee-rows').children.length) addEmployeeRow();
+      updateEntryTotal();
+    }
+
+    function updateEntryTotal() {
+      let total = 0;
+      document.querySelectorAll('#employee-rows .employee-row').forEach(row => {
+        const amt = parseFloat(row.querySelector('input[type=number]').value) || 0;
+        total += amt;
+      });
+      document.getElementById('entry-total-display').textContent = 'Total: £' + total.toFixed(2);
+    }
+
+    // ── Save job ──────────────────────────────────────────────────────────────
+    async function saveJob() {
+      const date     = document.getElementById('job-date').value;
+      const jobRef   = document.getElementById('job-ref').value.trim();
+      const site     = document.getElementById('job-site').value.trim();
+      const metres   = parseFloat(document.getElementById('job-metres').value);
+      const remedial = parseFloat(document.getElementById('job-remedial').value) || 0;
+      const datePaid = document.getElementById('job-date-paid').value || null;
+      const details  = document.getElementById('job-details').value.trim() || null;
+
+      if (!date)              { showToast('Date is required', 'error'); return; }
+      if (!site)              { showToast('Site name is required', 'error'); return; }
+      if (!metres || metres <= 0) { showToast('Bonus metres must be greater than 0', 'error'); return; }
+      if (!currentRate)       { showToast('No rate found for this date — check rate periods', 'error'); return; }
+      if (!selectedOps.length){ showToast('Select at least one operative', 'error'); return; }
+
+      const btn = document.getElementById('job-save-btn');
+      btn.disabled = true; btn.textContent = 'Saving…';
+
+      try {
+        const netValue  = metres * currentRate - remedial;
+        const shareVal  = netValue / selectedOps.length;
+
+        // Insert transaction
+        const { data: tx, error: txErr } = await sb
+          .from('transactions')
+          .insert({
+            date:          date,
+            job_ref:       jobRef || null,
+            site_name:     site,
+            details:       details,
+            bonus_metres:  metres,
+            rate:          currentRate,
+            remedial_cost: remedial,
+            date_paid:     datePaid,
+            created_by:    currentUser.id
+          })
+          .select()
+          .single();
+        if (txErr) throw new Error(txErr.message);
+
+        // Insert operatives
+        const ops = selectedOps.map(empId => ({
+          transaction_id: tx.id,
+          employee_id:    empId,
+          share_value:    parseFloat(shareVal.toFixed(2))
+        }));
+        const { error: opsErr } = await sb.from('transaction_operatives').insert(ops);
+        if (opsErr) throw new Error(opsErr.message);
+
+        showToast(`✓ Job saved — ${selectedOps.length} operative${selectedOps.length > 1 ? 's' : ''}, £${netValue.toFixed(2)} net`, 'success');
+        resetJob();
+        await loadRecent();
+
+      } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+        console.error(e);
+      } finally {
+        btn.disabled = false; btn.textContent = '💾 Save Job Bonus';
+      }
+    }
+
+    // ── Save bonus/deduction ──────────────────────────────────────────────────
+    async function saveEntry() {
+      const date     = document.getElementById('entry-date').value;
+      const datePaid = document.getElementById('entry-date-paid').value || null;
+      const reason   = document.getElementById('entry-reason').value.trim() || null;
+
+      if (!date) { showToast('Date is required', 'error'); return; }
+
+      const rows = [...document.querySelectorAll('#employee-rows .employee-row')];
+      const entries = rows.map(row => ({
+        empId:  row.querySelector('select').value,
+        amount: parseFloat(row.querySelector('input[type=number]').value)
+      })).filter(r => r.empId && r.amount > 0);
+
+      if (!entries.length) {
+        showToast('Add at least one employee with an amount', 'error'); return;
+      }
+
+      const btn = document.getElementById('entry-save-btn');
+      btn.disabled = true; btn.textContent = 'Saving…';
+
+      try {
+        const records = entries.map(r => ({
+          date:        date,
+          type:        currentType,
+          employee_id: r.empId,
+          amount:      r.amount,
+          reason:      reason,
+          date_paid:   datePaid,
+          created_by:  currentUser.id
+        }));
+
+        const { error } = await sb.from('bonus_entries').insert(records);
+        if (error) throw new Error(error.message);
+
+        const total = entries.reduce((s, r) => s + r.amount, 0);
+        const label = currentType === 'special_bonus' ? 'Bonus' : 'Deduction';
+        showToast(`✓ ${label} saved — ${entries.length} employee${entries.length > 1 ? 's' : ''}, £${total.toFixed(2)} total`, 'success');
+        resetEntry();
+        await loadRecent();
+
+      } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+        console.error(e);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = currentType === 'special_bonus' ? '💾 Save Bonus' : '💾 Save Deduction';
+      }
+    }
+
+    // ── Reset forms ───────────────────────────────────────────────────────────
+    function resetJob() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('job-date').value     = today;
+      document.getElementById('job-ref').value      = '';
+      document.getElementById('job-site').value     = '';
+      document.getElementById('job-metres').value   = '';
+      document.getElementById('job-remedial').value = '0';
+      document.getElementById('job-details').value  = '';
+      document.getElementById('job-date-paid').value = '';
+      document.getElementById('op-search').value    = '';
+      selectedOps = [];
+      renderSelectedChips();
+      renderOperativeList('');
+      document.getElementById('share-preview').classList.remove('visible');
+      document.getElementById('job-total-display').textContent = '—';
+      document.getElementById('job-net-display').textContent   = '—';
+      onJobDateChange();
+      document.getElementById('job-date').focus();
+    }
+
+    function resetEntry() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('entry-date').value      = today;
+      document.getElementById('entry-date-paid').value = '';
+      document.getElementById('entry-reason').value    = '';
+      document.getElementById('employee-rows').innerHTML = '';
+      employeeRowCount = 0;
+      addEmployeeRow();
+      updateEntryTotal();
+      document.getElementById('entry-date').focus();
+    }
+
+    // ── Recent transactions ───────────────────────────────────────────────────
+    async function loadRecent() {
+      document.getElementById('recent-spinner').style.display = 'flex';
+      document.getElementById('recent-table').style.display   = 'none';
+      document.getElementById('recent-empty').style.display   = 'none';
+
+      try {
+        // Load recent job transactions
+        const { data: jobs } = await sb
+          .from('transactions')
+          .select(`id, date, job_ref, site_name, net_value, date_paid,
+                   transaction_operatives(employee_id, share_value,
+                     employees(full_name, initials))`)
+          .order('date', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(15);
+
+        // Load recent bonus/deduction entries
+        const { data: entries } = await sb
+          .from('bonus_entries')
+          .select(`id, date, type, amount, reason, date_paid,
+                   employees(full_name, initials)`)
+          .order('date', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(15);
+
+        // Merge and sort by date desc
+        const all = [
+          ...(jobs || []).map(j => ({ ...j, _type: 'job' })),
+          ...(entries || []).map(e => ({ ...e, _type: e.type }))
+        ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 20);
+
+        document.getElementById('recent-spinner').style.display = 'none';
+
+        if (!all.length) {
+          document.getElementById('recent-empty').style.display = 'block';
+          return;
+        }
+
+        const tbody = document.getElementById('recent-body');
+        tbody.innerHTML = all.map(row => {
+          const date = new Date(row.date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+          const paid = row.date_paid
+            ? new Date(row.date_paid).toLocaleDateString('en-GB', { day:'numeric', month:'short' })
+            : '<span style="color:var(--muted)">—</span>';
+
+          if (row._type === 'job') {
+            const ops    = (row.transaction_operatives || []).map(o => o.employees?.initials || '').join(', ');
+            const value  = '£' + parseFloat(row.net_value).toFixed(2);
+            return `<tr>
+              <td>${date}</td>
+              <td><span class="tx-type-badge job">Job</span></td>
+              <td>${row.job_ref || '—'}</td>
+              <td>${row.site_name || '—'} <span style="color:var(--muted);font-size:11px">[${ops}]</span></td>
+              <td style="text-align:right;font-weight:600">${value}</td>
+              <td>${paid}</td>
+            </tr>`;
+          } else {
+            const label  = row._type === 'special_bonus' ? 'Bonus' : 'Deduction';
+            const cls    = row._type === 'special_bonus' ? 'bonus' : 'deduction';
+            const value  = (row._type === 'deduction' ? '-' : '') + '£' + parseFloat(row.amount).toFixed(2);
+            const colour = row._type === 'deduction' ? 'color:var(--orange)' : 'color:var(--green)';
+            return `<tr>
+              <td>${date}</td>
+              <td><span class="tx-type-badge ${cls}">${label}</span></td>
+              <td>${row.reason || '—'}</td>
+              <td>${row.employees?.full_name || '—'}</td>
+              <td style="text-align:right;font-weight:600;${colour}">${value}</td>
+              <td>${paid}</td>
+            </tr>`;
+          }
+        }).join('');
+
+        document.getElementById('recent-table').style.display = 'table';
+
+      } catch(e) {
+        console.error('loadRecent:', e);
+        document.getElementById('recent-spinner').style.display = 'none';
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
