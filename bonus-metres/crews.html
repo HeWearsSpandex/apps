@@ -399,46 +399,50 @@
       document.getElementById('results-header').style.display = 'none';
 
       try {
-        // Fetch all transactions in range with their operatives
-        const { data: txData, error } = await sb
-          .from('transactions')
-          .select(`id, bonus_metres, total_value, date,
-                   transaction_operatives(employee_id, share_value)`)
-          .gte('date', dateFrom)
-          .lte('date', dateTo);
+        // Fetch via transaction_operatives to avoid generated column issues
+        const { data: opsData, error } = await sb
+          .from('transaction_operatives')
+          .select(`employee_id, share_value,
+                   transactions!inner(id, bonus_metres, rate, date)`)
+          .gte('transactions.date', dateFrom)
+          .lte('transactions.date', dateTo);
 
         if (error) throw new Error(error.message);
 
-        // Build crew combination map
+        // Group by transaction first, then build crew map
+        const txMap = {};
+        (opsData || []).forEach(op => {
+          const tx = op.transactions;
+          if (!tx) return;
+          if (!txMap[tx.id]) {
+            txMap[tx.id] = {
+              id:      tx.id,
+              date:    tx.date,
+              metres:  parseFloat(tx.bonus_metres || 0),
+              value:   parseFloat(tx.bonus_metres || 0) * parseFloat(tx.rate || 0.03),
+              ops:     []
+            };
+          }
+          txMap[tx.id].ops.push(op.employee_id);
+        });
+
         const crewMap = {};
         let totalBonus  = 0;
         let totalMetres = 0;
         let totalJobs   = 0;
 
-        (txData || []).forEach(tx => {
-          const ops = (tx.transaction_operatives || []);
-          if (!ops.length) return;
-
+        Object.values(txMap).forEach(tx => {
+          if (!tx.ops.length) return;
           totalJobs++;
-          totalBonus  += parseFloat(tx.total_value || 0);
-          totalMetres += parseFloat(tx.bonus_metres || 0);
+          totalBonus  += tx.value;
+          totalMetres += tx.metres;
 
-          // Sort employee ids to create a consistent key regardless of order
-          const ids  = ops.map(o => o.employee_id).sort();
-          const key  = ids.join('|');
-
-          if (!crewMap[key]) {
-            crewMap[key] = {
-              key,
-              ids,
-              jobs:   0,
-              bonus:  0,
-              metres: 0,
-            };
-          }
+          const ids = [...tx.ops].sort();
+          const key = ids.join('|');
+          if (!crewMap[key]) crewMap[key] = { key, ids, jobs: 0, bonus: 0, metres: 0 };
           crewMap[key].jobs++;
-          crewMap[key].bonus  += parseFloat(tx.total_value || 0);
-          crewMap[key].metres += parseFloat(tx.bonus_metres || 0);
+          crewMap[key].bonus  += tx.value;
+          crewMap[key].metres += tx.metres;
         });
 
         // Sort by bonus desc
@@ -530,8 +534,9 @@
         const avatarHtml = crew.ids.map(id => {
           const emp = allEmployeeMap[id];
           if (!emp) return '';
-          const src = `/img/${encodeURIComponent(emp.full_name)}_cvface1.png`;
-          const fb  = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'><circle cx='18' cy='18' r='18' fill='%23ddd'/><text x='18' y='23' text-anchor='middle' font-size='14' fill='%23999'>${emp.full_name.charAt(0)}</text></svg>`;
+          const src      = `/img/${encodeURIComponent(emp.full_name)}_cvface1.png`;
+          const initials = emp.initials || emp.full_name.charAt(0);
+          const fb       = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'><circle cx='18' cy='18' r='18' fill='%231a1a2e'/><text x='18' y='23' text-anchor='middle' font-size='${initials.length > 2 ? 9 : 11}' font-weight='700' fill='%23ffffff' font-family='Arial,sans-serif'>${initials}</text></svg>`;
           return `<img class="crew-avatar" src="${src}" onerror="this.src='${fb}'" title="${emp.full_name}">`;
         }).join('');
 
