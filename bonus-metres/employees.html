@@ -478,7 +478,6 @@
     let currentFilter = 'all';
     let editingId     = null;
     let photoFile     = null;
-    let peopleJsTimer = null;
 
     // ── Load ─────────────────────────────────────
 
@@ -533,22 +532,6 @@
       } finally {
         btn.disabled = false; btn.textContent = '🔄 Sync Leaderboard';
       }
-    }
-
-    // Auto-sync after save — shows token modal if not cached, then pushes after 2s
-    async function schedulePeopleJsUpdate() {
-      const token = await getGithubToken();
-      if (!token) return;
-      clearTimeout(peopleJsTimer);
-      peopleJsTimer = setTimeout(async () => {
-        try {
-          await writePeopleJs(token);
-          showToast('✓ Leaderboard updated', 'success');
-        } catch(e) {
-          showToast('Leaderboard sync failed: ' + e.message, 'error');
-          if (e.message.includes('Bad credentials')) sessionStorage.removeItem('gh_token');
-        }
-      }, 2000);
     }
 
     // Shared writer — builds people.js content and pushes to GitHub
@@ -756,9 +739,6 @@
         allEmployees = data;
         renderGrid();
         renderStats();
-
-        // Sync leaderboard — prompts for GitHub token if not cached
-        schedulePeopleJsUpdate();
 
         closeModal('empModal');
         showToast(`${wasEditing ? 'Updated' : 'Added'}: ${fullName}`, 'success');
