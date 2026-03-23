@@ -187,8 +187,6 @@
     const IMG_PATH_WEB   = '/img/';
     let allEmployees = [];
 
-    // Note: sb client is created in admin.js with sessionStorage adapter
-
     async function signInWithMicrosoft() {
       const btn = document.getElementById('loginBtn');
       const msg = document.getElementById('loginMsg');
@@ -218,12 +216,20 @@
       // Edge blocks localStorage — manually extract tokens from URL hash
       if (location.hash && location.hash.includes('access_token')) {
         console.log('Found access_token in hash');
-        const params = new URLSearchParams(location.hash.replace('#', ''));
+        const params       = new URLSearchParams(location.hash.replace('#', ''));
         const accessToken  = params.get('access_token');
         const refreshToken = params.get('refresh_token');
         const expiresIn    = params.get('expires_in');
         console.log('access_token found:', !!accessToken);
+
         if (accessToken) {
+          // FIX: also decode the user object from the hash so getSession() returns session.user
+          let userObj = undefined;
+          const userStr = params.get('user');
+          if (userStr) {
+            try { userObj = JSON.parse(decodeURIComponent(userStr)); } catch {}
+          }
+
           const sessionKey = `sb-${SUPABASE_URL.split('//')[1].split('.')[0]}-auth-token`;
           console.log('Storing session with key:', sessionKey);
           const sessionData = {
@@ -231,10 +237,15 @@
             refresh_token: refreshToken,
             expires_in:    parseInt(expiresIn || '3600'),
             expires_at:    Math.floor(Date.now() / 1000) + parseInt(expiresIn || '3600'),
-            token_type:    'bearer'
+            token_type:    'bearer',
+            user:          userObj   // ← was missing; caused session.user = undefined
           };
           cookieStorage.setItem(sessionKey, JSON.stringify(sessionData));
-          console.log('Session stored in cookie');
+          console.log('Session stored in cookie, user:', userObj?.email ?? 'not in hash params');
+
+          // Let Supabase also parse the hash natively — belt and braces
+          try { await sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }); } catch {}
+
           history.replaceState(null, '', location.pathname);
         }
       } else {
@@ -242,11 +253,13 @@
       }
 
       console.log('Checking getSession...');
-      const { data: { session }, error } = await sb.auth.getSession();
-      console.log('Session result:', session ? 'found' : 'null', 'Error:', error);
+      const { data, error } = await sb.auth.getSession();
+      const session = data?.session;
+      console.log('Session result:', session ? 'found' : 'null', '| User:', session?.user?.email ?? 'none', '| Error:', error);
 
-      if (!session) {
-        console.log('No session — showing login screen');
+      // FIX: guard on session.user — a session without a user object cannot proceed
+      if (!session || !session.user) {
+        console.log('No session or no user — showing login screen');
         document.getElementById('loginScreen').style.display = 'flex';
         return;
       }
