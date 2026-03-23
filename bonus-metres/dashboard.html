@@ -210,12 +210,18 @@
     }
 
     async function init() {
-      sb.auth.onAuthStateChange(async (event) => {
-        if (event === 'SIGNED_IN') await showDashboard();
+      // Handle OAuth callback — Supabase puts session in URL hash/params
+      const { data: { session: urlSession } } = await sb.auth.getSession();
+
+      sb.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session) await showDashboard();
       });
-      const { data: { session } } = await sb.auth.getSession();
-      if (!session) { document.getElementById('loginScreen').style.display = 'flex'; return; }
-      await showDashboard();
+
+      if (urlSession) {
+        await showDashboard();
+      } else {
+        document.getElementById('loginScreen').style.display = 'flex';
+      }
     }
 
     async function showDashboard() {
