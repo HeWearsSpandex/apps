@@ -7,8 +7,7 @@
   <title>Bonus Metres – Last Month's Leaderboard</title>
   <style>
     html, body {
-      margin: 0; padding: 0;
-      height: 100%;
+      margin: 0; padding: 0; height: 100%;
       font-family: Arial, sans-serif;
       display: flex; flex-direction: column;
     }
@@ -16,11 +15,8 @@
     .logo img { max-width: 200px; height: auto; }
     h1 { text-align: center; margin: 0 0 20px; }
     table {
-      width: 100%;
-      max-width: 750px;
-      margin: auto;
-      border-collapse: collapse;
-      table-layout: fixed;
+      width: 100%; max-width: 750px; margin: auto;
+      border-collapse: collapse; table-layout: fixed;
     }
     th, td { padding: 8px; text-align: center; }
     th { background: #f4f4f4; }
@@ -33,38 +29,24 @@
       scrollbar-width: none; -ms-overflow-style: none;
     }
     .scrollable-inner::-webkit-scrollbar { display: none; }
-
-    /* Spinner */
-    .spinner-wrap {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 40px 0;
-    }
+    .spinner-wrap { display: flex; justify-content: center; align-items: center; padding: 40px 0; }
     .spinner {
       width: 48px; height: 48px;
-      border: 5px solid #f4f4f4;
-      border-top-color: #c00;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      border: 5px solid #f4f4f4; border-top-color: #c00;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
   <div class="static-section">
-    <div class="logo">
-      <img src="/img/JHB Logo.png" alt="JHB Logo">
-    </div>
+    <div class="logo"><img src="/img/JHB Logo.png" alt="JHB Logo"></div>
     <h1>Bonus Metres – Last Month's Leaderboard</h1>
     <table>
       <thead>
         <tr>
-          <th>Rank</th>
-          <th>Face</th>
-          <th>Name</th>
-          <th>Bonus Metres</th>
-          <th>Diff. from Leader</th>
+          <th>Rank</th><th>Face</th><th>Name</th>
+          <th>Bonus Metres</th><th>Diff. from Leader</th>
         </tr>
       </thead>
       <tbody id="top-rank"></tbody>
@@ -73,32 +55,37 @@
 
   <div class="scrollable-section">
     <div class="scrollable-inner" id="scroll-container">
-      <div class="spinner-wrap" id="spinner">
-        <div class="spinner"></div>
-      </div>
-      <table>
-        <tbody id="other-ranks"></tbody>
-      </table>
+      <div class="spinner-wrap" id="spinner"><div class="spinner"></div></div>
+      <table><tbody id="other-ranks"></tbody></table>
     </div>
   </div>
 
-  <!-- Shared people list -->
-  <script src="/js/people.js"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
+    const SUPABASE_URL = 'https://oxgehlmalbvppjmdaswn.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
     const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
     const IMG_PATH = '/img/';
 
+    async function fetchPeople() {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await sb
+        .from('employees')
+        .select('full_name, status, leaving_date')
+        .or(`status.eq.active,status.eq.probation,and(status.eq.inactive,leaving_date.gte.${today})`);
+      if (error) throw new Error('Failed to load employees: ' + error.message);
+      return data.map(e => e.full_name);
+    }
+
     async function loadImageElement(src, size) {
       return new Promise(res => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
+        const img = new Image(); img.crossOrigin = 'anonymous';
         img.onload = () => res(img);
         img.onerror = () => {
-          const c = document.createElement('canvas');
-          c.width = c.height = size;
-          const ctx = c.getContext('2d');
-          ctx.fillStyle = '#ccc';
-          ctx.fillRect(0, 0, size, size);
+          const c = document.createElement('canvas'); c.width = c.height = size;
+          const ctx = c.getContext('2d'); ctx.fillStyle = '#ccc'; ctx.fillRect(0,0,size,size);
           res(c);
         };
         img.src = src;
@@ -107,14 +94,13 @@
 
     async function drawIcon(name, haloColor) {
       const base = 64, halo = haloColor ? 10 : 0, total = base + 2*halo;
-      const canvas = document.createElement('canvas');
+      const canvas = document.createElement('canvas'); canvas.width = canvas.height = total;
       const ctx = canvas.getContext('2d');
-      canvas.width = canvas.height = total;
       if (haloColor) {
         ctx.fillStyle = haloColor;
         ctx.beginPath();
-        ctx.arc(total/2, total/2, base/2 + halo, 0, 2 * Math.PI);
-        ctx.arc(total/2, total/2, base/2, 0, 2 * Math.PI);
+        ctx.arc(total/2, total/2, base/2 + halo, 0, 2*Math.PI);
+        ctx.arc(total/2, total/2, base/2, 0, 2*Math.PI);
         ctx.fill('evenodd');
       }
       const img = await loadImageElement(IMG_PATH + encodeURIComponent(name.trim()) + '_cvface1.png', base);
@@ -135,19 +121,16 @@
     }
 
     async function build() {
-      const data = await fetchData();
+      const [PEOPLE, data] = await Promise.all([fetchPeople(), fetchData()]);
+
       const rows = data
         .filter(r => r['L/M RANK'] && PEOPLE.includes(r['NAME']))
         .sort((a, b) => +a['L/M RANK'] - +b['L/M RANK']);
 
-      if (!rows.length) return;
+      if (!rows.length) { document.getElementById('spinner').style.display = 'none'; return; }
 
       const leaderValue = parseFloat(rows[0]['LAST MONTH']?.replace(/,/g, '') || '0');
-      const counts = rows.reduce((a, r) => {
-        const rk = +r['L/M RANK'];
-        a[rk] = (a[rk] || 0) + 1;
-        return a;
-      }, {});
+      const counts = rows.reduce((a, r) => { const rk = +r['L/M RANK']; a[rk] = (a[rk]||0)+1; return a; }, {});
 
       let lastRankValue = null, displayRank = 0;
       rows.forEach((r, idx) => {
@@ -155,37 +138,27 @@
         if (val !== lastRankValue) { displayRank = idx + 1; lastRankValue = val; }
         r._display = displayRank;
         r._value = parseFloat(r['LAST MONTH']?.replace(/,/g, '') || '0');
-        r._diff = leaderValue - r._value;
+        r._diff  = leaderValue - r._value;
         r._isTie = counts[val] > 1;
-        r._halo = r._display === 1 ? 'gold'
-                : r._display === 2 ? 'silver'
-                : r._display === 3 ? '#cd7f32' : null;
+        r._halo  = r._display === 1 ? 'gold' : r._display === 2 ? 'silver' : r._display === 3 ? '#cd7f32' : null;
       });
 
-      // Draw ALL icons in parallel
       const icons = await Promise.all(rows.map(r => drawIcon(r['NAME'], r._halo)));
-
-      // Hide spinner
       document.getElementById('spinner').style.display = 'none';
 
-      const topEl   = document.getElementById('top-rank');
+      const topEl = document.getElementById('top-rank');
       const otherEl = document.getElementById('other-ranks');
       topEl.innerHTML = otherEl.innerHTML = '';
 
       rows.forEach((r, idx) => {
         const size = 64 + (r._halo ? 10 : 0);
-        const rankTxt   = (r._isTie ? '=' : '') + r._display;
-        const metresTxt = r._value.toLocaleString() + 'm';
-        const diffTxt   = r._diff === 0 ? 'Leader' : `-${r._diff.toLocaleString()}m`;
-
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="rank">${rankTxt}</td>
+          <td class="rank">${(r._isTie ? '=' : '') + r._display}</td>
           <td><img src="${icons[idx]}" width="${size}" height="${size}" class="face"></td>
           <td>${r['NAME']}</td>
-          <td>${metresTxt}</td>
-          <td>${diffTxt}</td>
-        `;
+          <td>${r._value.toLocaleString()}m</td>
+          <td>${r._diff === 0 ? 'Leader' : `-${r._diff.toLocaleString()}m`}</td>`;
         (r._display === 1 ? topEl : otherEl).appendChild(tr);
       });
 
@@ -196,13 +169,10 @@
       const ct = document.getElementById('scroll-container');
       const speed = 0.05, pauseMs = 1000;
       let dir = 1, paused = false, last = performance.now(), elapsed = 0;
-
       function step(now) {
         const dt = now - last; last = now;
-        if (paused) {
-          elapsed += dt;
-          if (elapsed >= pauseMs) { paused = false; elapsed = 0; }
-        } else {
+        if (paused) { elapsed += dt; if (elapsed >= pauseMs) { paused = false; elapsed = 0; } }
+        else {
           ct.scrollTop += speed * dt * dir;
           const max = ct.scrollHeight - ct.clientHeight;
           if (ct.scrollTop >= max) { ct.scrollTop = max; dir = -1; paused = true; }
@@ -210,7 +180,6 @@
         }
         requestAnimationFrame(step);
       }
-
       requestAnimationFrame(step);
     }
 
@@ -218,7 +187,7 @@
       console.error(e);
       document.getElementById('spinner').style.display = 'none';
       document.querySelector('#top-rank').innerHTML =
-        '<tr><td colspan="5" style="color:red">Error loading leaderboard</td></tr>';
+        '<tr><td colspan="5" style="color:red">Error: ' + e.message + '</td></tr>';
     });
   </script>
 </body>
