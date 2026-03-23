@@ -260,21 +260,56 @@
       const { data, error } = await sb.from('employees').select('*').order('full_name');
       if (error) { showToast('Error: ' + error.message, 'error'); return; }
       allEmployees = data;
-      renderStats(); await renderTasks(); renderLeavers(); renderProbation();
+      await renderStats(); await renderTasks(); renderLeavers(); renderProbation();
       document.getElementById('dashGrid').style.display = 'grid';
     }
 
-    function renderStats() {
+    async function renderStats() {
       const today   = new Date().toISOString().split('T')[0];
       const active  = allEmployees.filter(e => e.status === 'active').length;
       const prob    = allEmployees.filter(e => e.status === 'probation').length;
       const leaving = allEmployees.filter(e => e.status === 'inactive' && e.leaving_date && e.leaving_date >= today).length;
       const month   = new Date().toLocaleDateString('en-GB', { month:'long', year:'numeric' });
+
+      // Fetch outstanding (unpaid) bonus pot from transactions
+      const { data: unpaidTx } = await sb
+        .from('transaction_operatives')
+        .select('share_value, transactions!inner(date_paid)')
+        .is('transactions.date_paid', null);
+
+      // Fetch outstanding unpaid special bonuses minus deductions
+      const { data: unpaidEntries } = await sb
+        .from('bonus_entries')
+        .select('type, amount')
+        .is('date_paid', null);
+
+      let outstandingPot = (unpaidTx || []).reduce((s, r) => s + parseFloat(r.share_value), 0);
+      (unpaidEntries || []).forEach(e => {
+        if (e.type === 'special_bonus') outstandingPot += parseFloat(e.amount);
+        if (e.type === 'deduction')     outstandingPot -= parseFloat(e.amount);
+      });
+      outstandingPot = Math.max(0, outstandingPot);
+
+      // Fetch last month-end run
+      const { data: lastRun } = await sb
+        .from('month_end_runs')
+        .select('period_name, total_paid, payment_date')
+        .order('payment_date', { ascending: false })
+        .limit(1);
+
+      const lastPaid    = lastRun?.[0]?.total_paid ?? null;
+      const lastPeriod  = lastRun?.[0]?.period_name ?? null;
+
+      const potVal     = `£${outstandingPot.toFixed(2)}`;
+      const potSub     = lastPaid
+        ? `Last paid: £${parseFloat(lastPaid).toFixed(2)} (${lastPeriod})`
+        : 'No month end run yet';
+
       document.getElementById('statsRow').innerHTML = `
         <div class="stat-card green"><div class="stat-icon">👥</div><div class="stat-val">${active}</div><div class="stat-lbl">Active Staff</div><div class="stat-sub">${prob} on probation</div></div>
-        <div class="stat-card blue"><div class="stat-icon">📅</div><div class="stat-val" style="font-size:16px;padding-top:4px;">${month}</div><div class="stat-lbl">Current Month</div><div class="stat-sub">Month end not yet run</div></div>
+        <div class="stat-card blue"><div class="stat-icon">📅</div><div class="stat-val" style="font-size:16px;padding-top:4px;">${month}</div><div class="stat-lbl">Current Month</div><div class="stat-sub">${lastPeriod ? `Last run: ${lastPeriod}` : 'Month end not yet run'}</div></div>
         <div class="stat-card ${leaving > 0 ? 'red' : 'green'}"><div class="stat-icon">🚪</div><div class="stat-val">${leaving}</div><div class="stat-lbl">Upcoming Leavers</div><div class="stat-sub">Next 30 days</div></div>
-        <div class="stat-card gold"><div class="stat-icon">💷</div><div class="stat-val">—</div><div class="stat-lbl">Bonus Pot</div><div class="stat-sub">Run month end first</div></div>`;
+        <div class="stat-card gold"><div class="stat-icon">💷</div><div class="stat-val" style="font-size:18px;padding-top:4px">${potVal}</div><div class="stat-lbl">Outstanding Bonus Pot</div><div class="stat-sub">${potSub}</div></div>`;
     }
 
     async function renderTasks() {
