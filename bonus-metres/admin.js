@@ -50,7 +50,10 @@ async function loadSidebar() {
   });
 }
 
-// ── Auth check ────────────────────────────────
+// Handle OAuth callback if code is in URL
+if (location.search.includes('code=')) {
+  sb.auth.exchangeCodeForSession(location.search);
+}
 // Call this on every admin page — redirects to
 // dashboard.html (login) if not authenticated
 
