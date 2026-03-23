@@ -5,21 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Animated Face Marker on Google Maps</title>
 
-  <!-- Define callback before Maps script loads -->
   <script>
     let resolveMapsReady;
     window.mapsReadyPromise = new Promise(res => { resolveMapsReady = res; });
     window.onMapsReady = () => resolveMapsReady();
   </script>
 
-  <!-- Load Google Maps early -->
   <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=onMapsReady"></script>
 
   <style>
     html, body { margin:0; padding:0; height:100%; }
     #map { position:absolute; top:0; left:0; right:0; bottom:0; }
 
-    /* Leaderboard */
     #leaderboard {
       position: absolute;
       top: 10px; right: 10px; bottom: 10px;
@@ -62,7 +59,6 @@
     }
     img.face { border-radius: 50%; }
 
-    /* Spinner */
     .spinner-wrap {
       display: flex; justify-content: center;
       align-items: center; padding: 20px 0;
@@ -76,7 +72,6 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Map spinner overlay */
     #map-spinner {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -86,18 +81,12 @@
       align-items: center;
       justify-content: center;
     }
-    #map-spinner .spinner {
-      width: 64px; height: 64px;
-      border-width: 6px;
-    }
+    #map-spinner .spinner { width: 64px; height: 64px; border-width: 6px; }
   </style>
 </head>
 <body>
 
-  <!-- Map spinner overlay -->
-  <div id="map-spinner">
-    <div class="spinner"></div>
-  </div>
+  <div id="map-spinner"><div class="spinner"></div></div>
 
   <div id="leaderboard">
     <div class="logo"><img src="/img/JHB%20Logo.png" alt="Logo"></div>
@@ -110,10 +99,7 @@
     <div class="static-section"><ul id="static-rank1"></ul></div>
     <div class="scrollable-section">
       <div class="scrollable-inner" id="scroll-container">
-        <!-- Leaderboard spinner -->
-        <div class="spinner-wrap" id="leaderboard-spinner">
-          <div class="spinner"></div>
-        </div>
+        <div class="spinner-wrap" id="leaderboard-spinner"><div class="spinner"></div></div>
         <ul id="other-ranks"></ul>
       </div>
     </div>
@@ -121,18 +107,28 @@
 
   <div id="map"></div>
 
-  <!-- Shared people list -->
-  <script src="/js/people.js"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
+    const SUPABASE_URL = 'https://oxgehlmalbvppjmdaswn.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
     const IMG_PATH = '/img/';
     const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
-    const HQ = { lat: 50.43135, lng: -3.797092 };
+    const HQ       = { lat: 50.43135, lng: -3.797092 };
     const ROUTE_URL = '/bonus-metres/data/route.json';
 
-    // Kick off CSV fetch immediately — don't wait for the map
-    const csvPromise = fetchActualMeters();
+    async function fetchPeople() {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await sb
+        .from('employees')
+        .select('full_name, status, leaving_date')
+        .or(`status.eq.active,status.eq.probation,and(status.eq.inactive,leaving_date.gte.${today})`);
+      if (error) throw new Error('Failed to load employees: ' + error.message);
+      return data.map(e => e.full_name);
+    }
 
-    // Map ready promise (defined in <head> before Maps script)
+    const csvPromise      = fetchActualMeters();
     const mapsReadyPromise = window.mapsReadyPromise;
 
     async function fetchActualMeters() {
@@ -144,7 +140,6 @@
       lines.forEach(line => {
         const cols = line.split(',');
         const row  = keys.reduce((o, k, i) => (o[k] = (cols[i] || '').trim(), o), {});
-        // Use TOTAL METERS (cumulative total) for map position
         data[row['NAME']] = parseFloat((row['TOTAL METERS'] || '0').replace(/,/g, '')) || 0;
       });
       return data;
@@ -186,8 +181,7 @@
         p.rank = rank;
         p.halo = p.rank === 1 ? 'gold'
                : p.rank === 2 ? 'silver'
-               : p.rank === 3 ? '#cd7f32'
-               : null;
+               : p.rank === 3 ? '#cd7f32' : null;
       });
     }
 
@@ -197,7 +191,6 @@
       staticUl.innerHTML = '';
       otherUl.innerHTML  = '';
 
-      // Step 1: Render names immediately with placeholder for faces
       parts.forEach(p => {
         const ties = parts.filter(x => x.bonus === p.bonus).length > 1;
         const txt  = (ties ? '=' : '') + p.rank;
@@ -210,17 +203,13 @@
         (p.rank === 1 ? staticUl : otherUl).appendChild(li);
       });
 
-      // Hide leaderboard spinner now names are visible
       document.getElementById('leaderboard-spinner').style.display = 'none';
 
-      // Step 2: Draw all icons in parallel then swap in
       const icons = await Promise.all(parts.map(p => drawIcon(p.name, p.halo, 32, p.halo ? 5 : 0)));
       parts.forEach((p, idx) => {
-        const sz  = 32 + (p.halo ? 5 : 0);
+        const sz     = 32 + (p.halo ? 5 : 0);
         const faceEl = document.getElementById('face-lb-' + p.name.replace(/\s+/g, '-'));
-        if (faceEl) {
-          faceEl.innerHTML = `<img class="face" src="${icons[idx]}" width="${sz}" height="${sz}">`;
-        }
+        if (faceEl) faceEl.innerHTML = `<img class="face" src="${icons[idx]}" width="${sz}" height="${sz}">`;
       });
 
       setTimeout(startPingPongScroll, 1000);
@@ -246,10 +235,8 @@
     }
 
     async function init() {
-      // Wait for both CSV and Maps API in parallel
-      const [actualMeters] = await Promise.all([csvPromise, mapsReadyPromise]);
+      const [actualMeters, PEOPLE] = await Promise.all([csvPromise, fetchPeople(), mapsReadyPromise]);
 
-      // Hide map spinner
       document.getElementById('map-spinner').style.display = 'none';
 
       const map = new google.maps.Map(document.getElementById('map'), {
@@ -257,11 +244,8 @@
       });
       window.map = map;
 
-      // HQ marker
       new google.maps.Marker({
-        map,
-        position: HQ,
-        zIndex: 9999,
+        map, position: HQ, zIndex: 9999,
         icon: {
           url: `${IMG_PATH}JHB Logo.png`,
           scaledSize: new google.maps.Size(115, 64),
@@ -269,21 +253,14 @@
         }
       });
 
-      // Build parts list
-      const parts = PEOPLE.map(name => ({
-        name,
-        bonus: actualMeters[name] || 0
-      }));
+      const parts = PEOPLE.map(name => ({ name, bonus: actualMeters[name] || 0 }));
       parts.sort((a, b) => b.bonus - a.bonus);
       assignRanks(parts);
 
-      // Render leaderboard with names immediately, icons load in background
       renderLeaderboard(parts);
 
-      // Fetch static route — no API call needed
       const routeData = await fetch(ROUTE_URL).then(r => r.json());
-      const path = routeData.points; // array of {lat, lng}
-      animateRoute(parts, path);
+      animateRoute(parts, routeData.points);
     }
 
     async function animateRoute(parts, path) {
@@ -296,7 +273,6 @@
       });
       const cum = distances.reduce((arr, d) => (arr.push((arr.slice(-1)[0]||0) + d), arr), []);
 
-      // Calculate target positions
       parts.forEach(p => {
         let idx = cum.findIndex(d => p.bonus <= d);
         if (idx < 0) idx = cum.length - 1;
@@ -309,18 +285,14 @@
         };
       });
 
-      // Draw all map icons in parallel
       const mapIcons = await Promise.all(
         parts.map(p => drawIcon(p.name, p.halo, 64, p.halo ? 10 : 0))
       );
 
-      // Place all markers at HQ
       parts.forEach((p, idx) => {
         const size = 64 + (p.halo ? 10 : 0);
         p.marker = new google.maps.Marker({
-          map,
-          position: HQ,
-          zIndex: 1,
+          map, position: HQ, zIndex: 1,
           icon: {
             url: mapIcons[idx],
             scaledSize: new google.maps.Size(size, size),
@@ -329,16 +301,13 @@
         });
       });
 
-      // Fit map bounds
       const bounds = new google.maps.LatLngBounds();
       parts.forEach(p => bounds.extend(p.target));
       bounds.extend(HQ);
       map.fitBounds(bounds);
 
-      // Animate all markers simultaneously
       const startTime = performance.now();
       const dur = 5000;
-
       function animateAll(now) {
         const t = Math.min((now - startTime) / dur, 1);
         parts.forEach(p => {
@@ -349,11 +318,9 @@
         });
         if (t < 1) requestAnimationFrame(animateAll);
       }
-
       requestAnimationFrame(animateAll);
     }
 
-    // Kick everything off
     init().catch(e => console.error(e));
   </script>
 </body>
