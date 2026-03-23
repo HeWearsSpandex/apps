@@ -8,40 +8,23 @@ const SUPABASE_KEY  = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
 const GITHUB_REPO   = 'HeWearsSpandex/apps';
 const GITHUB_BRANCH = 'main';
 
-// Cookie-based storage adapter — persists across page navigations
-// and isn't blocked by Edge tracking prevention like localStorage is
-const cookieStorage = {
-  getItem: (key) => {
-    try {
-      const safeKey = 'sb_' + key.replace(/[^a-zA-Z0-9_-]/g, '_');
-      const match = document.cookie.match(new RegExp('(^| )' + safeKey + '=([^;]+)'));
-      return match ? decodeURIComponent(match[2]) : null;
-    } catch(e) { return null; }
-  },
-  setItem: (key, value) => {
-    try {
-      const safeKey = 'sb_' + key.replace(/[^a-zA-Z0-9_-]/g, '_');
-      document.cookie = `${safeKey}=${encodeURIComponent(value)};path=/;max-age=86400;SameSite=Lax`;
-    } catch(e) {}
-  },
-  removeItem: (key) => {
-    try {
-      const safeKey = 'sb_' + key.replace(/[^a-zA-Z0-9_-]/g, '_');
-      document.cookie = `${safeKey}=;path=/;max-age=0`;
-    } catch(e) {}
-  }
-};
-
 // Shared Supabase client — available to all pages
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: {
-    storage: cookieStorage,
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce'
+// Use default storage but handle Edge tracking prevention by
+// catching storage errors gracefully
+const sb = (() => {
+  try {
+    return supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'implicit'
+      }
+    });
+  } catch(e) {
+    return supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   }
-});
+})();
 
 let currentUser  = null;
 let currentAdmin = null;
@@ -68,18 +51,38 @@ if (location.search.includes('code=')) {
 // dashboard.html (login) if not authenticated
 
 async function requireAuth() {
-  // Load Supabase session
-  const { data: { session } } = await sb.auth.getSession();
+  // Give Supabase time to process the session from URL hash
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  let session = null;
+
+  // Try getting session normally first
+  const { data } = await sb.auth.getSession();
+  session = data?.session;
+
+  // If no session, check URL hash for tokens (implicit flow)
+  if (!session && location.hash.includes('access_token')) {
+    const params = new URLSearchParams(location.hash.substring(1));
+    const accessToken  = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    if (accessToken) {
+      const { data: setData } = await sb.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken
+      });
+      session = setData?.session;
+      // Clean up URL
+      history.replaceState(null, '', location.pathname);
+    }
+  }
 
   if (!session) {
-    // Not logged in — redirect to dashboard login
     window.location.href = 'dashboard.html';
     return false;
   }
 
   currentUser = session.user;
 
-  // Check admin_users table
   const { data: adminData, error } = await sb
     .from('admin_users')
     .select('*')
@@ -95,7 +98,6 @@ async function requireAuth() {
 
   currentAdmin = adminData;
 
-  // Populate sidebar user info
   await loadSidebar();
 
   const initials = currentAdmin.name
