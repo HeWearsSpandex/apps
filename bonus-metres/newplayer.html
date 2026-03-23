@@ -4,10 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bonus Metres – My Stats</title>
-
   <style>
     *, *::before, *::after { box-sizing: border-box; }
-
     html, body {
       margin: 0; padding: 0; height: 100%;
       font-family: Arial, sans-serif;
@@ -21,9 +19,7 @@
     .header {
       background: #fff;
       padding: 8px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       flex-shrink: 0;
     }
@@ -33,216 +29,240 @@
     .hero {
       background: #fff;
       padding: 8px 14px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      display: flex; align-items: center; gap: 12px;
       border-bottom: 1px solid #e0e0e0;
       flex-shrink: 0;
     }
-    .hero-face img {
-      border-radius: 50%;
-      width: 48px; height: 48px;
-      border: 3px solid #ddd;
+    .hero-face img { border-radius: 50%; width: 48px; height: 48px; border: 3px solid #ddd; flex-shrink: 0; }
+    .hero-info h1 { margin: 0 0 1px; font-size: 16px; line-height: 1.2; }
+    .hero-info .subtitle { color: #999; font-size: 11px; }
+
+    /* ── Tabs ── */
+    .tab-bar {
+      display: flex;
+      background: #fff;
+      border-bottom: 2px solid #e0e0e0;
       flex-shrink: 0;
     }
-    .hero-info h1 {
-      margin: 0 0 1px;
-      font-size: 16px;
-      line-height: 1.2;
+    .tab-btn {
+      flex: 1; padding: 10px 8px;
+      font-size: 12px; font-weight: 700; text-align: center;
+      cursor: pointer; color: #999;
+      border: none; background: none;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.15s, border-color 0.15s;
+      font-family: Arial, sans-serif;
     }
-    .hero-info .subtitle {
-      color: #999;
-      font-size: 11px;
-    }
+    .tab-btn.active { color: #c00; border-bottom-color: #c00; }
 
-    /* ── Main 3-col grid (coin | stats) ── */
+    /* ── Tab panels ── */
+    .tab-panels { flex: 1; overflow: hidden; position: relative; }
+    .tab-panel  { display: none; position: absolute; inset: 0; overflow-y: auto; flex-direction: column; }
+    .tab-panel.active { display: flex; }
+
+    /* ── Stats tab (original layout) ── */
     .main-grid {
-      display: flex;
-      gap: 0;
+      display: flex; gap: 0;
       margin: 0 8px 6px;
-      background: #fff;
-      border-radius: 8px;
+      background: #fff; border-radius: 8px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-      overflow: hidden;
-      flex-shrink: 0;
+      overflow: hidden; flex-shrink: 0;
     }
-
-    /* Coin column — fixed width, full height */
     .coin-col {
-      width: 72px;
-      flex-shrink: 0;
-      background: #fffdf0;
-      border-right: 1px solid #f0e8c8;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      overflow: hidden;
-      padding: 4px 0;
+      width: 72px; flex-shrink: 0;
+      background: #fffdf0; border-right: 1px solid #f0e8c8;
+      display: flex; align-items: flex-end; justify-content: center;
+      overflow: hidden; padding: 4px 0;
     }
-    .coin-zero {
-      font-size: 28px;
-      padding-bottom: 12px;
-      text-align: center;
-    }
-
-    /* Stats column */
-    .stats-col {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-      background: #f0f0f0;
-      min-width: 0;
-    }
-    .stat-card {
-      background: #fff;
-      padding: 7px 10px;
-      min-width: 0;
-    }
-    .stat-card.highlight { border-left: 3px solid #c00; }
+    .coin-zero { font-size: 28px; padding-bottom: 12px; text-align: center; }
+    .stats-col { flex: 1; display: flex; flex-direction: column; gap: 1px; background: #f0f0f0; min-width: 0; }
+    .stat-card { background: #fff; padding: 7px 10px; min-width: 0; }
+    .stat-card.highlight  { border-left: 3px solid #c00; }
     .stat-card.bonus-stat { border-left: 3px solid #2a9d2a; background: #f8fff8; }
-
-    .stat-card .label {
-      font-size: 9px;
-      color: #999;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      margin-bottom: 2px;
-    }
-    .stat-card .value {
-      font-size: 14px;
-      font-weight: bold;
-      color: #222;
-      line-height: 1.2;
-    }
-    .stat-card .sub {
-      font-size: 9px;
-      color: #bbb;
-      margin-top: 1px;
-    }
-    .coin-amount {
-      font-size: 20px;
-      font-weight: bold;
-      color: #1b5e20;
-      line-height: 1.2;
-    }
-
-    /* Two equal halves */
-    .two-col-inner {
-      display: flex;
-      gap: 0;
-    }
-    .two-col-inner > div {
-      flex: 1;
-      padding: 2px 0;
-      min-width: 0;
-    }
-    .two-col-inner > div:first-child {
-      border-right: 1px solid #eee;
-      padding-right: 6px;
-    }
-    .two-col-inner > div:last-child {
-      padding-left: 6px;
-    }
-
-    /* Arrow colours */
+    .stat-card .label { font-size: 9px; color: #999; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
+    .stat-card .value { font-size: 14px; font-weight: bold; color: #222; line-height: 1.2; }
+    .stat-card .sub   { font-size: 9px; color: #bbb; margin-top: 1px; }
+    .coin-amount { font-size: 20px; font-weight: bold; color: #1b5e20; line-height: 1.2; }
+    .two-col-inner { display: flex; gap: 0; }
+    .two-col-inner > div { flex: 1; padding: 2px 0; min-width: 0; }
+    .two-col-inner > div:first-child { border-right: 1px solid #eee; padding-right: 6px; }
+    .two-col-inner > div:last-child  { padding-left: 6px; }
     .up   { color: #2a9d2a; }
     .down { color: #c00; }
     .same { color: #888; }
-
-    /* ── Message banner ── */
     .msg-banner {
       flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      margin: 0 8px 8px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: bold;
-      line-height: 1.3;
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; margin: 0 8px 8px;
+      border-radius: 8px; font-size: 13px; font-weight: bold; line-height: 1.3;
     }
-    .msg-emoji { font-size: 20px; flex-shrink: 0; }
+    .msg-emoji    { font-size: 20px; flex-shrink: 0; }
     .msg-gold     { background: #fff8e1; border-left: 4px solid gold;    color: #7a5c00; }
     .msg-positive { background: #e8f5e9; border-left: 4px solid #2a9d2a; color: #1b5e20; }
     .msg-warning  { background: #fff3e0; border-left: 4px solid #e65100; color: #7a3300; }
     .msg-neutral  { background: #f0f4ff; border-left: 4px solid #3a7bd5; color: #1a3a6e; }
-
-    /* ── Zero bonus card ── */
-    .zero-bonus-card {
-      flex-shrink: 0;
-      background: #fff;
-      border-radius: 8px;
-      margin: 0 8px 6px;
-      padding: 14px 16px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      border-left: 4px solid #f9a825;
-    }
-    .zero-bonus-icon { font-size: 28px; flex-shrink: 0; }
-    .zero-bonus-title {
-      font-size: 13px;
-      font-weight: bold;
-      color: #333;
-      margin-bottom: 4px;
-    }
-    .zero-bonus-sub {
-      font-size: 12px;
-      color: #888;
-      line-height: 1.4;
-    }
     .race-wrap {
-      flex-shrink: 0;
-      position: relative;
-      background: #fff;
-      margin: 0 8px 8px;
-      border-radius: 8px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      flex-shrink: 0; position: relative;
+      background: #fff; margin: 0 8px 8px;
+      border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
       padding: 4px 0;
     }
     #racetrack { width: 100%; }
 
-    /* ── Spinners ── */
+    /* ── Bonus tab ── */
+    .bonus-tab-inner { padding: 10px 8px 20px; display: flex; flex-direction: column; gap: 10px; }
+
+    /* Summary cards row */
+    .bonus-summary-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .bonus-summary-card {
+      background: #fff; border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 10px 12px;
+      border-left: 4px solid #e0e0e0;
+    }
+    .bonus-summary-card.green  { border-left-color: #2a9d2a; }
+    .bonus-summary-card.red    { border-left-color: #c00; }
+    .bonus-summary-card.gold   { border-left-color: #f9a825; }
+    .bonus-summary-card.orange { border-left-color: #e65100; }
+    .bsc-val { font-size: 18px; font-weight: 700; line-height: 1.2; }
+    .bsc-lbl { font-size: 9px; color: #999; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
+    .bonus-summary-card.green  .bsc-val { color: #2a9d2a; }
+    .bonus-summary-card.red    .bsc-val { color: #c00; }
+    .bonus-summary-card.gold   .bsc-val { color: #f9a825; }
+    .bonus-summary-card.orange .bsc-val { color: #e65100; }
+
+    /* Section */
+    .bonus-section { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); overflow: hidden; }
+    .bonus-section-header {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .bonus-section-header h3 { font-size: 13px; font-weight: 700; margin: 0; }
+    .bonus-section-header .total-chip {
+      font-size: 12px; font-weight: 700;
+      padding: 2px 10px; border-radius: 10px;
+      background: #f0f2f5; color: #333;
+    }
+    .bonus-section-header .total-chip.green  { background: #e8f5e9; color: #2a9d2a; }
+    .bonus-section-header .total-chip.red    { background: #fff0f0; color: #c00; }
+    .bonus-section-header .total-chip.orange { background: #fff3e0; color: #e65100; }
+
+    /* Job rows */
+    .job-row {
+      display: flex; align-items: flex-start;
+      padding: 8px 12px; border-bottom: 1px solid #f5f5f5;
+      gap: 8px;
+    }
+    .job-row:last-child { border-bottom: none; }
+    .job-date {
+      font-size: 10px; color: #bbb; flex-shrink: 0;
+      width: 44px; padding-top: 2px; text-align: center;
+    }
+    .job-date .day  { font-size: 14px; font-weight: 700; color: #555; line-height: 1; }
+    .job-date .mon  { font-size: 9px; text-transform: uppercase; }
+    .job-info { flex: 1; min-width: 0; }
+    .job-site { font-size: 12px; font-weight: 600; color: #222; }
+    .job-ref  { font-size: 10px; color: #bbb; margin-top: 1px; }
+    .job-meta { font-size: 10px; color: #999; margin-top: 2px; }
+    .job-val  { font-size: 13px; font-weight: 700; color: #2a9d2a; flex-shrink: 0; padding-top: 4px; }
+
+    /* Deduction rows */
+    .ded-row {
+      display: flex; align-items: center;
+      padding: 8px 12px; border-bottom: 1px solid #f5f5f5; gap: 8px;
+    }
+    .ded-row:last-child { border-bottom: none; }
+    .ded-icon  { font-size: 16px; flex-shrink: 0; }
+    .ded-info  { flex: 1; min-width: 0; }
+    .ded-reason { font-size: 12px; font-weight: 600; color: #222; }
+    .ded-date   { font-size: 10px; color: #bbb; margin-top: 1px; }
+    .ded-val    { font-size: 13px; font-weight: 700; color: #c00; flex-shrink: 0; }
+
+    /* History rows */
+    .hist-row {
+      display: flex; align-items: center;
+      padding: 10px 12px; border-bottom: 1px solid #f5f5f5; gap: 8px;
+      cursor: pointer;
+    }
+    .hist-row:last-child { border-bottom: none; }
+    .hist-row:hover { background: #fafafa; }
+    .hist-period { flex: 1; }
+    .hist-period .name { font-size: 13px; font-weight: 600; color: #222; }
+    .hist-period .date { font-size: 10px; color: #bbb; margin-top: 1px; }
+    .hist-amount { font-size: 14px; font-weight: 700; color: #2a9d2a; }
+    .hist-carry  { font-size: 10px; color: #e65100; font-weight: 600; }
+    .hist-chevron { font-size: 14px; color: #ccc; flex-shrink: 0; }
+
+    /* History detail (expanded) */
+    .hist-detail {
+      display: none;
+      background: #fafafa;
+      border-top: 1px solid #f0f0f0;
+      padding: 8px 12px 10px;
+    }
+    .hist-detail.open { display: block; }
+    .hist-detail-row {
+      display: flex; justify-content: space-between;
+      font-size: 11px; padding: 3px 0; color: #555;
+    }
+    .hist-detail-row.total {
+      font-weight: 700; font-size: 12px;
+      border-top: 1px solid #e0e0e0;
+      margin-top: 4px; padding-top: 6px; color: #222;
+    }
+
+    /* Scope toggle */
+    .scope-toggle {
+      display: flex; gap: 6px;
+      margin-bottom: 4px;
+    }
+    .scope-btn {
+      flex: 1; padding: 7px 4px;
+      font-size: 11px; font-weight: 700;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px; background: #fff;
+      color: #999; cursor: pointer;
+      font-family: Arial, sans-serif;
+      transition: all 0.15s;
+    }
+    .scope-btn.active { background: #c00; color: #fff; border-color: #c00; }
+
+    /* Empty state */
+    .empty-row {
+      padding: 20px 12px; text-align: center;
+      color: #bbb; font-size: 12px;
+    }
+
+    /* Spinner */
     .spinner-overlay {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(255,255,255,0.85);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
+      display: flex; align-items: center; justify-content: center; z-index: 10;
     }
     .spinner {
       width: 40px; height: 40px;
-      border: 4px solid #f0f0f0;
-      border-top-color: #c00;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      border: 4px solid #f0f0f0; border-top-color: #c00;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    .spinner-sm {
+      width: 24px; height: 24px;
+      border: 3px solid #f0f0f0; border-top-color: #c00;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      margin: 16px auto; display: block;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Error / not found ── */
-    .error {
-      text-align: center;
-      padding: 40px 20px;
-      color: #c00;
-      font-size: 16px;
-    }
-    .not-found {
-      text-align: center;
-      padding: 40px 20px;
-      color: #666;
-    }
+    /* Not found */
+    .not-found { text-align: center; padding: 40px 20px; color: #666; }
     .not-found h2 { color: #333; margin-bottom: 8px; }
+    .error { text-align: center; padding: 40px 20px; color: #c00; font-size: 16px; }
 
-    /* ── Scale up for larger screens ── */
     @media (min-width: 400px) {
-      .header img        { max-width: 90px; }
-      .hero-face img     { width: 56px; height: 56px; }
-      .hero-info h1      { font-size: 18px; }
+      .header img    { max-width: 90px; }
+      .hero-face img { width: 56px; height: 56px; }
+      .hero-info h1  { font-size: 18px; }
     }
     @media (min-width: 768px) {
       .header img        { max-width: 140px; }
@@ -252,6 +272,7 @@
       .coin-col          { width: 90px; }
       .stat-card .value  { font-size: 16px; }
       .coin-amount       { font-size: 24px; }
+      .bonus-summary-row { grid-template-columns: repeat(4, 1fr); }
     }
   </style>
 </head>
@@ -262,17 +283,19 @@
   </div>
 
   <div id="content" style="flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;">
-    <div class="spinner-overlay" id="main-spinner">
-      <div class="spinner"></div>
-    </div>
+    <div class="spinner-overlay" id="main-spinner"><div class="spinner"></div></div>
   </div>
 
-  <script src="/js/people.js"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
+    // ── Supabase ──────────────────────────────────────────────────────────────
+    const SUPABASE_URL = 'https://oxgehlmalbvppjmdaswn.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
     const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
     const IMG_PATH = '/img/';
 
-    // Kick off fetches immediately
     const csvPromise = fetchCSV();
 
     function getPlayerName() {
@@ -297,8 +320,7 @@
         img.onload = () => res(img);
         img.onerror = () => {
           const c = document.createElement('canvas'); c.width = c.height = 64;
-          c.getContext('2d').fillStyle = '#ccc';
-          c.getContext('2d').fillRect(0, 0, 64, 64);
+          c.getContext('2d').fillStyle = '#ccc'; c.getContext('2d').fillRect(0,0,64,64);
           res(c);
         };
         img.src = src;
@@ -330,31 +352,313 @@
       return rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? '#cd7f32' : null;
     }
 
+    function fmtDate(str) {
+      const d = new Date(str);
+      return {
+        day: d.getDate(),
+        mon: d.toLocaleDateString('en-GB', { month: 'short' }),
+        full: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+      };
+    }
+
+    function fmt(n) {
+      return '£' + parseFloat(n).toFixed(2);
+    }
+
+    // ── Bonus tab state ───────────────────────────────────────────────────────
+    let bonusScope    = 'unpaid'; // 'unpaid' | 'all'
+    let employeeId    = null;
+    let bonusLoaded   = false;
+
+    async function loadBonusTab() {
+      if (bonusLoaded) return;
+      bonusLoaded = true;
+      renderBonusTab();
+    }
+
+    async function renderBonusTab() {
+      const container = document.getElementById('bonus-tab-content');
+      container.innerHTML = '<div class="spinner-sm"></div>';
+
+      try {
+        // ── Unpaid jobs ──
+        const { data: unpaidOps } = await sb
+          .from('transaction_operatives')
+          .select(`share_value,
+                   transactions!inner(id, date, job_ref, site_name, bonus_metres, date_paid)`)
+          .eq('employee_id', employeeId)
+          .is('transactions.date_paid', null)
+          .order('transactions(date)', { ascending: false });
+
+        // ── All paid jobs (for history view) ──
+        const { data: allOps } = await sb
+          .from('transaction_operatives')
+          .select(`share_value,
+                   transactions!inner(id, date, job_ref, site_name, bonus_metres, date_paid)`)
+          .eq('employee_id', employeeId)
+          .not('transactions.date_paid', 'is', null)
+          .order('transactions(date)', { ascending: false });
+
+        // ── Unpaid deductions / bonuses ──
+        const { data: unpaidEntries } = await sb
+          .from('bonus_entries')
+          .select('id, date, type, amount, reason')
+          .eq('employee_id', employeeId)
+          .is('date_paid', null);
+
+        // ── Month-end history ──
+        const { data: history } = await sb
+          .from('month_end_lines')
+          .select(`gross_earned, deductions, carry_over_in, net_payable, carry_over_out,
+                   month_end_runs!inner(id, period_name, payment_date)`)
+          .eq('employee_id', employeeId)
+          .order('month_end_runs(payment_date)', { ascending: false });
+
+        const unpaidJobs    = (unpaidOps    || []);
+        const paidJobs      = (allOps       || []);
+        const unpaidDeds    = (unpaidEntries|| []).filter(e => e.type === 'deduction');
+        const unpaidBonuses = (unpaidEntries|| []).filter(e => e.type === 'special_bonus');
+        const hist          = (history      || []);
+
+        // Totals
+        const totalUnpaidJobs = unpaidJobs.reduce((s, o) => s + parseFloat(o.share_value), 0);
+        const totalUnpaidBon  = unpaidBonuses.reduce((s, e) => s + parseFloat(e.amount), 0);
+        const totalUnpaidDed  = unpaidDeds.reduce((s, e) => s + parseFloat(e.amount), 0);
+        const netUnpaid       = Math.max(0, totalUnpaidJobs + totalUnpaidBon - totalUnpaidDed);
+        const carryDebt       = Math.max(0, totalUnpaidDed - totalUnpaidJobs - totalUnpaidBon);
+
+        const totalEverPaid   = hist.reduce((s, h) => s + parseFloat(h.net_payable), 0);
+
+        container.innerHTML = `
+          <!-- Scope toggle -->
+          <div class="scope-toggle">
+            <button class="scope-btn ${bonusScope==='unpaid'?'active':''}"
+                    onclick="setScope('unpaid')">📬 Outstanding</button>
+            <button class="scope-btn ${bonusScope==='all'?'active':''}"
+                    onclick="setScope('all')">📜 Full History</button>
+          </div>
+
+          <!-- Summary cards -->
+          <div class="bonus-summary-row">
+            <div class="bonus-summary-card green">
+              <div class="bsc-val">${fmt(totalUnpaidJobs)}</div>
+              <div class="bsc-lbl">Unpaid Jobs</div>
+            </div>
+            <div class="bonus-summary-card ${totalUnpaidDed > 0 ? 'red' : 'green'}">
+              <div class="bsc-val">${totalUnpaidDed > 0 ? '-' : ''}${fmt(totalUnpaidDed)}</div>
+              <div class="bsc-lbl">Deductions</div>
+            </div>
+            <div class="bonus-summary-card gold">
+              <div class="bsc-val">${fmt(netUnpaid)}</div>
+              <div class="bsc-lbl">Est. Next Payment</div>
+            </div>
+            <div class="bonus-summary-card orange">
+              <div class="bsc-val">${fmt(totalEverPaid)}</div>
+              <div class="bsc-lbl">Total Paid to Date</div>
+            </div>
+          </div>
+
+          <!-- Outstanding view -->
+          <div id="view-unpaid" style="display:${bonusScope==='unpaid'?'flex':'none'};flex-direction:column;gap:10px;">
+
+            <!-- Unpaid jobs -->
+            <div class="bonus-section">
+              <div class="bonus-section-header">
+                <h3>🔧 Unpaid Jobs (${unpaidJobs.length})</h3>
+                <span class="total-chip green">${fmt(totalUnpaidJobs)}</span>
+              </div>
+              ${unpaidJobs.length === 0
+                ? '<div class="empty-row">No unpaid jobs</div>'
+                : unpaidJobs.map(o => {
+                    const tx = o.transactions;
+                    const d  = fmtDate(tx.date);
+                    return `<div class="job-row">
+                      <div class="job-date">
+                        <div class="day">${d.day}</div>
+                        <div class="mon">${d.mon}</div>
+                      </div>
+                      <div class="job-info">
+                        <div class="job-site">${tx.site_name || '—'}</div>
+                        <div class="job-ref">${tx.job_ref || ''}</div>
+                        <div class="job-meta">${parseFloat(tx.bonus_metres).toLocaleString()}m</div>
+                      </div>
+                      <div class="job-val">${fmt(o.share_value)}</div>
+                    </div>`;
+                  }).join('')}
+            </div>
+
+            <!-- Special bonuses -->
+            ${unpaidBonuses.length > 0 ? `
+            <div class="bonus-section">
+              <div class="bonus-section-header">
+                <h3>⭐ Special Bonuses (${unpaidBonuses.length})</h3>
+                <span class="total-chip green">${fmt(totalUnpaidBon)}</span>
+              </div>
+              ${unpaidBonuses.map(e => {
+                const d = fmtDate(e.date);
+                return `<div class="ded-row">
+                  <div class="ded-icon">⭐</div>
+                  <div class="ded-info">
+                    <div class="ded-reason">${e.reason || 'Special Bonus'}</div>
+                    <div class="ded-date">${d.full}</div>
+                  </div>
+                  <div class="job-val">${fmt(e.amount)}</div>
+                </div>`;
+              }).join('')}
+            </div>` : ''}
+
+            <!-- Deductions -->
+            ${unpaidDeds.length > 0 ? `
+            <div class="bonus-section">
+              <div class="bonus-section-header">
+                <h3>➖ Deductions (${unpaidDeds.length})</h3>
+                <span class="total-chip red">-${fmt(totalUnpaidDed)}</span>
+              </div>
+              ${unpaidDeds.map(e => {
+                const d = fmtDate(e.date);
+                return `<div class="ded-row">
+                  <div class="ded-icon">➖</div>
+                  <div class="ded-info">
+                    <div class="ded-reason">${e.reason || 'Deduction'}</div>
+                    <div class="ded-date">${d.full}</div>
+                  </div>
+                  <div class="ded-val">-${fmt(e.amount)}</div>
+                </div>`;
+              }).join('')}
+            </div>` : ''}
+
+            ${carryDebt > 0 ? `
+            <div style="background:#fff3e0;border-radius:8px;padding:10px 12px;font-size:12px;color:#e65100;font-weight:600;border-left:4px solid #e65100;">
+              ⚠️ Outstanding debt of ${fmt(carryDebt)} will carry forward to next payment
+            </div>` : ''}
+
+          </div>
+
+          <!-- Full history view -->
+          <div id="view-all" style="display:${bonusScope==='all'?'flex':'none'};flex-direction:column;gap:10px;">
+
+            <!-- Payment history -->
+            <div class="bonus-section">
+              <div class="bonus-section-header">
+                <h3>📅 Payment History</h3>
+                <span class="total-chip green">${fmt(totalEverPaid)} total</span>
+              </div>
+              ${hist.length === 0
+                ? '<div class="empty-row">No payment history yet</div>'
+                : hist.map((h, i) => {
+                    const run = h.month_end_runs;
+                    const pd  = new Date(run.payment_date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+                    return `
+                      <div class="hist-row" onclick="toggleHistDetail(${i})">
+                        <div class="hist-period">
+                          <div class="name">${run.period_name}</div>
+                          <div class="date">Paid ${pd}</div>
+                        </div>
+                        <div style="text-align:right">
+                          <div class="hist-amount">${fmt(h.net_payable)}</div>
+                          ${parseFloat(h.carry_over_out) > 0
+                            ? `<div class="hist-carry">+${fmt(h.carry_over_out)} carried over</div>`
+                            : ''}
+                        </div>
+                        <div class="hist-chevron" id="chev-${i}">›</div>
+                      </div>
+                      <div class="hist-detail" id="hist-detail-${i}">
+                        <div class="hist-detail-row"><span>Job Bonuses + Special Bonuses</span><span>${fmt(h.gross_earned)}</span></div>
+                        ${parseFloat(h.deductions) > 0 ? `<div class="hist-detail-row"><span>Deductions</span><span style="color:#c00">-${fmt(h.deductions)}</span></div>` : ''}
+                        ${parseFloat(h.carry_over_in) > 0 ? `<div class="hist-detail-row"><span>Carry-over from previous month</span><span style="color:#e65100">-${fmt(h.carry_over_in)}</span></div>` : ''}
+                        <div class="hist-detail-row total"><span>Net Paid</span><span style="color:#2a9d2a">${fmt(h.net_payable)}</span></div>
+                        ${parseFloat(h.carry_over_out) > 0 ? `<div class="hist-detail-row" style="color:#e65100"><span>Carried to next month</span><span>-${fmt(h.carry_over_out)}</span></div>` : ''}
+                      </div>`;
+                  }).join('')}
+            </div>
+
+            <!-- All paid jobs -->
+            <div class="bonus-section">
+              <div class="bonus-section-header">
+                <h3>🔧 All Jobs</h3>
+                <span class="total-chip">${paidJobs.length} jobs</span>
+              </div>
+              ${paidJobs.length === 0
+                ? '<div class="empty-row">No paid jobs yet</div>'
+                : paidJobs.map(o => {
+                    const tx = o.transactions;
+                    const d  = fmtDate(tx.date);
+                    const pd = tx.date_paid ? new Date(tx.date_paid).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '';
+                    return `<div class="job-row">
+                      <div class="job-date">
+                        <div class="day">${d.day}</div>
+                        <div class="mon">${d.mon}</div>
+                      </div>
+                      <div class="job-info">
+                        <div class="job-site">${tx.site_name || '—'}</div>
+                        <div class="job-ref">${tx.job_ref || ''}</div>
+                        <div class="job-meta">${parseFloat(tx.bonus_metres).toLocaleString()}m · Paid ${pd}</div>
+                      </div>
+                      <div class="job-val">${fmt(o.share_value)}</div>
+                    </div>`;
+                  }).join('')}
+            </div>
+
+          </div>
+        `;
+
+      } catch(e) {
+        console.error(e);
+        container.innerHTML = `<div class="empty-row" style="color:#c00">Error loading bonus data: ${e.message}</div>`;
+      }
+    }
+
+    function setScope(scope) {
+      bonusScope = scope;
+      bonusLoaded = false;
+      loadBonusTab();
+    }
+
+    function toggleHistDetail(i) {
+      const detail = document.getElementById(`hist-detail-${i}`);
+      const chev   = document.getElementById(`chev-${i}`);
+      const open   = detail.classList.toggle('open');
+      chev.textContent = open ? '⌄' : '›';
+    }
+
+    // ── Main build ────────────────────────────────────────────────────────────
     async function build() {
       const name    = getPlayerName();
       const content = document.getElementById('content');
 
-      if (!name || !PEOPLE.includes(name)) {
+      // Check employee exists and is active/probation
+      const { data: empData } = await sb
+        .from('employees')
+        .select('id, full_name, status, initials')
+        .eq('full_name', name)
+        .in('status', ['active', 'probation'])
+        .limit(1);
+
+      if (!name || !empData?.length) {
         document.getElementById('main-spinner').style.display = 'none';
         content.innerHTML = `
           <div class="not-found">
-            <h2>Player not found</h2>
-            <p>No player named "<strong>${name || '?'}</strong>" exists in the leaderboard.</p>
+            <h2>Page not found</h2>
+            <p>This stats page is not available.</p>
           </div>`;
         return;
       }
 
-      // Load CSV
+      employeeId = empData[0].id;
+
+      // Build active people list from Supabase for CSV filtering
+      const today = new Date().toISOString().split('T')[0];
+      const { data: activeEmps } = await sb
+        .from('employees')
+        .select('full_name, status, leaving_date')
+        .or(`status.eq.active,status.eq.probation,and(status.eq.inactive,leaving_date.gte.${today})`);
+      const PEOPLE = (activeEmps || []).map(e => e.full_name);
+
       const [data] = await Promise.all([csvPromise]);
 
       const player = data.find(r => r['NAME'] === name);
-      if (!player) {
-        document.getElementById('main-spinner').style.display = 'none';
-        content.innerHTML = `<div class="not-found"><h2>No data found for ${name}</h2></div>`;
-        return;
-      }
 
-      // Overall rank by total metres
+      // Overall rank
       const ranked = data
         .filter(r => PEOPLE.includes(r['NAME']) && val(r, 'TOTAL METERS') > 0)
         .sort((a, b) => val(b, 'TOTAL METERS') - val(a, 'TOTAL METERS'));
@@ -387,17 +691,14 @@
         r._lmRank = lmRank;
       });
 
-      const myTM      = val(player, 'THIS MONTH');
-      const myLM      = val(player, 'LAST MONTH');
-      const myTotal   = val(player, 'TOTAL METERS');
-      const myTMRank  = tmRanked.find(r => r['NAME'] === name)?._tmRank  || '-';
-      const myLMRank  = lmRanked.find(r => r['NAME'] === name)?._lmRank  || '-';
-      const myOverall = ranked.find(r => r['NAME'] === name)?._overallRank || '-';
+      const myTM      = player ? val(player, 'THIS MONTH')   : 0;
+      const myLM      = player ? val(player, 'LAST MONTH')   : 0;
+      const myTotal   = player ? val(player, 'TOTAL METERS') : 0;
+      const myTMRank  = tmRanked.find(r => r['NAME'] === name)?._tmRank    || '-';
+      const myLMRank  = lmRanked.find(r => r['NAME'] === name)?._lmRank    || '-';
+      const myOverall = ranked.find(r => r['NAME'] === name)?._overallRank  || '-';
 
-      // Bonus calculation — £0.03 per metre this month
-      const RATE = 0.03;
-      const myBonus = (myTM * RATE).toLocaleString('en-GB', { style: 'currency', currency: 'GBP' });
-
+      const RATE    = 0.03;
       const tmLeader  = val(tmRanked[0], 'THIS MONTH');
       const lmLeader  = val(lmRanked[0], 'LAST MONTH');
       const totLeader = val(ranked[0],   'TOTAL METERS');
@@ -406,75 +707,34 @@
       const lmDiff  = myLM    === lmLeader  ? 'Leader' : `-${(lmLeader  - myLM).toLocaleString()}m`;
       const totDiff = myTotal === totLeader ? 'Leader' : `-${(totLeader - myTotal).toLocaleString()}m`;
 
-      // Positional change
-      const tmCurrent = +player['T/M RANK'] || 0;
-      const tmLast    = +player['T/M LAST RANK'] || 0;
+      const tmCurrent = player ? +player['T/M RANK'] || 0 : 0;
+      const tmLast    = player ? +player['T/M LAST RANK'] || 0 : 0;
       let changeArrow = '—', changeText = 'No change', changeClass = 'same';
       const placesChanged = tmLast && tmCurrent ? tmLast - tmCurrent : 0;
       if (tmLast && tmCurrent) {
-        if      (tmCurrent < tmLast) { changeArrow = '▲'; changeText = `Up ${placesChanged}`; changeClass = 'up'; }
+        if      (tmCurrent < tmLast) { changeArrow = '▲'; changeText = `Up ${placesChanged}`;           changeClass = 'up'; }
         else if (tmCurrent > tmLast) { changeArrow = '▼'; changeText = `Down ${Math.abs(placesChanged)}`; changeClass = 'down'; }
       }
 
-      // --- Motivational message ---
+      // Motivational message
       const tmGap  = tmLeader  - myTM;
       const lmGap  = lmLeader  - myLM;
       const totGap = totLeader - myTotal;
-
       let msgText = '', msgEmoji = '', msgClass = 'msg-neutral';
+      if      (myTotal >= totLeader)    { msgEmoji='🏆'; msgText="You're leading the way — everyone else is chasing you!";     msgClass='msg-gold'; }
+      else if (totGap <= 500)           { msgEmoji='🔥'; msgText="So close! You're right on the overall leader's heels!";      msgClass='msg-positive'; }
+      else if (myTM >= tmLeader)        { msgEmoji='⚡'; msgText="You're top of the table this month — brilliant effort!";     msgClass='msg-gold'; }
+      else if (tmGap < lmGap)           { msgEmoji='📈'; msgText="You're closing the gap on the leader — keep pushing!";       msgClass='msg-positive'; }
+      else if (tmGap > lmGap * 1.2)    { msgEmoji='⚠️'; msgText="The leader is pulling away — now's the time to push!";      msgClass='msg-warning'; }
+      else if (placesChanged >= 5)      { msgEmoji='🚀'; msgText="What a month! You've rocketed up the rankings!";             msgClass='msg-positive'; }
+      else if (placesChanged > 0)       { msgEmoji='👍'; msgText="Moving in the right direction — nice work!";                msgClass='msg-positive'; }
+      else if (placesChanged < -2)      { msgEmoji='💪'; msgText="Tough month — but there's everything to play for!";         msgClass='msg-warning'; }
+      else                              { msgEmoji='🎯'; msgText="You're holding your ground — stay consistent!";             msgClass='msg-neutral'; }
 
-      if (myTotal >= totLeader) {
-        // They ARE the overall leader
-        msgEmoji = '🏆';
-        msgText  = "You're leading the way — everyone else is chasing you!";
-        msgClass = 'msg-gold';
-      } else if (totGap <= 500) {
-        // Within 500m of overall leader
-        msgEmoji = '🔥';
-        msgText  = "So close! You're right on the overall leader's heels!";
-        msgClass = 'msg-positive';
-      } else if (myTM >= tmLeader) {
-        // Leading this month
-        msgEmoji = '⚡';
-        msgText  = "You're top of the table this month — brilliant effort!";
-        msgClass = 'msg-gold';
-      } else if (tmGap < lmGap) {
-        // Closing the gap vs leader this month
-        msgEmoji = '📈';
-        msgText  = "You're closing the gap on the leader — keep pushing!";
-        msgClass = 'msg-positive';
-      } else if (tmGap > lmGap * 1.2) {
-        // Gap growing by more than 20%
-        msgEmoji = '⚠️';
-        msgText  = "The leader is pulling away — now's the time to push!";
-        msgClass = 'msg-warning';
-      } else if (placesChanged >= 5) {
-        // Big jump up
-        msgEmoji = '🚀';
-        msgText  = "What a month! You've rocketed up the rankings!";
-        msgClass = 'msg-positive';
-      } else if (placesChanged > 0) {
-        // Moving up
-        msgEmoji = '👍';
-        msgText  = "Moving in the right direction — nice work!";
-        msgClass = 'msg-positive';
-      } else if (placesChanged < -2) {
-        // Dropped places
-        msgEmoji  = '💪';
-        msgText   = "Tough month — but there's everything to play for!";
-        msgClass  = 'msg-warning';
-      } else {
-        // Holding steady
-        msgEmoji = '🎯';
-        msgText  = "You're holding your ground — stay consistent!";
-        msgClass = 'msg-neutral';
-      }
-
-      // Draw player face
       const playerIcon = await drawIcon(name, null, 64, 0);
 
-      // Render page
       document.getElementById('main-spinner').style.display = 'none';
+
       content.innerHTML = `
         <div class="hero">
           <div class="hero-face"><img src="${playerIcon}" alt="${name}"></div>
@@ -484,82 +744,97 @@
           </div>
         </div>
 
-        <div class="main-grid">
-          <!-- Left coin column -->
-          <div class="coin-col" id="coinCol">
-            ${myTM > 0 ? `
-            <svg id="coinStackSvg" viewBox="0 0 80 10" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;">
-              <defs>
-                <linearGradient id="cTop" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#FFE566"/>
-                  <stop offset="100%" stop-color="#F9A825"/>
-                </linearGradient>
-                <linearGradient id="cSide" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#E6900A"/>
-                  <stop offset="100%" stop-color="#BF6E00"/>
-                </linearGradient>
-              </defs>
-            </svg>
-            ` : `<div class="coin-zero">🎯</div>`}
-          </div>
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="showTab('stats',this)">📊 Stats</button>
+          <button class="tab-btn"        onclick="showTab('bonus',this)">💷 My Bonus</button>
+        </div>
 
-          <!-- Right stats column -->
-          <div class="stats-col">
-            <div class="stat-card highlight two-col">
-              <div class="two-col-inner">
-                <div>
-                  <div class="label">This Month</div>
-                  <div class="value">${myTM.toLocaleString()}m</div>
-                  <div class="sub">Rank #${myTMRank}</div>
+        <div class="tab-panels">
+
+          <!-- Stats tab -->
+          <div class="tab-panel active" id="tab-stats">
+            <div class="main-grid">
+              <div class="coin-col" id="coinCol">
+                ${myTM > 0 ? `
+                <svg id="coinStackSvg" viewBox="0 0 80 10" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;">
+                  <defs>
+                    <linearGradient id="cTop" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#FFE566"/>
+                      <stop offset="100%" stop-color="#F9A825"/>
+                    </linearGradient>
+                    <linearGradient id="cSide" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#E6900A"/>
+                      <stop offset="100%" stop-color="#BF6E00"/>
+                    </linearGradient>
+                  </defs>
+                </svg>` : `<div class="coin-zero">🎯</div>`}
+              </div>
+              <div class="stats-col">
+                <div class="stat-card highlight two-col">
+                  <div class="two-col-inner">
+                    <div>
+                      <div class="label">This Month</div>
+                      <div class="value">${myTM.toLocaleString()}m</div>
+                      <div class="sub">Rank #${myTMRank}</div>
+                    </div>
+                    <div>
+                      <div class="label">Last Month</div>
+                      <div class="value">${myLM.toLocaleString()}m</div>
+                      <div class="sub">Rank #${myLMRank}</div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div class="label">Last Month</div>
-                  <div class="value">${myLM.toLocaleString()}m</div>
-                  <div class="sub">Rank #${myLMRank}</div>
+                <div class="stat-card highlight">
+                  <div class="label">Total Metres</div>
+                  <div class="value">${myTotal.toLocaleString()}m</div>
+                  <div class="sub">Overall #${myOverall}</div>
+                </div>
+                <div class="stat-card two-col">
+                  <div class="two-col-inner">
+                    <div>
+                      <div class="label">vs This Month</div>
+                      <div class="value">${tmDiff}</div>
+                    </div>
+                    <div>
+                      <div class="label">vs Last Month</div>
+                      <div class="value">${lmDiff}</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="stat-card">
+                  <div class="label">vs Overall Leader</div>
+                  <div class="value">${totDiff}</div>
+                </div>
+                <div class="stat-card bonus-stat">
+                  <div class="label">💰 This Month's Bonus</div>
+                  <div class="coin-amount" id="coinAmount">£0.00</div>
+                  <div class="sub">${myTM.toLocaleString()}m @ £0.03/m</div>
+                </div>
+                <div class="stat-card">
+                  <div class="label">Positional Change</div>
+                  <div class="value ${changeClass}">${changeArrow} ${changeText}</div>
                 </div>
               </div>
             </div>
-            <div class="stat-card highlight">
-              <div class="label">Total Metres</div>
-              <div class="value">${myTotal.toLocaleString()}m</div>
-              <div class="sub">Overall #${myOverall}</div>
+
+            <div class="msg-banner ${msgClass}">
+              <span class="msg-emoji">${msgEmoji}</span>
+              <span>${msgText}</span>
             </div>
-            <div class="stat-card two-col">
-              <div class="two-col-inner">
-                <div>
-                  <div class="label">vs This Month</div>
-                  <div class="value">${tmDiff}</div>
-                </div>
-                <div>
-                  <div class="label">vs Last Month</div>
-                  <div class="value">${lmDiff}</div>
-                </div>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="label">vs Overall Leader</div>
-              <div class="value">${totDiff}</div>
-            </div>
-            <div class="stat-card bonus-stat">
-              <div class="label">💰 This Month's Bonus</div>
-              <div class="coin-amount" id="coinAmount">£0.00</div>
-              <div class="sub">${myTM.toLocaleString()}m @ £0.03/m</div>
-            </div>
-            <div class="stat-card">
-              <div class="label">Positional Change</div>
-              <div class="value ${changeClass}">${changeArrow} ${changeText}</div>
+
+            <div class="race-wrap">
+              <div class="spinner-overlay" id="race-spinner"><div class="spinner"></div></div>
+              <div id="racetrack"></div>
             </div>
           </div>
-        </div>
 
-        <div class="msg-banner ${msgClass}">
-          <span class="msg-emoji">${msgEmoji}</span>
-          <span class="msg-text">${msgText}</span>
-        </div>
+          <!-- Bonus tab -->
+          <div class="tab-panel" id="tab-bonus">
+            <div class="bonus-tab-inner" id="bonus-tab-content">
+              <div class="spinner-sm"></div>
+            </div>
+          </div>
 
-        <div class="race-wrap">
-          <div class="spinner-overlay" id="race-spinner"><div class="spinner"></div></div>
-          <div id="racetrack"></div>
         </div>
       `;
 
@@ -567,14 +842,10 @@
 
       // Coin stack animation
       if (myTM > 0) {
-        const bonusRaw  = myTM * 0.03;
+        const bonusRaw  = myTM * RATE;
         const BONUS_MAX = 1500;
         const fillRatio = Math.min(bonusRaw / BONUS_MAX, 1);
-        const COIN_RX   = 32;
-        const COIN_RY   = 6;
-        const COIN_H    = 11;
-        const SVG_W     = 72;
-
+        const COIN_RX   = 32, COIN_RY = 6, COIN_H = 11, SVG_W = 72;
         const svg      = document.getElementById('coinStackSvg');
         const amountEl = document.getElementById('coinAmount');
         const coinCol  = document.getElementById('coinCol');
@@ -584,94 +855,55 @@
             const panelH   = Math.max(coinCol.clientHeight, 120);
             const maxCoins = Math.floor((panelH - COIN_RY * 2 - 8) / COIN_H);
             const numCoins = Math.max(1, Math.round(maxCoins * fillRatio));
-
             svg.setAttribute('viewBox', `0 0 ${SVG_W} ${panelH}`);
             svg.setAttribute('height', String(panelH));
-
-            const NS    = 'http://www.w3.org/2000/svg';
+            const NS = 'http://www.w3.org/2000/svg';
             const coins = [];
-
             for (let i = 0; i < numCoins; i++) {
               const bottomY = panelH - 4 - (i * COIN_H);
               const faceY   = bottomY - COIN_H;
               const isTop   = i === numCoins - 1;
               const cx      = SVG_W / 2;
-
               const band = document.createElementNS(NS, 'rect');
-              band.setAttribute('x', String(cx - COIN_RX));
-              band.setAttribute('y', String(faceY));
-              band.setAttribute('width', String(COIN_RX * 2));
-              band.setAttribute('height', String(COIN_H));
-              band.setAttribute('fill', 'url(#cSide)');
-              band.style.opacity = '0';
-
+              band.setAttribute('x', String(cx - COIN_RX)); band.setAttribute('y', String(faceY));
+              band.setAttribute('width', String(COIN_RX * 2)); band.setAttribute('height', String(COIN_H));
+              band.setAttribute('fill', 'url(#cSide)'); band.style.opacity = '0';
               const bottom = document.createElementNS(NS, 'ellipse');
-              bottom.setAttribute('cx', String(cx));
-              bottom.setAttribute('cy', String(bottomY));
-              bottom.setAttribute('rx', String(COIN_RX));
-              bottom.setAttribute('ry', String(COIN_RY));
-              bottom.setAttribute('fill', 'url(#cSide)');
-              bottom.style.opacity = '0';
-
+              bottom.setAttribute('cx', String(cx)); bottom.setAttribute('cy', String(bottomY));
+              bottom.setAttribute('rx', String(COIN_RX)); bottom.setAttribute('ry', String(COIN_RY));
+              bottom.setAttribute('fill', 'url(#cSide)'); bottom.style.opacity = '0';
               const face = document.createElementNS(NS, 'ellipse');
-              face.setAttribute('cx', String(cx));
-              face.setAttribute('cy', String(faceY));
-              face.setAttribute('rx', String(COIN_RX));
-              face.setAttribute('ry', String(COIN_RY));
-              face.setAttribute('fill', 'url(#cTop)');
-              face.style.opacity = '0';
-
+              face.setAttribute('cx', String(cx)); face.setAttribute('cy', String(faceY));
+              face.setAttribute('rx', String(COIN_RX)); face.setAttribute('ry', String(COIN_RY));
+              face.setAttribute('fill', 'url(#cTop)'); face.style.opacity = '0';
               const ring = document.createElementNS(NS, 'ellipse');
-              ring.setAttribute('cx', String(cx));
-              ring.setAttribute('cy', String(faceY));
-              ring.setAttribute('rx', String(COIN_RX - 7));
-              ring.setAttribute('ry', String(COIN_RY - 1));
-              ring.setAttribute('fill', 'none');
-              ring.setAttribute('stroke', '#D4880A');
-              ring.setAttribute('stroke-width', '0.7');
-              ring.style.opacity = '0';
-
-              svg.appendChild(band);
-              svg.appendChild(bottom);
-              svg.appendChild(face);
-              svg.appendChild(ring);
-
+              ring.setAttribute('cx', String(cx)); ring.setAttribute('cy', String(faceY));
+              ring.setAttribute('rx', String(COIN_RX - 7)); ring.setAttribute('ry', String(COIN_RY - 1));
+              ring.setAttribute('fill', 'none'); ring.setAttribute('stroke', '#D4880A');
+              ring.setAttribute('stroke-width', '0.7'); ring.style.opacity = '0';
+              svg.appendChild(band); svg.appendChild(bottom); svg.appendChild(face); svg.appendChild(ring);
               if (isTop) {
                 const lbl = document.createElementNS(NS, 'text');
-                lbl.setAttribute('x', String(cx));
-                lbl.setAttribute('y', String(faceY + 1));
-                lbl.setAttribute('text-anchor', 'middle');
-                lbl.setAttribute('dominant-baseline', 'central');
-                lbl.setAttribute('font-size', '8');
-                lbl.setAttribute('font-weight', '500');
-                lbl.setAttribute('fill', '#9A5E00');
-                lbl.textContent = '£';
-                lbl.style.opacity = '0';
+                lbl.setAttribute('x', String(cx)); lbl.setAttribute('y', String(faceY + 1));
+                lbl.setAttribute('text-anchor', 'middle'); lbl.setAttribute('dominant-baseline', 'central');
+                lbl.setAttribute('font-size', '8'); lbl.setAttribute('font-weight', '500');
+                lbl.setAttribute('fill', '#9A5E00'); lbl.textContent = '£'; lbl.style.opacity = '0';
                 svg.appendChild(lbl);
                 coins.push([band, bottom, face, ring, lbl]);
               } else {
                 coins.push([band, bottom, face, ring]);
               }
             }
-
             const DELAY = Math.min(60, 900 / Math.max(numCoins, 1));
             coins.forEach((group, i) => {
-              setTimeout(() => {
-                group.forEach(el => {
-                  el.style.transition = 'opacity 0.1s ease';
-                  el.style.opacity = '1';
-                });
-              }, 300 + i * DELAY);
+              setTimeout(() => { group.forEach(el => { el.style.transition='opacity 0.1s ease'; el.style.opacity='1'; }); }, 300 + i * DELAY);
             });
-
             const totalDur = 300 + numCoins * DELAY + 200;
-            const start    = performance.now();
+            const start = performance.now();
             function countUp(now) {
-              const t    = Math.min((now - start) / totalDur, 1);
+              const t = Math.min((now - start) / totalDur, 1);
               const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
-              amountEl.textContent = (bonusRaw * ease).toLocaleString('en-GB', {
-                style: 'currency', currency: 'GBP'
-              });
+              amountEl.textContent = (bonusRaw * ease).toLocaleString('en-GB', { style:'currency', currency:'GBP' });
               if (t < 1) requestAnimationFrame(countUp);
             }
             setTimeout(() => requestAnimationFrame(countUp), 300);
@@ -680,138 +912,103 @@
       }
     }
 
+    function showTab(tabId, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+      if (tabId === 'bonus') loadBonusTab();
+    }
+
     async function renderRace(playerName, ranked, data) {
       document.getElementById('race-spinner').style.display = 'none';
+      const today = new Date().toISOString().split('T')[0];
+      const { data: activeEmps } = await sb
+        .from('employees')
+        .select('full_name')
+        .or(`status.eq.active,status.eq.probation,and(status.eq.inactive,leaving_date.gte.${today})`);
+      const PEOPLE = (activeEmps || []).map(e => e.full_name);
 
       const top3 = ranked.slice(0, 3);
       const allNames = [...new Set([...top3.map(r => r['NAME']), playerName])];
       const racers = allNames.map(n => {
-        const row      = data.find(r => r['NAME'] === n);
-        const total    = val(row, 'TOTAL METERS');
-        const rank     = ranked.find(r => r['NAME'] === n)?._overallRank || 99;
+        const row = data.find(r => r['NAME'] === n);
+        const total = val(row, 'TOTAL METERS');
+        const rank = ranked.find(r => r['NAME'] === n)?._overallRank || 99;
         const isPlayer = n === playerName;
-        const halo     = isPlayer && rank > 3 ? '#1a73e8' : haloForRank(rank);
+        const halo = isPlayer && rank > 3 ? '#1a73e8' : haloForRank(rank);
         return { name: n, total, rank, isPlayer, halo };
       }).sort((a, b) => a.rank - b.rank);
 
       const leaderTotal = racers[0].total;
+      const SVG_W=360, FACE_D=26, HALO=4, PAD_L=FACE_D, PAD_R=FACE_D;
+      const TRACK_Y=50, TRACK_H=6;
+      const trackW = SVG_W - PAD_L - PAD_R;
+      const LABEL_Y = TRACK_Y + FACE_D/2 + 14;
+      const svgH = LABEL_Y + 30;
 
-      const SVG_W   = 360;
-      const FACE_D  = 26;          // smaller faces
-      const HALO    = 4;
-      const PAD_L   = FACE_D;      // enough room for leftmost face
-      const PAD_R   = FACE_D;      // enough room for rightmost face
-      const TRACK_Y = 50;
-      const TRACK_H = 6;
-      const trackW  = SVG_W - PAD_L - PAD_R;
-      const LABEL_Y = TRACK_Y + FACE_D / 2 + 14;
-      const svgH    = LABEL_Y + 30;
-
-      // Draw icons — smaller, no halo for non-top-3 to save space
-      const icons = await Promise.all(
-        racers.map(r => {
-          const fs = r.halo ? FACE_D + HALO * 2 : FACE_D;
-          return drawIcon(r.name, r.halo, FACE_D, r.halo ? HALO : 0);
-        })
-      );
-
-      const NS  = 'http://www.w3.org/2000/svg';
+      const icons = await Promise.all(racers.map(r => drawIcon(r.name, r.halo, FACE_D, r.halo ? HALO : 0)));
+      const NS = 'http://www.w3.org/2000/svg';
       const svg = document.createElementNS(NS, 'svg');
       svg.setAttribute('width', '100%');
       svg.setAttribute('viewBox', `0 0 ${SVG_W} ${svgH}`);
       svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
       svg.style.display = 'block';
 
-      // Track background
       const trackBg = document.createElementNS(NS, 'rect');
-      trackBg.setAttribute('x', String(PAD_L));
-      trackBg.setAttribute('y', String(TRACK_Y - TRACK_H / 2));
-      trackBg.setAttribute('width', String(trackW));
-      trackBg.setAttribute('height', String(TRACK_H));
-      trackBg.setAttribute('rx', String(TRACK_H / 2));
-      trackBg.setAttribute('fill', '#e8e8e8');
+      trackBg.setAttribute('x', String(PAD_L)); trackBg.setAttribute('y', String(TRACK_Y - TRACK_H/2));
+      trackBg.setAttribute('width', String(trackW)); trackBg.setAttribute('height', String(TRACK_H));
+      trackBg.setAttribute('rx', String(TRACK_H/2)); trackBg.setAttribute('fill', '#e8e8e8');
       svg.appendChild(trackBg);
 
-      // Leader fill
       const leaderFill = document.createElementNS(NS, 'rect');
-      leaderFill.setAttribute('x', String(PAD_L));
-      leaderFill.setAttribute('y', String(TRACK_Y - TRACK_H / 2));
-      leaderFill.setAttribute('width', '0');
-      leaderFill.setAttribute('height', String(TRACK_H));
-      leaderFill.setAttribute('rx', String(TRACK_H / 2));
-      leaderFill.setAttribute('fill', '#ffe082');
+      leaderFill.setAttribute('x', String(PAD_L)); leaderFill.setAttribute('y', String(TRACK_Y - TRACK_H/2));
+      leaderFill.setAttribute('width', '0'); leaderFill.setAttribute('height', String(TRACK_H));
+      leaderFill.setAttribute('rx', String(TRACK_H/2)); leaderFill.setAttribute('fill', '#ffe082');
       svg.appendChild(leaderFill);
-      setTimeout(() => {
-        leaderFill.style.transition = 'width 1.4s cubic-bezier(0.4,0,0.2,1)';
-        leaderFill.setAttribute('width', String(trackW));
-      }, 200);
+      setTimeout(() => { leaderFill.style.transition='width 1.4s cubic-bezier(0.4,0,0.2,1)'; leaderFill.setAttribute('width', String(trackW)); }, 200);
 
-      // Calculate raw positions
       racers.forEach(r => {
-        const pct  = leaderTotal > 0 ? r.total / leaderTotal : 0;
-        const rawX = PAD_L + trackW * pct;
-        r._rawX    = Math.max(PAD_L, Math.min(SVG_W - PAD_R, rawX));
+        const pct = leaderTotal > 0 ? r.total / leaderTotal : 0;
+        r._rawX = Math.max(PAD_L, Math.min(SVG_W - PAD_R, PAD_L + trackW * pct));
         r._faceSize = r.halo ? FACE_D + HALO * 2 : FACE_D;
       });
 
-      // ── Collision resolution for faces ──
-      // Sort by position left to right, push apart if overlapping
       const byPos = [...racers].sort((a, b) => a._rawX - b._rawX);
       byPos.forEach(r => { r._faceX = r._rawX; });
-
       const MIN_FACE_GAP = 4;
-      // Forward pass — push right
       for (let i = 1; i < byPos.length; i++) {
-        const prev = byPos[i - 1];
-        const curr = byPos[i];
-        const minX = prev._faceX + (prev._faceSize + curr._faceSize) / 2 + MIN_FACE_GAP;
+        const prev = byPos[i-1], curr = byPos[i];
+        const minX = prev._faceX + (prev._faceSize + curr._faceSize)/2 + MIN_FACE_GAP;
         if (curr._faceX < minX) curr._faceX = Math.min(SVG_W - PAD_R, minX);
       }
-      // Backward pass — push left if gone too far right
       for (let i = byPos.length - 2; i >= 0; i--) {
-        const next = byPos[i + 1];
-        const curr = byPos[i];
-        const maxX = next._faceX - (next._faceSize + curr._faceSize) / 2 - MIN_FACE_GAP;
+        const next = byPos[i+1], curr = byPos[i];
+        const maxX = next._faceX - (next._faceSize + curr._faceSize)/2 - MIN_FACE_GAP;
         if (curr._faceX > maxX) curr._faceX = Math.max(PAD_L, maxX);
       }
 
-      // ── Label positions — start from face position then resolve collisions ──
       racers.forEach(r => { r._labelX = r._faceX; });
       const byLabel = [...racers].sort((a, b) => a._labelX - b._labelX);
-
-      const MIN_LABEL_W = 36; // minimum px between label centres
-      // Forward pass
+      const MIN_LABEL_W = 36;
       for (let i = 1; i < byLabel.length; i++) {
-        const prev = byLabel[i - 1];
-        const curr = byLabel[i];
-        if (curr._labelX - prev._labelX < MIN_LABEL_W) {
-          curr._labelX = Math.min(SVG_W - 20, prev._labelX + MIN_LABEL_W);
-        }
+        const prev = byLabel[i-1], curr = byLabel[i];
+        if (curr._labelX - prev._labelX < MIN_LABEL_W) curr._labelX = Math.min(SVG_W - 20, prev._labelX + MIN_LABEL_W);
       }
-      // Backward pass
       for (let i = byLabel.length - 2; i >= 0; i--) {
-        const next = byLabel[i + 1];
-        const curr = byLabel[i];
-        if (next._labelX - curr._labelX < MIN_LABEL_W) {
-          curr._labelX = Math.max(20, next._labelX - MIN_LABEL_W);
-        }
+        const next = byLabel[i+1], curr = byLabel[i];
+        if (next._labelX - curr._labelX < MIN_LABEL_W) curr._labelX = Math.max(20, next._labelX - MIN_LABEL_W);
       }
 
-      // ── Draw faces — player on top (drawn last) ──
-      // Sort so player is drawn last (highest z-order)
       const drawOrder = [...racers].sort((a, b) => {
-        if (a.isPlayer) return 1;
-        if (b.isPlayer) return -1;
-        return b.rank - a.rank; // higher rank number = drawn earlier (lower z)
+        if (a.isPlayer) return 1; if (b.isPlayer) return -1;
+        return b.rank - a.rank;
       });
-
       const faceGroups = {};
-
-      drawOrder.forEach((racer) => {
-        const halfFace  = racer._faceSize / 2;
+      drawOrder.forEach(racer => {
+        const halfFace = racer._faceSize / 2;
         const faceGroup = document.createElementNS(NS, 'g');
-        faceGroup.setAttribute('transform',
-          `translate(${PAD_L - halfFace}, ${TRACK_Y - halfFace})`);
+        faceGroup.setAttribute('transform', `translate(${PAD_L - halfFace}, ${TRACK_Y - halfFace})`);
         faceGroup.style.transition = 'transform 1.4s cubic-bezier(0.4,0,0.2,1)';
         const faceImg = document.createElementNS(NS, 'image');
         faceImg.setAttribute('href', icons[racers.indexOf(racer)]);
@@ -822,49 +1019,34 @@
         faceGroups[racer.name] = { group: faceGroup, halfFace, targetX: racer._faceX };
       });
 
-      // ── Draw labels ──
       racers.forEach((racer, i) => {
         const shortName = racer.isPlayer && racer.rank > 3
           ? racer.name.split(' ')[0] + ' (You)'
           : racer.name.split(' ')[0] + (racer.name.split(' ')[1] ? ' ' + racer.name.split(' ')[1][0] + '.' : '');
-
         const lx = Math.max(20, Math.min(SVG_W - 20, racer._labelX));
-
         const nameEl = document.createElementNS(NS, 'text');
-        nameEl.setAttribute('x', String(lx));
-        nameEl.setAttribute('y', String(LABEL_Y));
-        nameEl.setAttribute('text-anchor', 'middle');
-        nameEl.setAttribute('font-size', '7');
+        nameEl.setAttribute('x', String(lx)); nameEl.setAttribute('y', String(LABEL_Y));
+        nameEl.setAttribute('text-anchor', 'middle'); nameEl.setAttribute('font-size', '7');
         nameEl.setAttribute('font-weight', '500');
         nameEl.setAttribute('fill', racer.isPlayer ? '#1a73e8' : '#333');
-        nameEl.style.opacity = '0';
-        nameEl.textContent = shortName;
+        nameEl.style.opacity = '0'; nameEl.textContent = shortName;
         svg.appendChild(nameEl);
-
         const metresEl = document.createElementNS(NS, 'text');
-        metresEl.setAttribute('x', String(lx));
-        metresEl.setAttribute('y', String(LABEL_Y + 10));
-        metresEl.setAttribute('text-anchor', 'middle');
-        metresEl.setAttribute('font-size', '6');
-        metresEl.setAttribute('fill', '#aaa');
-        metresEl.style.opacity = '0';
+        metresEl.setAttribute('x', String(lx)); metresEl.setAttribute('y', String(LABEL_Y + 10));
+        metresEl.setAttribute('text-anchor', 'middle'); metresEl.setAttribute('font-size', '6');
+        metresEl.setAttribute('fill', '#aaa'); metresEl.style.opacity = '0';
         metresEl.textContent = `${Math.round(racer.total).toLocaleString()}m`;
         svg.appendChild(metresEl);
-
         setTimeout(() => {
-          nameEl.style.transition   = 'opacity 0.4s ease';
-          metresEl.style.transition = 'opacity 0.4s ease';
-          nameEl.style.opacity   = '1';
-          metresEl.style.opacity = '1';
+          nameEl.style.transition = metresEl.style.transition = 'opacity 0.4s ease';
+          nameEl.style.opacity = metresEl.style.opacity = '1';
         }, 200 + i * 100 + 800);
       });
 
-      // ── Animate faces to final positions ──
       racers.forEach((racer, i) => {
         const fg = faceGroups[racer.name];
         setTimeout(() => {
-          fg.group.setAttribute('transform',
-            `translate(${fg.targetX - fg.halfFace}, ${TRACK_Y - fg.halfFace})`);
+          fg.group.setAttribute('transform', `translate(${fg.targetX - fg.halfFace}, ${TRACK_Y - fg.halfFace})`);
         }, 200 + i * 100);
       });
 
@@ -874,8 +1056,7 @@
     build().catch(e => {
       console.error(e);
       document.getElementById('main-spinner').style.display = 'none';
-      document.getElementById('content').innerHTML =
-        `<div class="error">Error loading stats. Please try again.</div>`;
+      document.getElementById('content').innerHTML = `<div class="error">Error loading stats. Please try again.</div>`;
     });
   </script>
 </body>
