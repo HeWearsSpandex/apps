@@ -198,7 +198,8 @@
         provider: 'azure',
         options: {
           scopes: 'email',
-          redirectTo: `${location.origin}/bonus-metres/dashboard.html`
+          redirectTo: `${location.origin}/bonus-metres/dashboard.html`,
+          queryParams: { response_type: 'token' }
         }
       });
       if (error) {
@@ -210,18 +211,30 @@
     }
 
     async function init() {
-      // Handle OAuth callback — Supabase puts session in URL hash/params
-      const { data: { session: urlSession } } = await sb.auth.getSession();
-
       sb.auth.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_IN' && session) await showDashboard();
       });
 
-      if (urlSession) {
-        await showDashboard();
-      } else {
-        document.getElementById('loginScreen').style.display = 'flex';
+      // Check for tokens in URL hash (implicit flow)
+      if (location.hash.includes('access_token')) {
+        const params = new URLSearchParams(location.hash.substring(1));
+        const { data } = await sb.auth.setSession({
+          access_token: params.get('access_token'),
+          refresh_token: params.get('refresh_token')
+        });
+        if (data?.session) {
+          history.replaceState(null, '', location.pathname);
+          await showDashboard();
+          return;
+        }
       }
+
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) {
+        document.getElementById('loginScreen').style.display = 'flex';
+        return;
+      }
+      await showDashboard();
     }
 
     async function showDashboard() {
