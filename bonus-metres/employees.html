@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JHB — Employee Management</title>
   <style>
-    /* ── CONFIG ── paste your token into the JS below, not here */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
@@ -102,15 +101,15 @@
       align-items: center;
       gap: 6px;
     }
-    .btn-primary   { background: var(--red); color: var(--white); }
+    .btn-primary       { background: var(--red); color: var(--white); }
     .btn-primary:hover { background: var(--red-dk); }
-    .btn-ghost     { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-    .btn-ghost:hover { border-color: var(--red); color: var(--red); }
-    .btn-danger    { background: #fee; color: var(--red); border: 1px solid #fcc; }
-    .btn-danger:hover { background: var(--red); color: var(--white); }
-    .btn-success   { background: var(--green); color: var(--white); }
+    .btn-ghost         { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover   { border-color: var(--red); color: var(--red); }
+    .btn-danger        { background: #fee; color: var(--red); border: 1px solid #fcc; }
+    .btn-danger:hover  { background: var(--red); color: var(--white); }
+    .btn-success       { background: var(--green); color: var(--white); }
     .btn-success:hover { opacity: 0.9; }
-    .btn:disabled  { opacity: 0.5; cursor: not-allowed; }
+    .btn:disabled      { opacity: 0.5; cursor: not-allowed; }
 
     /* ── EMPLOYEE GRID ── */
     .employee-grid {
@@ -133,7 +132,7 @@
       position: relative;
       border: 2px solid transparent;
     }
-    .emp-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+    .emp-card:hover    { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
     .emp-card.selected { border-color: var(--red); }
 
     .emp-avatar {
@@ -172,8 +171,7 @@
 
     .status-badge {
       position: absolute;
-      top: 10px;
-      right: 10px;
+      top: 10px; right: 10px;
       width: 10px; height: 10px;
       border-radius: 50%;
     }
@@ -240,7 +238,7 @@
     }
     .modal-close:hover { background: var(--border); }
 
-    .modal-body { padding: 20px 24px; }
+    .modal-body   { padding: 20px 24px; }
     .modal-footer {
       padding: 16px 24px;
       border-top: 1px solid var(--border);
@@ -251,7 +249,7 @@
 
     /* ── FORM ── */
     .form-group { margin-bottom: 16px; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
     input[type=text], input[type=email], input[type=date], select {
       width: 100%;
@@ -281,9 +279,7 @@
       background: var(--grey);
       flex-shrink: 0;
     }
-    .photo-upload-btn {
-      flex: 1;
-    }
+    .photo-upload-btn { flex: 1; }
     .photo-upload-btn label {
       display: inline-flex;
       align-items: center;
@@ -305,43 +301,6 @@
     .photo-upload-btn label:hover { border-color: var(--red); color: var(--red); }
     .photo-upload-btn input { display: none; }
 
-    /* ── STATUS COLOURS in select ── */
-    .status-active    { color: var(--green); }
-    .status-inactive  { color: var(--muted); }
-    .status-probation { color: var(--orange); }
-
-    /* ── TOAST ── */
-    .toast {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: #222;
-      color: var(--white);
-      padding: 12px 18px;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 500;
-      box-shadow: var(--shadow-lg);
-      z-index: 999;
-      display: none;
-      align-items: center;
-      gap: 8px;
-      animation: fadeIn 0.2s ease;
-    }
-    .toast.show { display: flex; }
-    .toast.success { background: var(--green); }
-    .toast.error   { background: var(--red); }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
-    /* ── SPINNER ── */
-    .spinner-wrap { display: flex; justify-content: center; padding: 60px; grid-column: 1/-1; }
-    .spinner { width: 36px; height: 36px; border: 4px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── CONFIRM DIALOG ── */
-    .confirm-msg { font-size: 14px; line-height: 1.6; color: var(--text); }
-    .confirm-msg strong { color: var(--red); }
-
     /* ── STATS BAR ── */
     .stats-bar {
       display: flex;
@@ -359,9 +318,18 @@
     }
     .stat-chip strong { color: var(--text); }
 
+    /* ── CONFIRM DIALOG ── */
+    .confirm-msg { font-size: 14px; line-height: 1.6; color: var(--text); }
+    .confirm-msg strong { color: var(--red); }
+
+    /* ── SPINNER ── */
+    .spinner-wrap { display: flex; justify-content: center; padding: 60px; grid-column: 1/-1; }
+    .spinner { width: 36px; height: 36px; border: 4px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
     @media (max-width: 480px) {
-      .form-row { grid-template-columns: 1fr; }
-      .toolbar  { flex-direction: column; align-items: stretch; }
+      .form-row   { grid-template-columns: 1fr; }
+      .toolbar    { flex-direction: column; align-items: stretch; }
       .search-box { width: 100%; }
     }
   </style>
@@ -395,7 +363,7 @@
       <div class="toolbar-title" id="listTitle">Employees</div>
       <input class="search-box" type="text" placeholder="Search name or initials…" oninput="filterEmployees()" id="searchBox">
       <div class="filter-pills">
-        <span class="pill active" data-filter="all"    onclick="setFilter('all',this)">All</span>
+        <span class="pill active" data-filter="all"       onclick="setFilter('all',this)">All</span>
         <span class="pill"        data-filter="active"    onclick="setFilter('active',this)">Active</span>
         <span class="pill"        data-filter="probation" onclick="setFilter('probation',this)">Probation</span>
         <span class="pill"        data-filter="inactive"  onclick="setFilter('inactive',this)">Inactive</span>
@@ -418,7 +386,8 @@
       <div class="modal-body">
 
         <div class="photo-upload-wrap">
-          <img class="photo-preview" id="photoPreview" src="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 72 72%22><circle cx=%2236%22 cy=%2236%22 r=%2236%22 fill=%22%23eee%22/></svg>'">
+          <img class="photo-preview" id="photoPreview" src=""
+               onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 72 72%22><circle cx=%2236%22 cy=%2236%22 r=%2236%22 fill=%22%23eee%22/></svg>'">
           <div class="photo-upload-btn">
             <label>📷 Upload photo
               <input type="file" id="photoInput" accept="image/*" onchange="previewPhoto(this)">
@@ -444,7 +413,7 @@
         </div>
 
         <div class="form-group">
-          <label>Email Address *</label>
+          <label>Email Address</label>
           <input type="email" id="fEmail" placeholder="edward@jhbukltd.co.uk">
         </div>
 
@@ -494,20 +463,13 @@
         <p class="confirm-msg" id="confirmMsg"></p>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-ghost" onclick="closeModal('confirmModal')">Cancel</button>
-        <button class="btn btn-danger" id="confirmBtn">Confirm</button>
+        <button class="btn btn-ghost"   onclick="closeModal('confirmModal')">Cancel</button>
+        <button class="btn btn-danger"  id="confirmBtn">Confirm</button>
       </div>
     </div>
   </div>
 
-  <!-- Toast -->
-  <div class="toast" id="toast"></div>
-
   <script>
-    // ─────────────────────────────────────────────
-    // CONFIG — defined in admin.js
-    // ─────────────────────────────────────────────
-
     const PEOPLE_JS_PATH = 'js/people.js';
     const IMG_PATH_REPO  = 'img';
     const IMG_PATH_WEB   = '/img/';
@@ -518,7 +480,7 @@
     let photoFile     = null;
     let peopleJsTimer = null;
 
-    // ── All Supabase + GitHub helpers from admin.js ─
+    // ── Load ─────────────────────────────────────
 
     async function loadEmployees() {
       try {
@@ -531,10 +493,10 @@
       }
     }
 
-    // ── Upload photo to GitHub ───────────────────
+    // ── Photo upload to GitHub ────────────────────
 
     async function uploadPhoto(file, fullName) {
-      const token = sessionStorage.getItem('gh_token') || '';
+      const token = getGithubToken();
       if (!token) throw new Error('No GitHub token — photo not uploaded');
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -554,27 +516,17 @@
       });
     }
 
-    // ── Force sync people.js ─────────────────────
+    // ── Sync people.js ────────────────────────────
 
+    // Manual sync button — prompts for token via getGithubToken() if not cached
     async function forceSyncPeopleJS() {
-      let token = sessionStorage.getItem('gh_token') || '';
-      if (!token) {
-        token = prompt('Enter your GitHub token to sync the leaderboard:') || '';
-        if (!token) return;
-        sessionStorage.setItem('gh_token', token);
-      }
+      const token = getGithubToken();
+      if (!token) return;
       const btn = document.getElementById('syncBtn');
       btn.disabled = true; btn.textContent = '🔄 Syncing…';
       try {
-        const today  = new Date().toISOString().split('T')[0];
-        const active = allEmployees
-          .filter(e => e.status==='active' || e.status==='probation' || (e.status==='inactive' && e.leaving_date && e.leaving_date >= today))
-          .map(e => `'${e.full_name}'`);
-        const content = `const PEOPLE = [\n  ${active.join(',\n  ')}\n];\n`;
-        let sha = null;
-        try { const f = await ghGet(PEOPLE_JS_PATH, token); sha = f.sha; } catch(e) {}
-        await ghPut(PEOPLE_JS_PATH, content, 'Manual sync PEOPLE list', sha, token);
-        showToast(`✓ Leaderboard synced — ${active.length} active staff`, 'success');
+        await writePeopleJs(token);
+        showToast(`✓ Leaderboard synced — ${countActive()} active staff`, 'success');
       } catch(e) {
         showToast('Sync failed: ' + e.message, 'error');
         if (e.message.includes('Bad credentials')) sessionStorage.removeItem('gh_token');
@@ -583,28 +535,47 @@
       }
     }
 
+    // Auto-sync after save — prompts for token via getGithubToken() if not cached
     function schedulePeopleJsUpdate() {
       clearTimeout(peopleJsTimer);
       peopleJsTimer = setTimeout(async () => {
-        const token = sessionStorage.getItem('gh_token') || '';
-        if (!token) { showToast('No GitHub token — leaderboard not synced', 'error'); return; }
+        const token = getGithubToken();
+        if (!token) {
+          showToast('Leaderboard not synced — no GitHub token provided', 'error');
+          return;
+        }
         try {
-          const today  = new Date().toISOString().split('T')[0];
-          const active = allEmployees
-            .filter(e => e.status==='active' || e.status==='probation' || (e.status==='inactive' && e.leaving_date && e.leaving_date >= today))
-            .map(e => `'${e.full_name}'`);
-          const content = `const PEOPLE = [\n  ${active.join(',\n  ')}\n];\n`;
-          let sha = null;
-          try { const f = await ghGet(PEOPLE_JS_PATH, token); sha = f.sha; } catch(e) {}
-          await ghPut(PEOPLE_JS_PATH, content, 'Auto-update PEOPLE list', sha, token);
-          showToast('Leaderboard updated', 'success');
+          await writePeopleJs(token);
+          showToast('✓ Leaderboard updated', 'success');
         } catch(e) {
-          showToast('people.js update failed: ' + e.message, 'error');
+          showToast('Leaderboard sync failed: ' + e.message, 'error');
+          if (e.message.includes('Bad credentials')) sessionStorage.removeItem('gh_token');
         }
       }, 2000);
     }
 
-    // ── Render ───────────────────────────────────
+    // Shared writer — builds people.js content and pushes to GitHub
+    async function writePeopleJs(token) {
+      const today   = new Date().toISOString().split('T')[0];
+      const active  = allEmployees
+        .filter(e => e.status === 'active' || e.status === 'probation' ||
+                    (e.status === 'inactive' && e.leaving_date && e.leaving_date >= today))
+        .map(e => `'${e.full_name}'`);
+      const content = `const PEOPLE = [\n  ${active.join(',\n  ')}\n];\n`;
+      let sha = null;
+      try { const f = await ghGet(PEOPLE_JS_PATH, token); sha = f.sha; } catch(e) {}
+      await ghPut(PEOPLE_JS_PATH, content, 'Update PEOPLE list', sha, token);
+    }
+
+    function countActive() {
+      const today = new Date().toISOString().split('T')[0];
+      return allEmployees.filter(e =>
+        e.status === 'active' || e.status === 'probation' ||
+        (e.status === 'inactive' && e.leaving_date && e.leaving_date >= today)
+      ).length;
+    }
+
+    // ── Render ────────────────────────────────────
 
     function renderGrid() {
       const grid   = document.getElementById('employeeGrid');
@@ -612,8 +583,8 @@
       const filtered = allEmployees.filter(e => {
         const matchSearch = !search ||
           e.full_name.toLowerCase().includes(search) ||
-          (e.nickname || '').toLowerCase().includes(search) ||
-          (e.initials || '').toLowerCase().includes(search);
+          (e.nickname  || '').toLowerCase().includes(search) ||
+          (e.initials  || '').toLowerCase().includes(search);
         const matchFilter = currentFilter === 'all' || e.status === currentFilter;
         return matchSearch && matchFilter;
       });
@@ -625,15 +596,15 @@
       }
 
       grid.innerHTML = filtered.map(e => {
-        const photoUrl   = `${IMG_PATH_WEB}${encodeURIComponent(e.full_name + '_cvface1.png')}`;
-        const today      = new Date().toISOString().split('T')[0];
-        const isLeaving  = e.status === 'inactive' && e.leaving_date && e.leaving_date >= today;
-        const badgeClass = isLeaving ? 'leaving' : e.status;
-        const badgeTitle = isLeaving ? `Leaving ${e.leaving_date}` : e.status;
+        const photoUrl  = `${IMG_PATH_WEB}${encodeURIComponent(e.full_name + '_cvface1.png')}`;
+        const today     = new Date().toISOString().split('T')[0];
+        const isLeaving = e.status === 'inactive' && e.leaving_date && e.leaving_date >= today;
+        const cls       = isLeaving ? 'leaving' : e.status;
+        const title     = isLeaving ? `Leaving ${e.leaving_date}` : e.status;
         return `
           <div class="emp-card" onclick="openEditModal('${e.id}')">
-            <div class="status-badge ${badgeClass}" title="${badgeTitle}"></div>
-            <img class="emp-avatar ${badgeClass}"
+            <div class="status-badge ${cls}" title="${title}"></div>
+            <img class="emp-avatar ${cls}"
                  src="${photoUrl}"
                  onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 72 72%22><circle cx=%2236%22 cy=%2236%22 r=%2236%22 fill=%22%23ddd%22/><text x=%2236%22 y=%2242%22 text-anchor=%22middle%22 font-size=%2224%22 fill=%22%23999%22>${e.full_name.charAt(0)}</text></svg>'"
                  alt="${e.full_name}">
@@ -641,8 +612,7 @@
             ${e.nickname ? `<div class="emp-nick">"${e.nickname}"</div>` : ''}
             <div class="emp-initials">${e.initials}</div>
             ${isLeaving ? `<div style="font-size:10px;color:var(--orange);margin-top:-4px;">Leaving ${e.leaving_date}</div>` : ''}
-          </div>
-        `;
+          </div>`;
       }).join('');
 
       document.getElementById('listTitle').textContent =
@@ -658,18 +628,16 @@
         <div class="stat-chip">Total: <strong>${total}</strong></div>
         <div class="stat-chip" style="color:var(--green)">Active: <strong>${active}</strong></div>
         <div class="stat-chip" style="color:var(--orange)">Probation: <strong>${prob}</strong></div>
-        <div class="stat-chip" style="color:var(--muted)">Inactive: <strong>${inactive}</strong></div>
-      `;
+        <div class="stat-chip" style="color:var(--muted)">Inactive: <strong>${inactive}</strong></div>`;
     }
 
-    // ── Filters ──────────────────────────────────
+    // ── Filters ───────────────────────────────────
 
     function setFilter(filter, el) {
       currentFilter = filter;
       document.querySelectorAll('.pill').forEach(p => p.className = 'pill');
       if      (filter === 'active')    el.className = 'pill active-green';
       else if (filter === 'probation') el.className = 'pill active-orange';
-      else if (filter === 'inactive')  el.className = 'pill active';
       else                             el.className = 'pill active';
       renderGrid();
     }
@@ -706,11 +674,11 @@
       const [first, ...rest] = emp.full_name.split(' ');
       document.getElementById('fFirstName').value   = first;
       document.getElementById('fLastName').value    = rest.join(' ');
-      document.getElementById('fNickname').value    = emp.nickname || '';
-      document.getElementById('fEmail').value       = emp.email || '';
+      document.getElementById('fNickname').value    = emp.nickname    || '';
+      document.getElementById('fEmail').value       = emp.email       || '';
       document.getElementById('fInitials').value    = emp.initials;
       document.getElementById('fStatus').value      = emp.status;
-      document.getElementById('fStartDate').value   = emp.start_date || '';
+      document.getElementById('fStartDate').value   = emp.start_date  || '';
       document.getElementById('fLeavingDate').value = emp.leaving_date || '';
       document.getElementById('photoPreview').src   =
         `${IMG_PATH_WEB}${encodeURIComponent(emp.full_name + '_cvface1.png')}`;
@@ -745,68 +713,78 @@
         return;
       }
 
-      const fullName = `${firstName} ${lastName}`;
-      const btn = document.getElementById('saveBtn');
-      btn.disabled = true;
-      btn.textContent = 'Saving…';
+      const fullName    = `${firstName} ${lastName}`;
+      const wasEditing  = editingId; // capture before async ops clear it
+      const btn         = document.getElementById('saveBtn');
+      btn.disabled      = true;
+      btn.textContent   = 'Saving…';
 
       try {
-        // Upload photo to GitHub if provided
-        if (photoFile) await uploadPhoto(photoFile, fullName);
+        // Photo upload (GitHub) — optional, non-blocking on failure
+        if (photoFile) {
+          try { await uploadPhoto(photoFile, fullName); }
+          catch(photoErr) { showToast('Photo not uploaded: ' + photoErr.message, 'warning'); }
+        }
 
         const payload = {
           full_name:    fullName,
-          nickname:     nickname || null,
-          email:        email || null,
+          nickname:     nickname    || null,
+          email:        email       || null,
           initials,
           status,
-          start_date:   startDate || null,
+          start_date:   startDate   || null,
           leaving_date: leavingDate || null
         };
 
-        if (editingId) {
-          await sbUpdate('employees', editingId, payload);
+        // Use sb client directly — avoids raw fetch hanging issues
+        if (wasEditing) {
+          const { error } = await sb
+            .from('employees')
+            .update({ ...payload, updated_at: new Date().toISOString() })
+            .eq('id', wasEditing);
+          if (error) throw new Error(error.message);
         } else {
-          await sbInsert('employees', { ...payload, created_at: new Date().toISOString() });
+          const { error } = await sb
+            .from('employees')
+            .insert({ ...payload, created_at: new Date().toISOString() });
+          if (error) throw new Error(error.message);
         }
 
-        // Reload from Supabase
-        allEmployees = await sbFetch('employees');
+        // Reload list from Supabase
+        const { data, error: fetchErr } = await sb
+          .from('employees')
+          .select('*')
+          .order('full_name');
+        if (fetchErr) throw new Error(fetchErr.message);
+        allEmployees = data;
         renderGrid();
         renderStats();
 
-        // Update people.js in GitHub (debounced)
+        // Sync leaderboard — prompts for GitHub token if not cached
         schedulePeopleJsUpdate();
 
         closeModal('empModal');
-        showToast(`${editingId ? 'Updated' : 'Added'}: ${fullName}`, 'success');
+        showToast(`${wasEditing ? 'Updated' : 'Added'}: ${fullName}`, 'success');
 
       } catch(e) {
         showToast(`Error: ${e.message}`, 'error');
-        console.error(e);
+        console.error('saveEmployee error:', e);
       } finally {
-        btn.disabled = false;
-        btn.textContent = editingId ? 'Save Changes' : 'Save Employee';
+        btn.disabled    = false;
+        btn.textContent = wasEditing ? 'Save Changes' : 'Save Employee';
       }
     }
 
-    // showToast is provided by admin.js
-
-    // ── Auth — uses requireAuth() from admin.js ───
+    // ── Auth ──────────────────────────────────────
 
     async function checkAuth() {
       const ok = await requireAuth();
       if (!ok) return;
-      showApp();
-    }
-
-    function showApp() {
       document.getElementById('mainUI').style.display      = 'flex';
       document.getElementById('pageContent').style.display = 'block';
       loadEmployees();
     }
 
-    // ── Init ──────────────────────────────────────
     checkAuth();
   </script>
 </body>
