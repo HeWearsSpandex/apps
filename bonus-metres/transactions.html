@@ -466,7 +466,7 @@
       </div>
       <div class="form-body">
 
-        <div class="form-row cols-4">
+        <div class="form-row cols-3">
           <div class="form-group">
             <label>Date <span class="required">*</span></label>
             <input type="date" id="job-date" tabindex="1" oninput="onJobDateChange()">
@@ -484,10 +484,6 @@
               <button type="button" class="pin-btn" id="pin-btn-site" onclick="togglePin('site')" title="Pin this field">📌</button>
             </label>
             <input type="text" id="job-site" placeholder="Tesco Bristol" tabindex="3">
-          </div>
-          <div class="form-group">
-            <label>Date Paid</label>
-            <input type="date" id="job-date-paid" tabindex="4">
           </div>
         </div>
 
@@ -547,18 +543,14 @@
       </div>
       <div class="form-body">
 
-        <div class="form-row cols-3">
+        <div class="form-row cols-2">
           <div class="form-group">
             <label>Date <span class="required">*</span></label>
             <input type="date" id="entry-date" tabindex="1">
           </div>
           <div class="form-group">
-            <label>Date Paid</label>
-            <input type="date" id="entry-date-paid" tabindex="2">
-          </div>
-          <div class="form-group">
             <label>Reason</label>
-            <input type="text" id="entry-reason" placeholder="e.g. End of year bonus" tabindex="3">
+            <input type="text" id="entry-reason" placeholder="e.g. End of year bonus" tabindex="2">
           </div>
         </div>
 
@@ -848,10 +840,9 @@
     async function saveJob() {
       const date     = document.getElementById('job-date').value;
       const jobRef   = document.getElementById('job-ref').value.trim();
-      const site     = document.getElementById('job-site').value.trim();
-      const metres   = parseFloat(document.getElementById('job-metres').value);
-      const datePaid = document.getElementById('job-date-paid').value || null;
-      const details  = document.getElementById('job-details').value.trim() || null;
+      const site    = document.getElementById('job-site').value.trim();
+      const metres  = parseFloat(document.getElementById('job-metres').value);
+      const details = document.getElementById('job-details').value.trim() || null;
 
       if (!date)                  { showToast('Date is required', 'error'); return; }
       if (!site)                  { showToast('Site name is required', 'error'); return; }
@@ -875,7 +866,6 @@
             details:      details,
             bonus_metres: metres,
             rate:         currentRate,
-            date_paid:    datePaid,
             created_by:   currentUser.id
           })
           .select()
@@ -905,9 +895,8 @@
 
     // ── Save bonus/deduction ──────────────────────────────────────────────────
     async function saveEntry() {
-      const date     = document.getElementById('entry-date').value;
-      const datePaid = document.getElementById('entry-date-paid').value || null;
-      const reason   = document.getElementById('entry-reason').value.trim() || null;
+      const date   = document.getElementById('entry-date').value;
+      const reason = document.getElementById('entry-reason').value.trim() || null;
 
       if (!date) { showToast('Date is required', 'error'); return; }
 
@@ -931,7 +920,6 @@
           employee_id: r.empId,
           amount:      r.amount,
           reason:      reason,
-          date_paid:   datePaid,
           created_by:  currentUser.id
         }));
 
@@ -961,12 +949,11 @@
       const savedOps  = pinned.ops  ? [...selectedOps] : [];
 
       const today = new Date().toISOString().split('T')[0];
-      document.getElementById('job-date').value      = today;
-      document.getElementById('job-ref').value       = '';
-      document.getElementById('job-site').value      = '';
-      document.getElementById('job-metres').value    = '';
-      document.getElementById('job-details').value   = '';
-      document.getElementById('job-date-paid').value = '';
+      document.getElementById('job-date').value     = today;
+      document.getElementById('job-ref').value      = '';
+      document.getElementById('job-site').value     = '';
+      document.getElementById('job-metres').value   = '';
+      document.getElementById('job-details').value  = '';
       document.getElementById('op-search').value     = '';
       selectedOps = [];
       renderSelectedChips();
@@ -991,9 +978,8 @@
 
     function resetEntry() {
       const today = new Date().toISOString().split('T')[0];
-      document.getElementById('entry-date').value      = today;
-      document.getElementById('entry-date-paid').value = '';
-      document.getElementById('entry-reason').value    = '';
+      document.getElementById('entry-date').value  = today;
+      document.getElementById('entry-reason').value = '';
       document.getElementById('employee-rows').innerHTML = '';
       employeeRowCount = 0;
       addEmployeeRow();
