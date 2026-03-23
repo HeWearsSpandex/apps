@@ -322,6 +322,24 @@
     .confirm-msg { font-size: 14px; line-height: 1.6; color: var(--text); }
     .confirm-msg strong { color: var(--red); }
 
+    /* ── MISSING INDICATORS ── */
+    .missing-flags {
+      display: flex;
+      gap: 4px;
+      margin-top: -2px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .missing-flag {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+    .missing-flag.no-photo { background: #fff3e0; color: #e65100; }
+    .missing-flag.no-email { background: #fff0f0; color: #c00; }
+
     /* ── SPINNER ── */
     .spinner-wrap { display: flex; justify-content: center; padding: 60px; grid-column: 1/-1; }
     .spinner { width: 36px; height: 36px; border: 4px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -478,6 +496,7 @@
     let currentFilter = 'all';
     let editingId     = null;
     let photoFile     = null;
+    let missingPhotos = new Set(); // employee ids with no photo
 
     // ── Load ─────────────────────────────────────
 
@@ -486,10 +505,25 @@
         allEmployees = await sbFetch('employees');
         renderGrid();
         renderStats();
+        // Check photos in background — re-render cards once we know which are missing
+        checkMissingPhotosInBackground();
       } catch(e) {
         document.getElementById('employeeGrid').innerHTML =
           `<div class="empty-state"><div class="icon">⚠️</div><p>Error loading: ${e.message}</p></div>`;
       }
+    }
+
+    async function checkMissingPhotosInBackground() {
+      const active = allEmployees.filter(e => e.status === 'active' || e.status === 'probation');
+      await Promise.all(active.map(async e => {
+        try {
+          const r = await fetch(`${IMG_PATH_WEB}${encodeURIComponent(e.full_name + '_cvface1.png')}`, { method: 'HEAD' });
+          if (!r.ok) missingPhotos.add(e.id);
+        } catch {
+          missingPhotos.add(e.id);
+        }
+      }));
+      renderGrid(); // re-render now we know which are missing
     }
 
     // ── Photo upload to GitHub ────────────────────
@@ -581,6 +615,10 @@
         const isLeaving = e.status === 'inactive' && e.leaving_date && e.leaving_date >= today;
         const cls       = isLeaving ? 'leaving' : e.status;
         const title     = isLeaving ? `Leaving ${e.leaving_date}` : e.status;
+        const isActive  = e.status === 'active' || e.status === 'probation';
+        const noPhoto   = isActive && missingPhotos.has(e.id);
+        const noEmail   = isActive && !e.email;
+        const hasFlags  = noPhoto || noEmail;
         return `
           <div class="emp-card" onclick="openEditModal('${e.id}')">
             <div class="status-badge ${cls}" title="${title}"></div>
@@ -592,6 +630,10 @@
             ${e.nickname ? `<div class="emp-nick">"${e.nickname}"</div>` : ''}
             <div class="emp-initials">${e.initials}</div>
             ${isLeaving ? `<div style="font-size:10px;color:var(--orange);margin-top:-4px;">Leaving ${e.leaving_date}</div>` : ''}
+            ${hasFlags ? `<div class="missing-flags">
+              ${noPhoto ? '<span class="missing-flag no-photo">📷 No photo</span>' : ''}
+              ${noEmail ? '<span class="missing-flag no-email">✉️ No email</span>' : ''}
+            </div>` : ''}
           </div>`;
       }).join('');
 
@@ -737,8 +779,10 @@
           .order('full_name');
         if (fetchErr) throw new Error(fetchErr.message);
         allEmployees = data;
+        missingPhotos = new Set(); // reset — recheck will repopulate
         renderGrid();
         renderStats();
+        checkMissingPhotosInBackground();
 
         closeModal('empModal');
         showToast(`${wasEditing ? 'Updated' : 'Added'}: ${fullName}`, 'success');
