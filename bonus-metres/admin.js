@@ -8,6 +8,10 @@ const SUPABASE_KEY  = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
 const GITHUB_REPO   = 'HeWearsSpandex/apps';
 const GITHUB_BRANCH = 'main';
 
+// Set to true temporarily when diagnosing auth issues — flip to false for production
+const DEBUG_AUTH = false;
+const dbg = (...args) => DEBUG_AUTH && console.debug('[requireAuth]', ...args);
+
 // Storage adapter using cookies — not blocked by Edge tracking prevention
 const cookieStorage = {
   getItem: (key) => {
@@ -57,21 +61,32 @@ async function loadSidebar() {
 if (location.search.includes('code=')) {
   sb.auth.exchangeCodeForSession(location.search);
 }
+
+// ── Auth guard ────────────────────────────────
 // Call this on every admin page — redirects to
 // dashboard.html (login) if not authenticated
 
 async function requireAuth() {
+  dbg('called — waiting for session...');
   await new Promise(resolve => setTimeout(resolve, 300));
 
   const { data, error: sessionError } = await sb.auth.getSession();
   const session = data?.session;
 
+  dbg(
+    'session result →',
+    session ? `user=${session.user.email}` : 'no session',
+    sessionError ? `error=${sessionError.message}` : ''
+  );
+
   if (!session || !session.user) {
+    dbg('no valid session — redirecting to dashboard.html');
     window.location.href = 'dashboard.html';
     return false;
   }
 
   currentUser = session.user;
+  dbg('user authenticated →', currentUser.email);
 
   const { data: adminData, error } = await sb
     .from('admin_users')
@@ -80,7 +95,14 @@ async function requireAuth() {
     .eq('active', true)
     .single();
 
+  dbg(
+    'admin_users lookup →',
+    adminData ? `found: ${adminData.name} (${adminData.role})` : 'not found',
+    error ? `error=${error.message}` : ''
+  );
+
   if (error || !adminData) {
+    dbg('admin check failed — signing out and redirecting');
     await sb.auth.signOut();
     window.location.href = 'dashboard.html';
     return false;
@@ -89,6 +111,7 @@ async function requireAuth() {
   currentAdmin = adminData;
 
   await loadSidebar();
+  dbg('sidebar loaded');
 
   const initials = currentAdmin.name
     ? currentAdmin.name.split(' ').map(n => n[0]).join('').toUpperCase()
@@ -102,6 +125,7 @@ async function requireAuth() {
   if (nameEl)   nameEl.textContent   = currentAdmin.name || currentUser.email;
   if (roleEl)   roleEl.textContent   = currentAdmin.role.replace(/_/g, ' ');
 
+  dbg('auth complete — user ready');
   return true;
 }
 
