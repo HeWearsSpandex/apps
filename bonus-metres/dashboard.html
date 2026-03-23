@@ -117,11 +117,11 @@
     <div class="login-card">
       <img src="/img/JHB Logo.png" alt="JHB">
       <h1>Admin Portal</h1>
-      <p>Enter your email address and we'll send you a secure magic link to sign in.</p>
-      <input class="login-input" type="email" id="loginEmail"
-        placeholder="your@jhbukltd.co.uk"
-        onkeydown="if(event.key==='Enter') sendMagicLink()">
-      <button class="login-btn" id="loginBtn" onclick="sendMagicLink()">Send Magic Link →</button>
+      <p>Sign in with your JHB Microsoft account to continue.</p>
+      <button class="login-btn" id="loginBtn" onclick="signInWithMicrosoft()">
+        <img src="https://authjs.dev/img/providers/microsoft-entra-id.svg" style="height:18px;vertical-align:middle;margin-right:8px;">
+        Sign in with Microsoft
+      </button>
       <div class="login-msg" id="loginMsg"></div>
     </div>
   </div>
@@ -189,21 +189,23 @@
 
     // Note: sb client is created in admin.js with sessionStorage adapter
 
-    async function sendMagicLink() {
-      const email = document.getElementById('loginEmail').value.trim();
-      const msg   = document.getElementById('loginMsg');
-      const btn   = document.getElementById('loginBtn');
-      if (!email) { msg.textContent = 'Please enter your email'; msg.className = 'login-msg error'; return; }
-      btn.disabled = true; btn.textContent = 'Sending…'; msg.textContent = '';
-      const { error } = await sb.auth.signInWithOtp({
-        email, options: { emailRedirectTo: `${location.origin}/bonus-metres/dashboard.html` }
+    async function signInWithMicrosoft() {
+      const btn = document.getElementById('loginBtn');
+      const msg = document.getElementById('loginMsg');
+      btn.disabled = true;
+      btn.textContent = 'Redirecting…';
+      const { error } = await sb.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          scopes: 'email',
+          redirectTo: `${location.origin}/bonus-metres/dashboard.html`
+        }
       });
       if (error) {
-        msg.textContent = '✗ ' + error.message; msg.className = 'login-msg error';
-        btn.disabled = false; btn.textContent = 'Send Magic Link →';
-      } else {
-        msg.innerHTML = `✓ Magic link sent to <strong>${email}</strong><br>Check your inbox and click the link.`;
-        msg.className = 'login-msg success'; btn.textContent = 'Link Sent ✓';
+        msg.textContent = '✗ ' + error.message;
+        msg.className   = 'login-msg error';
+        btn.disabled    = false;
+        btn.innerHTML   = '<img src="https://authjs.dev/img/providers/microsoft-entra-id.svg" style="height:18px;vertical-align:middle;margin-right:8px;"> Sign in with Microsoft';
       }
     }
 
