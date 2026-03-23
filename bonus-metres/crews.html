@@ -207,7 +207,7 @@
     .crew-metric .m-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; margin-top: 1px; }
     .crew-metric.bonus .m-val  { color: var(--gold); }
     .crew-metric.metres .m-val { color: var(--blue); }
-    .crew-metric.jobs .m-val   { color: var(--green); }
+    .crew-metric.visits .m-val   { color: var(--green); }
     .crew-metric.highlighted   { background: var(--grey); border-radius: 8px; padding: 4px 2px; }
 
     .crew-bar-wrap {
@@ -302,7 +302,7 @@
           <span class="size-pill active" data-sort="bonus"  onclick="setSortPill(this)">Total Bonus</span>
           <span class="size-pill"        data-sort="avg"    onclick="setSortPill(this)">Avg / Job</span>
           <span class="size-pill"        data-sort="metres" onclick="setSortPill(this)">Metres</span>
-          <span class="size-pill"        data-sort="jobs"   onclick="setSortPill(this)">Most Jobs</span>
+          <span class="size-pill"        data-sort="visits"   onclick="setSortPill(this)">Most Visits</span>
         </div>
       </div>
     </div>
@@ -318,8 +318,8 @@
         <div class="stat-lbl">Total Metres</div>
       </div>
       <div class="stat-card green">
-        <div class="stat-val" id="stat-total-jobs">—</div>
-        <div class="stat-lbl">Total Jobs</div>
+        <div class="stat-val" id="stat-total-visits">—</div>
+        <div class="stat-lbl">Total Visits</div>
       </div>
       <div class="stat-card purple">
         <div class="stat-val" id="stat-total-crews">—</div>
@@ -435,18 +435,18 @@
         const crewMap = {};
         let totalBonus  = 0;
         let totalMetres = 0;
-        let totalJobs   = 0;
+        let totalVisits   = 0;
 
         Object.values(txMap).forEach(tx => {
           if (!tx.ops.length) return;
-          totalJobs++;
+          totalVisits++;
           totalBonus  += tx.value;
           totalMetres += tx.metres;
 
           const ids = [...tx.ops].sort();
           const key = ids.join('|');
-          if (!crewMap[key]) crewMap[key] = { key, ids, jobs: 0, bonus: 0, metres: 0 };
-          crewMap[key].jobs++;
+          if (!crewMap[key]) crewMap[key] = { key, ids, visits: 0, bonus: 0, metres: 0 };
+          crewMap[key].visits++;
           crewMap[key].bonus  += tx.value;
           crewMap[key].metres += tx.metres;
         });
@@ -458,7 +458,7 @@
         // Summary stats
         document.getElementById('stat-total-bonus').textContent  = `£${totalBonus.toFixed(0)}`;
         document.getElementById('stat-total-metres').textContent = `${totalMetres.toLocaleString()}m`;
-        document.getElementById('stat-total-jobs').textContent   = totalJobs.toLocaleString();
+        document.getElementById('stat-total-visits').textContent   = totalVisits.toLocaleString();
         document.getElementById('stat-total-crews').textContent  = allCrews.length.toLocaleString();
         document.getElementById('summary-row').style.display     = 'grid';
         document.getElementById('results-header').style.display  = 'flex';
@@ -488,9 +488,9 @@
       // Sort by selected metric
       const sortFn = {
         bonus:  (a, b) => b.bonus - a.bonus,
-        avg:    (a, b) => (b.bonus / b.jobs) - (a.bonus / a.jobs),
+        avg:    (a, b) => (b.bonus / b.visits) - (a.bonus / a.visits),
         metres: (a, b) => b.metres - a.metres,
-        jobs:   (a, b) => b.jobs - a.jobs,
+        visits:   (a, b) => b.visits - a.visits,
       };
       filtered = [...filtered].sort(sortFn[currentSort] || sortFn.bonus);
 
@@ -498,7 +498,7 @@
         bonus:  'Total Bonus',
         avg:    'Avg / Job',
         metres: 'Total Metres',
-        jobs:   'Most Jobs',
+        visits:   'Most Visits',
       };
       document.getElementById('results-header').querySelector('h3').textContent =
         `Top Crews by ${sortLabels[currentSort]}`;
@@ -512,20 +512,20 @@
       }
 
       // Bar is relative to the top value of the current sort metric
-      const topVal = currentSort === 'avg'    ? (filtered[0].bonus / filtered[0].jobs)
+      const topVal = currentSort === 'avg'    ? (filtered[0].bonus / filtered[0].visits)
                    : currentSort === 'metres' ? filtered[0].metres
-                   : currentSort === 'jobs'   ? filtered[0].jobs
+                   : currentSort === 'visits'   ? filtered[0].visits
                    : filtered[0].bonus;
 
       grid.innerHTML = filtered.map((crew, idx) => {
         const rank      = idx + 1;
         const size      = crew.ids.length;
-        const avgPerJob = crew.jobs > 0 ? crew.bonus / crew.jobs : 0;
+        const avgPerVisit = crew.visits > 0 ? crew.bonus / crew.visits : 0;
 
         // Bar width based on current sort metric
-        const sortVal = currentSort === 'avg'    ? avgPerJob
+        const sortVal = currentSort === 'avg'    ? avgPerVisit
                       : currentSort === 'metres' ? crew.metres
-                      : currentSort === 'jobs'   ? crew.jobs
+                      : currentSort === 'visits'   ? crew.visits
                       : crew.bonus;
         const pct = topVal > 0 ? (sortVal / topVal) * 100 : 0;
 
@@ -552,7 +552,7 @@
         // Highlight the active sort metric
         const bonusCls  = currentSort === 'bonus'  ? 'bonus highlighted'  : 'bonus';
         const metresCls = currentSort === 'metres' ? 'metres highlighted' : 'metres';
-        const jobsCls   = currentSort === 'jobs'   ? 'jobs highlighted'   : 'jobs';
+        const visitsCls   = currentSort === 'visits'   ? 'visits highlighted'   : 'visits';
 
         return `<div class="crew-card">
           <div class="crew-card-header">
@@ -572,17 +572,17 @@
                 <div class="m-val">${(crew.metres/1000).toFixed(1)}k</div>
                 <div class="m-lbl">Metres</div>
               </div>
-              <div class="crew-metric ${jobsCls}">
-                <div class="m-val">${crew.jobs}</div>
-                <div class="m-lbl">Jobs</div>
+              <div class="crew-metric ${visitsCls}">
+                <div class="m-val">${crew.visits}</div>
+                <div class="m-lbl">Visits</div>
               </div>
             </div>
             <div class="crew-bar-wrap">
               <div class="crew-bar" style="width:${pct}%"></div>
             </div>
             <div style="font-size:11px;color:var(--muted);margin-top:6px;display:flex;justify-content:space-between">
-              <span>Avg <strong style="color:var(--text)">£${avgPerJob.toFixed(0)}</strong> / job</span>
-              <span>Avg <strong style="color:var(--text)">${(crew.metres/crew.jobs).toFixed(0)}m</strong> / job</span>
+              <span>Avg <strong style="color:var(--text)">£${avgPerVisit.toFixed(0)}</strong> / visit</span>
+              <span>Avg <strong style="color:var(--text)">${(crew.metres/crew.visits).toFixed(0)}m</strong> / visit</span>
             </div>
           </div>
         </div>`;
