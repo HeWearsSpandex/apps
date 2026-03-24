@@ -748,7 +748,10 @@
         // Photo upload (GitHub) — optional, non-blocking on failure
         if (photoFile) {
           try { await uploadPhoto(photoFile, fullName); }
-          catch(photoErr) { showToast('Photo not uploaded: ' + photoErr.message, 'warning'); }
+          catch(photoErr) {
+            console.error('Photo upload error:', photoErr);
+            alert('Photo upload failed: ' + photoErr.message);
+          }
         }
 
         const payload = {
