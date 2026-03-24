@@ -44,5 +44,6 @@ const PEOPLE = [
   'Tom Brooks',
   'Tristan Allen',
   'Tyler Webb',
-  'William Garratt'
+  'William Garratt',
+  'Zak Carnell'
 ];
