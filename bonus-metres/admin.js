@@ -5,8 +5,7 @@
 
 const SUPABASE_URL  = 'https://oxgehlmalbvppjmdaswn.supabase.co';
 const SUPABASE_KEY  = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
-const GITHUB_REPO   = 'HeWearsSpandex/apps';
-const GITHUB_BRANCH = 'main';
+const STORAGE_URL   = `${SUPABASE_URL}/storage/v1/object/public/images/`;
 
 // Set to true temporarily when diagnosing auth issues — flip to false for production
 const DEBUG_AUTH = false;
@@ -138,129 +137,22 @@ async function requireAuth() {
 
 async function adminSignOut() {
   await sb.auth.signOut();
-  localStorage.removeItem('gh_token');
   window.location.href = 'dashboard.html';
 }
 
-// ── GitHub token helper ───────────────────────
-// Returns cached token immediately, or shows a
-// styled modal and resolves when user confirms.
-
-function getGithubToken() {
-  const cached = localStorage.getItem('gh_token') || '';
-  if (cached) return Promise.resolve(cached);
-  return _promptGithubTokenModal();
-}
-
-function _promptGithubTokenModal() {
-  return new Promise(resolve => {
-    if (!document.getElementById('ghTokenModal')) {
-      const el = document.createElement('div');
-      el.id = 'ghTokenModal';
-      el.style.cssText = [
-        'position:fixed;inset:0;background:rgba(0,0,0,0.45);',
-        'z-index:9999;display:flex;align-items:center;',
-        'justify-content:center;padding:16px;'
-      ].join('');
-      el.innerHTML = `
-        <div style="background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.18);width:100%;max-width:420px;padding:28px 28px 24px;font-family:'Segoe UI',system-ui,sans-serif;">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-            <span style="font-size:22px;">🔑</span>
-            <h2 style="font-size:16px;font-weight:700;color:#1a1a1a;margin:0;">GitHub Token</h2>
-          </div>
-          <p style="font-size:13px;color:#888;margin:0 0 18px;line-height:1.5;">Required for leaderboard sync and photo uploads.<br>Leave blank to skip — employee data will still save.</p>
-          <input id="ghTokenInput" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-            style="width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none;margin-bottom:6px;font-family:monospace;">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:20px;">
-            <input type="checkbox" id="ghTokenShow" style="cursor:pointer;">
-            <label for="ghTokenShow" style="font-size:12px;color:#888;cursor:pointer;">Show token</label>
-          </div>
-          <div style="display:flex;gap:10px;justify-content:flex-end;">
-            <button id="ghTokenSkip" style="padding:9px 18px;border-radius:8px;border:1px solid #e0e0e0;background:#f4f5f7;color:#888;font-size:13px;font-weight:600;cursor:pointer;">Skip</button>
-            <button id="ghTokenSave" style="padding:9px 18px;border-radius:8px;border:none;background:#c00;color:#fff;font-size:13px;font-weight:600;cursor:pointer;">Save &amp; Sync</button>
-          </div>
-        </div>`;
-      document.body.appendChild(el);
-      document.getElementById('ghTokenShow').addEventListener('change', function() {
-        document.getElementById('ghTokenInput').type = this.checked ? 'text' : 'password';
-      });
-      const inp = document.getElementById('ghTokenInput');
-      inp.addEventListener('focus', () => inp.style.borderColor = '#c00');
-      inp.addEventListener('blur',  () => inp.style.borderColor = '#e0e0e0');
-    }
-
-    const modal   = document.getElementById('ghTokenModal');
-    const input   = document.getElementById('ghTokenInput');
-    const saveBtn = document.getElementById('ghTokenSave');
-    const skipBtn = document.getElementById('ghTokenSkip');
-
-    input.value = '';
-    modal.style.display = 'flex';
-    setTimeout(() => input.focus(), 50);
-
-    function confirm() {
-      const token = input.value.trim();
-      modal.style.display = 'none';
-      if (token) localStorage.setItem('gh_token', token);
-      resolve(token);
-    }
-    function skip() {
-      modal.style.display = 'none';
-      resolve('');
-    }
-
-    saveBtn.onclick = confirm;
-    skipBtn.onclick = skip;
-    input.onkeydown = e => { if (e.key === 'Enter') confirm(); if (e.key === 'Escape') skip(); };
-    modal.onclick   = e => { if (e.target === modal) skip(); };
+// ── Supabase Storage helper ───────────────────
+// Upload a base64 image to the images bucket
+async function uploadToStorage(base64, fileName, contentType = 'image/jpeg') {
+  const binary = atob(base64);
+  const bytes  = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const blob = new Blob([bytes], { type: contentType });
+  const { error } = await sb.storage.from('images').upload(fileName, blob, {
+    upsert: true,
+    contentType
   });
-}
-
-// ── GitHub API helpers ────────────────────────
-
-async function ghGet(path, token) {
-  const r = await fetch(
-    `https://api.github.com/repos/${GITHUB_REPO}/contents/${path}?ref=${GITHUB_BRANCH}`,
-    { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' } }
-  );
-  if (!r.ok) throw new Error(`GitHub GET failed: ${r.status}`);
-  return r.json();
-}
-
-async function ghPut(path, content, message, sha, token) {
-  const body = {
-    message,
-    content: btoa(unescape(encodeURIComponent(content))),
-    branch: GITHUB_BRANCH
-  };
-  if (sha) body.sha = sha;
-  const r = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`, {
-    method: 'PUT',
-    headers: {
-      Authorization: `token ${token}`,
-      Accept: 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
-  });
-  if (!r.ok) { const e = await r.json(); throw new Error(e.message || `GitHub PUT failed: ${r.status}`); }
-  return r.json();
-}
-
-async function ghPutBinary(path, base64content, message, sha, token) {
-  const body = { message, content: base64content, branch: GITHUB_BRANCH };
-  if (sha) body.sha = sha;
-  const r = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`, {
-    method: 'PUT',
-    headers: {
-      Authorization: `token ${token}`,
-      Accept: 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
-  });
-  if (!r.ok) { const e = await r.json(); throw new Error(e.message || `GitHub PUT failed: ${r.status}`); }
-  return r.json();
+  if (error) throw new Error(error.message);
+  return `${STORAGE_URL}${fileName}`;
 }
 
 // ── Supabase helpers ──────────────────────────
