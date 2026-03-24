@@ -529,8 +529,11 @@
     // ── Photo upload to GitHub ────────────────────
 
     async function uploadPhoto(file, fullName) {
-      const token = getGithubToken();
-      if (!token) throw new Error('No GitHub token — photo not uploaded');
+      const token = localStorage.getItem('gh_token') || '';
+      if (!token) {
+        showToast('Photo not uploaded — no GitHub token. Use Sync Leaderboard to set one.', 'warning');
+        return;
+      }
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async () => {
@@ -562,7 +565,7 @@
         showToast(`✓ Leaderboard synced — ${countActive()} active staff`, 'success');
       } catch(e) {
         showToast('Sync failed: ' + e.message, 'error');
-        if (e.message.includes('Bad credentials')) sessionStorage.removeItem('gh_token');
+        if (e.message.includes('Bad credentials')) localStorage.removeItem('gh_token');
       } finally {
         btn.disabled = false; btn.textContent = '🔄 Sync Leaderboard';
       }
