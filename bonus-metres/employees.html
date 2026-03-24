@@ -745,13 +745,26 @@
       btn.textContent   = 'Saving…';
 
       try {
-        // Photo upload (GitHub) — optional, non-blocking on failure
+        // Photo upload with status feedback
         if (photoFile) {
-          try { await uploadPhoto(photoFile, fullName); }
-          catch(photoErr) {
+          btn.textContent = '📷 Uploading photo…';
+          try {
+            await uploadPhoto(photoFile, fullName);
+            btn.textContent = '⏳ Waiting for photo…';
+            // Poll GitHub CDN until photo is live (max 15s)
+            const photoUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/img/${encodeURIComponent(fullName)}_cvface1.png`;
+            let attempts = 0;
+            while (attempts < 15) {
+              await new Promise(r => setTimeout(r, 1000));
+              const check = await fetch(photoUrl, { method: 'HEAD', cache: 'no-cache' });
+              if (check.ok) break;
+              attempts++;
+            }
+          } catch(photoErr) {
             console.error('Photo upload error:', photoErr);
-            alert('Photo upload failed: ' + photoErr.message);
+            showToast('Photo upload failed: ' + photoErr.message, 'error');
           }
+          btn.textContent = '💾 Saving…';
         }
 
         const payload = {
@@ -785,13 +798,21 @@
           .order('full_name');
         if (fetchErr) throw new Error(fetchErr.message);
         allEmployees = data;
-        missingPhotos = new Set(); // reset — recheck will repopulate
+        missingPhotos = new Set();
+        // Bust browser cache for this employee's photo if we just uploaded one
+        if (photoFile) {
+          const cacheBust = `?t=${Date.now()}`;
+          document.querySelectorAll(`img[src*="${encodeURIComponent(fullName)}"]`).forEach(img => {
+            const base = img.src.split('?')[0];
+            img.src = base + cacheBust;
+          });
+        }
         renderGrid();
         renderStats();
         checkMissingPhotosInBackground();
 
         closeModal('empModal');
-        showToast(`${wasEditing ? 'Updated' : 'Added'}: ${fullName}`, 'success');
+        showToast(`${wasEditing ? 'Updated' : 'Added'}: ${fullName}${photoFile ? ' — photo uploaded ✓' : ''}`, 'success');
 
       } catch(e) {
         showToast(`Error: ${e.message}`, 'error');
