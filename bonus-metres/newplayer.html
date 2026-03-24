@@ -294,7 +294,7 @@
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const CSV_URL  = '/bonus-metres/data/actual_distances.csv';
-    const IMG_PATH = '/img/';
+    const IMG_PATH = 'https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/';
 
     const csvPromise = fetchCSV();
 
@@ -339,7 +339,7 @@
         ctx.arc(total/2, total/2, faceSize/2, 0, 2*Math.PI);
         ctx.fill('evenodd');
       }
-      const img = await loadImage(`${IMG_PATH}${encodeURIComponent(name.trim())}_cvface1.png`);
+      const img = await loadImage(`${IMG_PATH}${encodeURIComponent(name.trim())}_cvface1.jpg`);
       ctx.drawImage(img, halo, halo, faceSize, faceSize);
       return canvas.toDataURL();
     }
@@ -385,7 +385,8 @@
         const { data: unpaidOps } = await sb
           .from('transaction_operatives')
           .select(`share_value,
-                   transactions!inner(id, date, job_ref, site_name, bonus_metres, date_paid)`)
+                   transactions!inner(id, date, job_ref, site_name, bonus_metres, rate, date_paid,
+                     transaction_operatives(employee_id))`)
           .eq('employee_id', employeeId)
           .is('transactions.date_paid', null)
           .order('transactions(date)', { ascending: false });
@@ -394,7 +395,8 @@
         const { data: allOps } = await sb
           .from('transaction_operatives')
           .select(`share_value,
-                   transactions!inner(id, date, job_ref, site_name, bonus_metres, date_paid)`)
+                   transactions!inner(id, date, job_ref, site_name, bonus_metres, rate, date_paid,
+                     transaction_operatives(employee_id))`)
           .eq('employee_id', employeeId)
           .not('transactions.date_paid', 'is', null)
           .order('transactions(date)', { ascending: false });
@@ -480,7 +482,7 @@
                       <div class="job-info">
                         <div class="job-site">${tx.site_name || '—'}</div>
                         <div class="job-ref">${tx.job_ref || ''}</div>
-                        <div class="job-meta">${parseFloat(tx.bonus_metres).toLocaleString()}m</div>
+                        <div class="job-meta">${Math.round(parseFloat(tx.bonus_metres) / Math.max(1, (tx.transaction_operatives||[]).length)).toLocaleString()}m (${(tx.transaction_operatives||[]).length} crew)</div>
                       </div>
                       <div class="job-val">${fmt(o.share_value)}</div>
                     </div>`;
@@ -592,7 +594,7 @@
                       <div class="job-info">
                         <div class="job-site">${tx.site_name || '—'}</div>
                         <div class="job-ref">${tx.job_ref || ''}</div>
-                        <div class="job-meta">${parseFloat(tx.bonus_metres).toLocaleString()}m · Paid ${pd}</div>
+                        <div class="job-meta">${Math.round(parseFloat(tx.bonus_metres) / Math.max(1, (tx.transaction_operatives||[]).length)).toLocaleString()}m (${(tx.transaction_operatives||[]).length} crew) · Paid ${pd}</div>
                       </div>
                       <div class="job-val">${fmt(o.share_value)}</div>
                     </div>`;
