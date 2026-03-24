@@ -138,7 +138,7 @@ async function requireAuth() {
 
 async function adminSignOut() {
   await sb.auth.signOut();
-  sessionStorage.removeItem('gh_token');
+  localStorage.removeItem('gh_token');
   window.location.href = 'dashboard.html';
 }
 
@@ -147,7 +147,7 @@ async function adminSignOut() {
 // styled modal and resolves when user confirms.
 
 function getGithubToken() {
-  const cached = sessionStorage.getItem('gh_token') || '';
+  const cached = localStorage.getItem('gh_token') || '';
   if (cached) return Promise.resolve(cached);
   return _promptGithubTokenModal();
 }
@@ -201,7 +201,7 @@ function _promptGithubTokenModal() {
     function confirm() {
       const token = input.value.trim();
       modal.style.display = 'none';
-      if (token) sessionStorage.setItem('gh_token', token);
+      if (token) localStorage.setItem('gh_token', token);
       resolve(token);
     }
     function skip() {
