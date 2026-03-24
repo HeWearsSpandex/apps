@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Bonus Metres – Current Leaderboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%; width: 100%;
+      background: #0d0d1a;
+      color: #fff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 32px;
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+    .header img { height: 40px; }
+    .header-title { font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }
+    .header-period { font-size: 13px; color: rgba(255,255,255,0.4); text-align: right; }
+    .header-period strong { color: rgba(255,255,255,0.7); display: block; font-size: 14px; }
+
+    /* ── MAIN LAYOUT ── */
+    .body-wrap { flex: 1; display: flex; gap: 0; overflow: hidden; }
+
+    /* ── PODIUM ── */
+    .podium-panel {
+      width: 420px; flex-shrink: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end;
+      padding: 16px 20px 0;
+      position: relative;
+      background: linear-gradient(180deg, rgba(249,168,37,0.04) 0%, transparent 60%);
+    }
+    .podium-places {
+      display: flex; align-items: flex-end;
+      justify-content: center; gap: 8px;
+      width: 100%; flex: 1;
+    }
+    .podium-place { display: flex; flex-direction: column; align-items: center; flex: 1; }
+    .podium-face-wrap { position: relative; margin-bottom: 8px; }
+    .podium-face { border-radius: 50%; object-fit: cover; border: 3px solid rgba(255,255,255,0.2); display: block; }
+    .podium-place.p1 .podium-face { width: 100px; height: 100px; border-color: #f9a825; box-shadow: 0 0 24px rgba(249,168,37,0.5); }
+    .podium-place.p2 .podium-face { width: 80px;  height: 80px;  border-color: #b0b8c1; box-shadow: 0 0 16px rgba(176,184,193,0.4); }
+    .podium-place.p3 .podium-face { width: 70px;  height: 70px;  border-color: #cd7f32; box-shadow: 0 0 12px rgba(205,127,50,0.4); }
+    .podium-crown { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 22px; filter: drop-shadow(0 2px 6px rgba(249,168,37,0.8)); }
+    .podium-name { font-size: 13px; font-weight: 700; text-align: center; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; padding: 0 4px; }
+    .podium-place.p1 .podium-name { font-size: 15px; color: #f9a825; }
+    .podium-place.p2 .podium-name { color: #b0b8c1; }
+    .podium-place.p3 .podium-name { color: #cd7f32; }
+    .podium-metres { font-size: 12px; color: rgba(255,255,255,0.6); text-align: center; margin-bottom: 4px; }
+    .podium-place.p1 .podium-metres { font-size: 14px; color: rgba(255,255,255,0.8); }
+    .podium-bonus { font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 8px; }
+    .podium-place.p1 .podium-bonus { font-size: 20px; color: #f9a825; }
+    .podium-place.p2 .podium-bonus { color: #b0b8c1; }
+    .podium-place.p3 .podium-bonus { color: #cd7f32; }
+    .podium-block { width: 100%; border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 900; color: rgba(255,255,255,0.15); }
+    .podium-place.p1 .podium-block { height: 90px; background: linear-gradient(180deg, rgba(249,168,37,0.35), rgba(249,168,37,0.15)); border: 1px solid rgba(249,168,37,0.3); }
+    .podium-place.p2 .podium-block { height: 64px; background: linear-gradient(180deg, rgba(176,184,193,0.25), rgba(176,184,193,0.1)); border: 1px solid rgba(176,184,193,0.2); }
+    .podium-place.p3 .podium-block { height: 46px; background: linear-gradient(180deg, rgba(205,127,50,0.25), rgba(205,127,50,0.1)); border: 1px solid rgba(205,127,50,0.2); }
+
+    /* ── DIVIDER ── */
+    .divider { width: 1px; background: rgba(255,255,255,0.07); flex-shrink: 0; margin: 16px 0; }
+
+    /* ── LIST PANEL ── */
+    .list-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 16px 0 0; }
+    .list-header {
+      display: grid;
+      grid-template-columns: 44px 48px 1fr 120px;
+      padding: 6px 20px 10px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; color: rgba(255,255,255,0.3);
+      flex-shrink: 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .list-scroll-wrap { flex: 1; overflow: hidden; position: relative; }
+    .list-scroll { height: 100%; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; }
+    .list-scroll::-webkit-scrollbar { display: none; }
+    .list-row {
+      display: grid;
+      grid-template-columns: 44px 48px 1fr 120px;
+      align-items: center; padding: 8px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .row-rank { font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.3); text-align: center; }
+    .row-rank.top10 { color: rgba(255,255,255,0.6); }
+    .row-face img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.1); display: block; }
+    .row-name    { font-size: 14px; font-weight: 600; padding-left: 10px; }
+    .row-metres  { font-size: 15px; font-weight: 700; color: #f9a825; text-align: right; }
+
+    /* ── MOBILE ── */
+    @media (max-width: 700px) {
+      .podium-panel { width: 100%; }
+      .body-wrap { flex-direction: column; }
+      .divider { width: 100%; height: 1px; margin: 0; }
+      .list-panel { min-height: 240px; }
+      .podium-place.p1 .podium-face { width: 72px; height: 72px; }
+      .podium-place.p2 .podium-face { width: 58px; height: 58px; }
+      .podium-place.p3 .podium-face { width: 50px; height: 50px; }
+      .podium-place.p1 .podium-block { height: 60px; }
+      .podium-place.p2 .podium-block { height: 44px; }
+      .podium-place.p3 .podium-block { height: 32px; }
+      .header-title { font-size: 16px; }
+      .list-row { padding: 7px 14px; }
+      .list-header { padding: 6px 14px 8px; }
+    }
+
+    /* ── SPINNER ── */
+    .spinner-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #0d0d1a; z-index: 10; }
+    .spinner { width: 48px; height: 48px; border: 5px solid rgba(255,255,255,0.1); border-top-color: #c00; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty { text-align: center; padding: 60px 20px; color: rgba(255,255,255,0.3); font-size: 16px; }
+
+    /* ── TICKER ── */
+    .ticker { flex-shrink: 0; height: 36px; background: rgba(204,0,0,0.15); border-top: 1px solid rgba(204,0,0,0.3); overflow: hidden; display: flex; align-items: center; }
+    .ticker-inner { white-space: nowrap; animation: ticker 50s linear infinite; font-size: 13px; color: rgba(255,255,255,0.5); padding-left: 100%; }
+    @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+    .ticker-item { margin-right: 60px; }
+    .ticker-item strong { color: #f9a825; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <img src="/img/JHB Logo.png" alt="JHB">
+    <div class="header-title">🏆 Bonus Metres Leaderboard</div>
+    <div class="header-period">
+      <strong id="period-name">Loading…</strong>
+      <span id="period-sub"></span>
+    </div>
+  </div>
+
+  <div class="body-wrap">
+    <div class="podium-panel" id="podium-panel">
+      <div class="spinner-overlay" id="podium-spinner"><div class="spinner"></div></div>
+      <div class="podium-places" id="podium-places"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="list-panel">
+      <div class="list-header">
+        <span style="text-align:center">#</span>
+        <span></span>
+        <span style="padding-left:10px">Name</span>
+        <span style="text-align:right">Metres</span>
+      </div>
+      <div class="list-scroll-wrap">
+        <div class="list-scroll" id="list-scroll">
+          <div class="spinner-overlay" id="list-spinner"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ticker"><div class="ticker-inner" id="ticker-inner">Loading…</div></div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://oxgehlmalbvppjmdaswn.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
+    const sb      = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const IMG_PATH = '/img/';
+
+    async function safeImg(src, size) {
+      return new Promise(res => {
+        const img = new Image(); img.crossOrigin = 'anonymous';
+        img.onload  = () => res(img.src);
+        img.onerror = () => res(null);
+        img.src = `${IMG_PATH}${encodeURIComponent(src)}_cvface1.png`;
+      });
+    }
+
+    function initialsDataUrl(initials, size) {
+      const c = document.createElement('canvas'); c.width = c.height = size;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#1a1a2e'; ctx.beginPath(); ctx.arc(size/2,size/2,size/2,0,2*Math.PI); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.floor(size*0.33)}px Arial`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(initials, size/2, size/2 + 1);
+      return c.toDataURL();
+    }
+
+    function fmt(n)  { return '£' + parseFloat(n).toFixed(2); }
+
+    async function build() {
+      // Last month-end for period label
+      const { data: lastRun } = await sb
+        .from('month_end_runs')
+        .select('payment_date, period_name')
+        .order('payment_date', { ascending: false })
+        .limit(1);
+
+      const lastPayDate = lastRun?.[0]?.payment_date || null;
+
+      // All unpaid transaction_operatives with transaction and employee data
+      const { data: ops, error } = await sb
+        .from('transaction_operatives')
+        .select(`employee_id, share_value,
+                 transactions!inner(id, bonus_metres, date_paid),
+                 employees!inner(full_name, initials, status)`)
+        .is('transactions.date_paid', null);
+
+      if (error || !ops) {
+        console.error(error);
+        document.getElementById('podium-spinner').style.display = 'none';
+        document.getElementById('list-spinner').style.display   = 'none';
+        return;
+      }
+
+      // Count operatives per transaction for metres split
+      const txOpCount = {};
+      ops.forEach(op => {
+        const txId = op.transactions?.id;
+        if (!txId) return;
+        if (!txOpCount[txId]) txOpCount[txId] = { metres: parseFloat(op.transactions.bonus_metres), count: 0 };
+        txOpCount[txId].count++;
+      });
+
+      // Build per-person totals
+      const empMap = {};
+      ops.forEach(op => {
+        const emp = op.employees;
+        if (!emp || emp.status === 'inactive') return;
+        const txId = op.transactions?.id;
+        if (!txId) return;
+
+        const id = op.employee_id;
+        if (!empMap[id]) empMap[id] = { id, name: emp.full_name, initials: emp.initials, bonus: 0, metres: 0, visits: 0 };
+
+        empMap[id].bonus  += parseFloat(op.share_value);
+        empMap[id].visits++;
+        const tx = txOpCount[txId];
+        if (tx) empMap[id].metres += tx.metres / tx.count;
+      });
+
+      const ranked = Object.values(empMap)
+        .filter(e => e.metres > 0 || e.bonus > 0)
+        .sort((a, b) => b.metres - a.metres);
+
+      // Period label
+      const sinceDate = lastPayDate
+        ? new Date(lastPayDate).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })
+        : 'Start';
+      document.getElementById('period-name').textContent = 'Current Period';
+      document.getElementById('period-sub').textContent  = `Since ${sinceDate}`;
+
+      if (!ranked.length) {
+        document.getElementById('podium-spinner').style.display = 'none';
+        document.getElementById('list-spinner').style.display   = 'none';
+        document.getElementById('podium-places').innerHTML = '<div class="empty">No data yet for this period</div>';
+        return;
+      }
+
+      // ── Podium top 3 ──────────────────────────────────────────────────────
+      const top3   = ranked.slice(0, 3);
+      const visual = [top3[1], top3[0], top3[2]].filter(Boolean); // 2nd left, 1st centre, 3rd right
+      const cls    = ['p2', 'p1', 'p3'];
+      const crowns = ['🥈', '🥇', '🥉'];
+
+      const podiumImgs = await Promise.all(visual.map(p => safeImg(p.name, 100)));
+
+      document.getElementById('podium-places').innerHTML = visual.map((p, i) => {
+        const imgSrc  = podiumImgs[i] || '';
+        const fallback = initialsDataUrl(p.initials, 100);
+        const blockH  = cls[i] === 'p1' ? 90 : cls[i] === 'p2' ? 64 : 46;
+        const num     = cls[i] === 'p1' ? '1' : cls[i] === 'p2' ? '2' : '3';
+        return `<div class="podium-place ${cls[i]}">
+          <div class="podium-face-wrap">
+            <div class="podium-crown">${crowns[i]}</div>
+            <img class="podium-face" src="${imgSrc || fallback}" onerror="this.src='${fallback}'" alt="${p.name}">
+          </div>
+          <div class="podium-name">${p.name.split(' ')[0]}</div>
+          <div class="podium-metres">${Math.round(p.metres).toLocaleString()}m</div>
+          <div class="podium-bonus">${fmt(p.bonus)}</div>
+          <div class="podium-block" style="height:${blockH}px">${num}</div>
+        </div>`;
+      }).join('');
+
+      document.getElementById('podium-spinner').style.display = 'none';
+
+      // ── List (4th onwards) ────────────────────────────────────────────────
+      const rest     = ranked.slice(3);
+      const listImgs = await Promise.all(rest.map(p => safeImg(p.name, 36)));
+
+      document.getElementById('list-scroll').innerHTML = rest.length === 0
+        ? '<div class="empty" style="padding:30px">Top 3 shown in podium →</div>'
+        : rest.map((p, i) => {
+            const rank    = i + 4;
+            const imgSrc  = listImgs[i] || '';
+            const fallback = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'><circle cx='18' cy='18' r='18' fill='%231a1a2e'/><text x='18' y='23' text-anchor='middle' font-size='11' font-weight='700' fill='%23ffffff' font-family='Arial'>${p.initials}</text></svg>`;
+            return `<div class="list-row">
+              <div class="row-rank ${rank <= 10 ? 'top10' : ''}">${rank}</div>
+              <div class="row-face"><img src="${imgSrc || fallback}" onerror="this.src='${fallback}'" alt="${p.name}"></div>
+              <div class="row-name">${p.name}</div>
+              <div class="row-metres">${Math.round(p.metres).toLocaleString()}m</div>
+            </div>`;
+          }).join('');
+
+      document.getElementById('list-spinner').style.display = 'none';
+
+      // ── Ticker ────────────────────────────────────────────────────────────
+      const t = ranked.slice(0, 10).map((p, i) =>
+        `<span class="ticker-item">#${i+1} <strong>${p.name.split(' ')[0]}</strong> — ${Math.round(p.metres).toLocaleString()}m · ${fmt(p.bonus)}</span>`
+      ).join('');
+      document.getElementById('ticker-inner').innerHTML = t + t;
+
+      setTimeout(startPingPongScroll, 2000);
+    }
+
+    function startPingPongScroll() {
+      const ct = document.getElementById('list-scroll');
+      const speed = 0.04, pauseMs = 1500;
+      let dir = 1, paused = false, last = performance.now(), elapsed = 0;
+      function step(now) {
+        const dt = now - last; last = now;
+        if (paused) {
+          elapsed += dt;
+          if (elapsed >= pauseMs) { paused = false; elapsed = 0; }
+        } else {
+          ct.scrollTop += speed * dt * dir;
+          const max = ct.scrollHeight - ct.clientHeight;
+          if (max <= 0) return;
+          if (ct.scrollTop >= max)  { ct.scrollTop = max; dir = -1; paused = true; }
+          else if (ct.scrollTop <= 0) { ct.scrollTop = 0; dir = 1; paused = true; }
+        }
+        requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    build().catch(e => {
+      console.error(e);
+      document.getElementById('podium-spinner').style.display = 'none';
+      document.getElementById('list-spinner').style.display   = 'none';
+    });
+  </script>
+</body>
+</html>
