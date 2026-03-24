@@ -381,10 +381,12 @@
       <div class="toolbar-title" id="listTitle">Employees</div>
       <input class="search-box" type="text" placeholder="Search name or initials…" oninput="filterEmployees()" id="searchBox">
       <div class="filter-pills">
-        <span class="pill active" data-filter="all"       onclick="setFilter('all',this)">All</span>
-        <span class="pill"        data-filter="active"    onclick="setFilter('active',this)">Active</span>
-        <span class="pill"        data-filter="probation" onclick="setFilter('probation',this)">Probation</span>
-        <span class="pill"        data-filter="inactive"  onclick="setFilter('inactive',this)">Inactive</span>
+        <span class="pill active-green" data-filter="active"    onclick="setFilter('active',this)">Active</span>
+        <span class="pill"              data-filter="probation" onclick="setFilter('probation',this)">Probation</span>
+        <span class="pill"              data-filter="inactive"  onclick="setFilter('inactive',this)">Inactive</span>
+        <span class="pill"              data-filter="no-email"  onclick="setFilter('no-email',this)">✉️ No Email</span>
+        <span class="pill"              data-filter="no-photo"  onclick="setFilter('no-photo',this)">📷 No Photo</span>
+        <span class="pill"              data-filter="all"       onclick="setFilter('all',this)">All</span>
       </div>
     </div>
 
@@ -493,7 +495,7 @@
     const IMG_PATH_WEB   = '/img/';
 
     let allEmployees  = [];
-    let currentFilter = 'all';
+    let currentFilter = 'active';
     let editingId     = null;
     let photoFile     = null;
     let missingPhotos = new Set(); // employee ids with no photo
@@ -505,7 +507,7 @@
         allEmployees = await sbFetch('employees');
         renderGrid();
         renderStats();
-        // Check photos in background — re-render cards once we know which are missing
+        applyUrlFilter();
         checkMissingPhotosInBackground();
       } catch(e) {
         document.getElementById('employeeGrid').innerHTML =
@@ -602,7 +604,12 @@
           e.full_name.toLowerCase().includes(search) ||
           (e.nickname  || '').toLowerCase().includes(search) ||
           (e.initials  || '').toLowerCase().includes(search);
-        const matchFilter = currentFilter === 'all' || e.status === currentFilter;
+        const isActive = e.status === 'active' || e.status === 'probation';
+        const matchFilter =
+          currentFilter === 'all'       ? true :
+          currentFilter === 'no-email'  ? (isActive && !e.email) :
+          currentFilter === 'no-photo'  ? (isActive && missingPhotos.has(e.id)) :
+          e.status === currentFilter;
         return matchSearch && matchFilter;
       });
 
@@ -663,8 +670,17 @@
       document.querySelectorAll('.pill').forEach(p => p.className = 'pill');
       if      (filter === 'active')    el.className = 'pill active-green';
       else if (filter === 'probation') el.className = 'pill active-orange';
+      else if (filter === 'no-email')  el.className = 'pill active';
+      else if (filter === 'no-photo')  el.className = 'pill active';
       else                             el.className = 'pill active';
       renderGrid();
+    }
+
+    function applyUrlFilter() {
+      const param = new URLSearchParams(location.search).get('filter');
+      if (!param) return;
+      const pill = document.querySelector(`.pill[data-filter="${param}"]`);
+      if (pill) setFilter(param, pill);
     }
 
     function filterEmployees() { renderGrid(); }
