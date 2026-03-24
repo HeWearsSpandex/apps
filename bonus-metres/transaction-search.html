@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JHB — Transaction Search</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red:      #c00; --red-dk: #900; --red-lt: #fff0f0;
+      --green:    #2a9d2a; --green-lt: #f0fff0;
+      --orange:   #e65100; --orange-lt: #fff3e0;
+      --blue:     #1a73e8; --blue-lt: #e8f0fe;
+      --gold:     #f9a825; --gold-lt: #fffde7;
+      --grey:     #f4f5f7; --border: #e0e0e0;
+      --text:     #1a1a1a; --muted: #888;
+      --white:    #fff;
+      --shadow:   0 2px 8px rgba(0,0,0,0.08);
+      --shadow-lg:0 8px 32px rgba(0,0,0,0.14);
+      --radius:   10px;
+    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--grey); color: var(--text); min-height: 100vh; }
+    .main { margin-left: 220px; padding: 28px 32px; min-height: 100vh; }
+    .page-header { margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .page-header h2 { font-size: 22px; font-weight: 700; }
+    .page-header p  { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+    /* ── FILTERS ── */
+    .filter-card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px 20px; margin-bottom: 16px; }
+    .filter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 14px; }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; }
+    .filter-group label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+    .filter-group input, .filter-group select {
+      padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 13px; font-family: inherit; outline: none;
+      transition: border-color 0.15s;
+    }
+    .filter-group input:focus, .filter-group select:focus { border-color: var(--red); }
+    .filter-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+    /* ── BUTTONS ── */
+    .btn { padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; }
+    .btn-primary       { background: var(--red);   color: var(--white); }
+    .btn-primary:hover { background: var(--red-dk); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-ghost         { background: var(--grey);  color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover   { border-color: var(--red); color: var(--red); }
+    .btn-green         { background: var(--green); color: var(--white); }
+    .btn-green:hover   { opacity: 0.9; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+    /* ── RESULTS ── */
+    .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+    .results-count  { font-size: 13px; color: var(--muted); }
+    .results-total  { font-size: 13px; font-weight: 700; color: var(--green); }
+
+    .tx-table-wrap { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); overflow-x: auto; }
+    .tx-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 900px; }
+    .tx-table th {
+      padding: 10px 12px; text-align: left;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+      color: var(--muted); background: var(--grey); border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .tx-table th.sortable { cursor: pointer; user-select: none; }
+    .tx-table th.sortable:hover { color: var(--text); }
+    .tx-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .tx-table tr:last-child td { border-bottom: none; }
+    .tx-table tr:hover td { background: #fafafa; }
+
+    .status-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+    .status-badge.unpaid { background: var(--orange-lt); color: var(--orange); }
+    .status-badge.paid   { background: var(--green-lt);  color: var(--green); }
+
+    .ops-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+    .op-chip   { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: var(--blue-lt); color: var(--blue); }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-state .icon { font-size: 40px; margin-bottom: 10px; }
+
+    .spinner-wrap { display: flex; justify-content: center; padding: 40px; }
+    .spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── EDIT MODAL ── */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; display: none; align-items: center; justify-content: center; padding: 16px; }
+    .overlay.open { display: flex; }
+    .modal { background: var(--white); border-radius: 14px; box-shadow: var(--shadow-lg); width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; animation: slideUp 0.2s ease; }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-header { padding: 18px 24px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .modal-header h2 { font-size: 16px; font-weight: 700; }
+    .modal-close { width: 30px; height: 30px; border-radius: 50%; border: none; background: var(--grey); cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+    .modal-close:hover { background: var(--border); }
+    .modal-body { padding: 20px 24px; }
+    .modal-footer { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: space-between; align-items: center; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-group label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.15s;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(204,0,0,0.08); }
+    .form-group .readonly { background: var(--grey); color: var(--muted); cursor: not-allowed; }
+
+    /* Operative editor */
+    .op-editor { border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .op-editor:focus-within { border-color: var(--red); }
+    .op-search-input { padding: 8px 12px; border: none; border-bottom: 1px solid var(--border); font-size: 13px; outline: none; width: 100%; font-family: inherit; }
+    .op-selected-wrap { display: flex; flex-wrap: wrap; gap: 5px; padding: 8px 10px; min-height: 36px; background: #fafafa; border-bottom: 1px solid var(--border); }
+    .op-selected-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 10px; background: var(--blue-lt); border: 1px solid #c5d8f8; border-radius: 20px; font-size: 12px; font-weight: 600; color: var(--blue); }
+    .op-selected-chip button { background: none; border: none; cursor: pointer; color: var(--blue); font-size: 14px; line-height: 1; padding: 0; opacity: 0.6; }
+    .op-selected-chip button:hover { opacity: 1; }
+    .op-dropdown { max-height: 140px; overflow-y: auto; }
+    .op-option { display: flex; align-items: center; gap: 8px; padding: 7px 12px; cursor: pointer; font-size: 13px; transition: background 0.1s; }
+    .op-option:hover { background: var(--grey); }
+    .op-option.selected { background: var(--blue-lt); }
+    .op-option .op-init { font-size: 10px; background: var(--grey); padding: 1px 6px; border-radius: 6px; color: var(--muted); font-weight: 700; }
+
+    .delete-warn { font-size: 13px; color: var(--red); background: var(--red-lt); border-radius: 8px; padding: 10px 14px; margin-top: 12px; }
+
+    @media (max-width: 900px) {
+      .main { margin-left: 0; padding: 16px; }
+      .filter-grid { grid-template-columns: 1fr 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="admin.js"></script>
+  <div id="sidebarMount"></div>
+
+  <div class="main" id="mainContent" style="display:none">
+
+    <div class="page-header">
+      <div>
+        <h2>Transaction Search</h2>
+        <p>Search, filter, edit and export transactions</p>
+      </div>
+      <button class="btn btn-green" id="export-btn" onclick="exportCSV()" style="display:none">⬇️ Export CSV</button>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-card">
+      <div class="filter-grid">
+        <div class="filter-group">
+          <label>Job Reference</label>
+          <input type="text" id="f-jobref" placeholder="e.g. R40209" oninput="scheduleSearch()">
+        </div>
+        <div class="filter-group">
+          <label>Site Name</label>
+          <input type="text" id="f-site" placeholder="e.g. Tesco Bristol" oninput="scheduleSearch()">
+        </div>
+        <div class="filter-group">
+          <label>Employee / Operative</label>
+          <select id="f-employee" onchange="scheduleSearch()">
+            <option value="">All employees</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Status</label>
+          <select id="f-status" onchange="scheduleSearch()">
+            <option value="">All</option>
+            <option value="unpaid">Unpaid only</option>
+            <option value="paid">Paid only</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Date From</label>
+          <input type="date" id="f-date-from" onchange="scheduleSearch()">
+        </div>
+        <div class="filter-group">
+          <label>Date To</label>
+          <input type="date" id="f-date-to" onchange="scheduleSearch()">
+        </div>
+        <div class="filter-group">
+          <label>Min Value (£)</label>
+          <input type="number" id="f-min-val" placeholder="0.00" min="0" step="0.01" oninput="scheduleSearch()">
+        </div>
+        <div class="filter-group">
+          <label>Max Value (£)</label>
+          <input type="number" id="f-max-val" placeholder="Any" min="0" step="0.01" oninput="scheduleSearch()">
+        </div>
+      </div>
+      <div class="filter-actions">
+        <button class="btn btn-primary" onclick="runSearch()">🔍 Search</button>
+        <button class="btn btn-ghost"   onclick="clearFilters()">✕ Clear</button>
+        <span id="search-status" style="font-size:12px;color:var(--muted)"></span>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-header" id="results-header" style="display:none">
+      <span class="results-count" id="results-count"></span>
+      <span class="results-total" id="results-total"></span>
+    </div>
+
+    <div class="tx-table-wrap" id="results-wrap">
+      <div class="empty-state">
+        <div class="icon">🔍</div>
+        <p>Use the filters above to search transactions</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="overlay" id="editModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="edit-title">Edit Transaction</h2>
+        <button class="modal-close" onclick="closeEdit()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="e-date">
+          </div>
+          <div class="form-group">
+            <label>Job Reference</label>
+            <input type="text" id="e-jobref" placeholder="R40209">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Site Name</label>
+          <input type="text" id="e-site">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Bonus Metres</label>
+            <input type="text" id="e-metres" class="readonly" readonly>
+          </div>
+          <div class="form-group">
+            <label>Rate</label>
+            <input type="text" id="e-rate" class="readonly" readonly>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Operatives</label>
+          <div class="op-editor">
+            <input class="op-search-input" type="text" placeholder="Search to add operative…" id="e-op-search" oninput="filterEditOps()" autocomplete="off">
+            <div class="op-selected-wrap" id="e-op-selected"></div>
+            <div class="op-dropdown" id="e-op-list"></div>
+          </div>
+        </div>
+        <div class="delete-warn" id="delete-warn" style="display:none">
+          ⚠️ Deleting this transaction is permanent and cannot be undone.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm" style="background:#fee;color:var(--red);border:1px solid #fcc" onclick="confirmDelete()">🗑 Delete</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="closeEdit()">Cancel</button>
+          <button class="btn btn-primary btn-sm" id="save-edit-btn" onclick="saveEdit()">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allEmployees = [];
+    let currentResults = [];
+    let editingId = null;
+    let editSelectedOps = [];
+    let searchTimer = null;
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    async function init() {
+      const ok = await requireAuth();
+      if (!ok) return;
+      document.getElementById('mainContent').style.display = 'block';
+
+      const { data } = await sb.from('employees')
+        .select('id, full_name, initials, status')
+        .in('status', ['active', 'probation', 'inactive'])
+        .order('full_name');
+      allEmployees = data || [];
+
+      // Populate employee filter
+      const sel = document.getElementById('f-employee');
+      allEmployees.forEach(e => {
+        const opt = document.createElement('option');
+        opt.value = e.id;
+        opt.textContent = `${e.full_name} [${e.initials}]`;
+        sel.appendChild(opt);
+      });
+
+      // Default to unpaid, all time
+      document.getElementById('f-status').value = 'unpaid';
+      await runSearch();
+    }
+
+    // ── Search ────────────────────────────────────────────────────────────────
+    function scheduleSearch() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(runSearch, 400);
+    }
+
+    async function runSearch() {
+      document.getElementById('search-status').textContent = 'Searching…';
+      document.getElementById('results-wrap').innerHTML =
+        '<div class="spinner-wrap"><div class="spinner"></div></div>';
+      document.getElementById('results-header').style.display = 'none';
+      document.getElementById('export-btn').style.display = 'none';
+
+      const jobRef  = document.getElementById('f-jobref').value.trim();
+      const site    = document.getElementById('f-site').value.trim();
+      const empId   = document.getElementById('f-employee').value;
+      const status  = document.getElementById('f-status').value;
+      const dateFrom= document.getElementById('f-date-from').value;
+      const dateTo  = document.getElementById('f-date-to').value;
+      const minVal  = parseFloat(document.getElementById('f-min-val').value) || null;
+      const maxVal  = parseFloat(document.getElementById('f-max-val').value) || null;
+
+      try {
+        let query = sb
+          .from('transactions')
+          .select(`id, date, job_ref, site_name, bonus_metres, rate, total_value, date_paid,
+                   transaction_operatives(employee_id, share_value,
+                     employees(id, full_name, initials))`)
+          .order('date', { ascending: false })
+          .limit(500);
+
+        if (jobRef)   query = query.ilike('job_ref',   `%${jobRef}%`);
+        if (site)     query = query.ilike('site_name', `%${site}%`);
+        if (dateFrom) query = query.gte('date', dateFrom);
+        if (dateTo)   query = query.lte('date', dateTo);
+        if (status === 'unpaid') query = query.is('date_paid', null);
+        if (status === 'paid')   query = query.not('date_paid', 'is', null);
+
+        const { data, error } = await query;
+        if (error) throw new Error(error.message);
+
+        let results = data || [];
+
+        // Client-side filters
+        if (empId) {
+          results = results.filter(tx =>
+            (tx.transaction_operatives || []).some(o => o.employee_id === empId)
+          );
+        }
+        if (minVal !== null) results = results.filter(tx => parseFloat(tx.total_value || 0) >= minVal);
+        if (maxVal !== null) results = results.filter(tx => parseFloat(tx.total_value || 0) <= maxVal);
+
+        currentResults = results;
+        renderResults(results);
+
+        document.getElementById('search-status').textContent =
+          `${results.length} result${results.length !== 1 ? 's' : ''}`;
+
+      } catch(e) {
+        console.error(e);
+        document.getElementById('results-wrap').innerHTML =
+          `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`;
+        document.getElementById('search-status').textContent = 'Error';
+      }
+    }
+
+    function clearFilters() {
+      ['f-jobref','f-site','f-date-from','f-date-to','f-min-val','f-max-val']
+        .forEach(id => document.getElementById(id).value = '');
+      document.getElementById('f-employee').value = '';
+      document.getElementById('f-status').value   = 'unpaid';
+      runSearch();
+    }
+
+    // ── Render results ────────────────────────────────────────────────────────
+    function renderResults(results) {
+      const wrap = document.getElementById('results-wrap');
+
+      if (!results.length) {
+        wrap.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>No transactions found</p></div>`;
+        document.getElementById('results-header').style.display = 'none';
+        return;
+      }
+
+      const totalVal = results.reduce((s, tx) => s + parseFloat(tx.total_value || 0), 0);
+
+      document.getElementById('results-header').style.display = 'flex';
+      document.getElementById('results-count').textContent =
+        `${results.length} transaction${results.length !== 1 ? 's' : ''}`;
+      document.getElementById('results-total').textContent =
+        `Total: £${totalVal.toFixed(2)}`;
+      document.getElementById('export-btn').style.display = 'flex';
+
+      wrap.innerHTML = `
+        <table class="tx-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Job Ref</th>
+              <th>Site</th>
+              <th>Metres</th>
+              <th>Operatives</th>
+              <th>Value</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${results.map(tx => {
+              const date   = new Date(tx.date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+              const ops    = (tx.transaction_operatives || []);
+              const paid   = tx.date_paid
+                ? new Date(tx.date_paid).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+                : null;
+              const chips  = ops.map(o =>
+                `<span class="op-chip">${o.employees?.initials || '?'}</span>`
+              ).join('');
+              const val    = parseFloat(tx.total_value || tx.bonus_metres * tx.rate || 0);
+              return `<tr>
+                <td style="white-space:nowrap">${date}</td>
+                <td style="font-family:monospace;font-size:12px">${tx.job_ref || '—'}</td>
+                <td>${tx.site_name || '—'}</td>
+                <td>${parseFloat(tx.bonus_metres).toLocaleString()}m</td>
+                <td><div class="ops-chips">${chips}</div></td>
+                <td style="font-weight:600;color:var(--green)">£${val.toFixed(2)}</td>
+                <td>
+                  ${paid
+                    ? `<span class="status-badge paid">Paid ${paid}</span>`
+                    : `<span class="status-badge unpaid">Unpaid</span>`}
+                </td>
+                <td>
+                  ${tx.date_paid
+                    ? `<span title="Paid transactions are locked. Use a deduction to correct errors." style="font-size:16px;cursor:default">🔒</span>`
+                    : `<button class="btn btn-ghost btn-sm" onclick="openEdit('${tx.id}')">✏️ Edit</button>`}
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    // ── Export CSV ────────────────────────────────────────────────────────────
+    function exportCSV() {
+      const rows = [
+        ['Date', 'Job Reference', 'Site Name', 'Metres', 'Rate', 'Total Value', 'Operatives', 'Status', 'Date Paid'],
+        ...currentResults.map(tx => {
+          const ops  = (tx.transaction_operatives || []).map(o => o.employees?.initials || '?').join(', ');
+          const val  = parseFloat(tx.total_value || tx.bonus_metres * tx.rate || 0);
+          const date = new Date(tx.date).toLocaleDateString('en-GB');
+          const paid = tx.date_paid ? new Date(tx.date_paid).toLocaleDateString('en-GB') : '';
+          return [date, tx.job_ref || '', tx.site_name || '', tx.bonus_metres, tx.rate, val.toFixed(2), ops, tx.date_paid ? 'Paid' : 'Unpaid', paid];
+        })
+      ];
+      const csv  = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url;
+      a.download = `JHB_Transactions_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ── Edit modal ────────────────────────────────────────────────────────────
+    function openEdit(txId) {
+      const tx = currentResults.find(t => t.id === txId);
+      if (!tx) return;
+      if (tx.date_paid) {
+        showToast('Paid transactions are locked — use a deduction to correct errors', 'error');
+        return;
+      }
+      editingId = txId;
+
+      document.getElementById('edit-title').textContent = `Edit — ${tx.site_name || tx.job_ref || 'Transaction'}`;
+      document.getElementById('e-date').value    = tx.date;
+      document.getElementById('e-jobref').value  = tx.job_ref || '';
+      document.getElementById('e-site').value    = tx.site_name || '';
+      document.getElementById('e-metres').value  = parseFloat(tx.bonus_metres).toLocaleString() + 'm';
+      document.getElementById('e-rate').value    = '£' + parseFloat(tx.rate).toFixed(4) + '/m';
+      document.getElementById('e-paid-date').value = tx.date_paid || '';
+      document.getElementById('delete-warn').style.display = 'none';
+
+      // Set operatives
+      editSelectedOps = (tx.transaction_operatives || []).map(o => o.employee_id);
+      renderEditOps();
+      filterEditOps();
+
+      document.getElementById('editModal').classList.add('open');
+    }
+
+    function closeEdit() {
+      document.getElementById('editModal').classList.remove('open');
+      editingId = null;
+      editSelectedOps = [];
+      document.getElementById('e-op-search').value = '';
+    }
+
+    // Operative picker for edit modal
+    function renderEditOps() {
+      const el = document.getElementById('e-op-selected');
+      el.innerHTML = editSelectedOps.map(id => {
+        const emp = allEmployees.find(e => e.id === id);
+        if (!emp) return '';
+        return `<div class="op-selected-chip">
+          ${emp.initials}
+          <button type="button" onclick="removeEditOp('${id}')">×</button>
+        </div>`;
+      }).join('');
+    }
+
+    function filterEditOps() {
+      const q    = document.getElementById('e-op-search').value.toLowerCase();
+      const list = document.getElementById('e-op-list');
+      const filtered = allEmployees.filter(e =>
+        !q || e.full_name.toLowerCase().includes(q) || e.initials.toLowerCase().includes(q)
+      );
+      list.innerHTML = filtered.map(e => {
+        const sel = editSelectedOps.includes(e.id);
+        return `<div class="op-option ${sel ? 'selected' : ''}" onclick="toggleEditOp('${e.id}')">
+          <span style="flex:1">${e.full_name}</span>
+          <span class="op-init">${e.initials}</span>
+          ${sel ? '<span style="color:var(--blue)">✓</span>' : ''}
+        </div>`;
+      }).join('') || '<div style="padding:10px;font-size:12px;color:var(--muted);text-align:center">No matches</div>';
+    }
+
+    function toggleEditOp(id) {
+      if (editSelectedOps.includes(id)) {
+        editSelectedOps = editSelectedOps.filter(x => x !== id);
+      } else {
+        editSelectedOps.push(id);
+      }
+      renderEditOps();
+      filterEditOps();
+    }
+
+    function removeEditOp(id) {
+      editSelectedOps = editSelectedOps.filter(x => x !== id);
+      renderEditOps();
+      filterEditOps();
+    }
+
+    // ── Save edit ─────────────────────────────────────────────────────────────
+    async function saveEdit() {
+      if (!editingId) return;
+      if (!editSelectedOps.length) { showToast('At least one operative is required', 'error'); return; }
+
+      const btn = document.getElementById('save-edit-btn');
+      btn.disabled = true; btn.textContent = 'Saving…';
+
+      try {
+        const tx       = currentResults.find(t => t.id === editingId);
+        const date     = document.getElementById('e-date').value;
+        const jobRef   = document.getElementById('e-jobref').value.trim() || null;
+        const site     = document.getElementById('e-site').value.trim() || null;
+
+        // Update transaction
+        const { error: txErr } = await sb
+          .from('transactions')
+          .update({ date, job_ref: jobRef, site_name: site })
+          .eq('id', editingId);
+        if (txErr) throw new Error(txErr.message);
+
+        // Recalculate share value
+        const metres    = parseFloat(tx.bonus_metres);
+        const rate      = parseFloat(tx.rate);
+        const netVal    = metres * rate;
+        const shareVal  = parseFloat((netVal / editSelectedOps.length).toFixed(2));
+
+        // Delete old operatives and reinsert
+        const { error: delErr } = await sb
+          .from('transaction_operatives')
+          .delete()
+          .eq('transaction_id', editingId);
+        if (delErr) throw new Error(delErr.message);
+
+        const { error: insErr } = await sb
+          .from('transaction_operatives')
+          .insert(editSelectedOps.map(empId => ({
+            transaction_id: editingId,
+            employee_id:    empId,
+            share_value:    shareVal
+          })));
+        if (insErr) throw new Error(insErr.message);
+
+        showToast('Transaction updated', 'success');
+        closeEdit();
+        await runSearch();
+
+      } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+        console.error(e);
+      } finally {
+        btn.disabled = false; btn.textContent = 'Save Changes';
+      }
+    }
+
+    // ── Delete ────────────────────────────────────────────────────────────────
+    function confirmDelete() {
+      const warn = document.getElementById('delete-warn');
+      if (warn.style.display === 'none') {
+        warn.style.display = 'block';
+        warn.innerHTML = `⚠️ Are you sure? This is permanent.
+          <button class="btn btn-sm" style="background:#c00;color:#fff;margin-left:10px" onclick="doDelete()">Yes, Delete</button>`;
+      }
+    }
+
+    async function doDelete() {
+      if (!editingId) return;
+      try {
+        // Operatives cascade delete via FK
+        const { error } = await sb.from('transactions').delete().eq('id', editingId);
+        if (error) throw new Error(error.message);
+        showToast('Transaction deleted', 'success');
+        closeEdit();
+        await runSearch();
+      } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
