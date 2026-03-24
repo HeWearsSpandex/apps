@@ -319,7 +319,7 @@
       try {
         let query = sb
           .from('transactions')
-          .select(`id, date, job_ref, site_name, bonus_metres, rate, total_value, date_paid,
+          .select(`id, date, job_ref, site_name, bonus_metres, rate, date_paid,
                    transaction_operatives(employee_id, share_value,
                      employees(id, full_name, initials))`)
           .order('date', { ascending: false })
@@ -343,8 +343,8 @@
             (tx.transaction_operatives || []).some(o => o.employee_id === empId)
           );
         }
-        if (minVal !== null) results = results.filter(tx => parseFloat(tx.total_value || 0) >= minVal);
-        if (maxVal !== null) results = results.filter(tx => parseFloat(tx.total_value || 0) <= maxVal);
+        if (minVal !== null) results = results.filter(tx => parseFloat(tx.bonus_metres) * parseFloat(tx.rate || 0.03) >= minVal);
+        if (maxVal !== null) results = results.filter(tx => parseFloat(tx.bonus_metres) * parseFloat(tx.rate || 0.03) <= maxVal);
 
         currentResults = results;
         renderResults(results);
@@ -378,7 +378,7 @@
         return;
       }
 
-      const totalVal = results.reduce((s, tx) => s + parseFloat(tx.total_value || 0), 0);
+      const totalVal = results.reduce((s, tx) => s + parseFloat(tx.bonus_metres) * parseFloat(tx.rate || 0.03), 0);
 
       document.getElementById('results-header').style.display = 'flex';
       document.getElementById('results-count').textContent =
@@ -411,7 +411,7 @@
               const chips  = ops.map(o =>
                 `<span class="op-chip">${o.employees?.initials || '?'}</span>`
               ).join('');
-              const val    = parseFloat(tx.total_value || tx.bonus_metres * tx.rate || 0);
+              const val    = parseFloat(tx.bonus_metres) * parseFloat(tx.rate || 0.03);
               return `<tr>
                 <td style="white-space:nowrap">${date}</td>
                 <td style="font-family:monospace;font-size:12px">${tx.job_ref || '—'}</td>
@@ -441,7 +441,7 @@
         ['Date', 'Job Reference', 'Site Name', 'Metres', 'Rate', 'Total Value', 'Operatives', 'Status', 'Date Paid'],
         ...currentResults.map(tx => {
           const ops  = (tx.transaction_operatives || []).map(o => o.employees?.initials || '?').join(', ');
-          const val  = parseFloat(tx.total_value || tx.bonus_metres * tx.rate || 0);
+          const val  = parseFloat(tx.bonus_metres) * parseFloat(tx.rate || 0.03);
           const date = new Date(tx.date).toLocaleDateString('en-GB');
           const paid = tx.date_paid ? new Date(tx.date_paid).toLocaleDateString('en-GB') : '';
           return [date, tx.job_ref || '', tx.site_name || '', tx.bonus_metres, tx.rate, val.toFixed(2), ops, tx.date_paid ? 'Paid' : 'Unpaid', paid];
