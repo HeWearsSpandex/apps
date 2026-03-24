@@ -232,10 +232,10 @@
         <div class="form-row">
           <div class="form-group">
             <label>Bonus Metres</label>
-            <input type="text" id="e-metres" class="readonly" readonly>
+            <input type="number" id="e-metres" min="1" step="1" placeholder="1000">
           </div>
           <div class="form-group">
-            <label>Rate</label>
+            <label>Rate (£/m)</label>
             <input type="text" id="e-rate" class="readonly" readonly>
           </div>
         </div>
@@ -471,7 +471,7 @@
       document.getElementById('e-date').value    = tx.date;
       document.getElementById('e-jobref').value  = tx.job_ref || '';
       document.getElementById('e-site').value    = tx.site_name || '';
-      document.getElementById('e-metres').value  = parseFloat(tx.bonus_metres).toLocaleString() + 'm';
+      document.getElementById('e-metres').value  = parseFloat(tx.bonus_metres);
       document.getElementById('e-rate').value    = '£' + parseFloat(tx.rate).toFixed(4) + '/m';
       document.getElementById('delete-warn').style.display = 'none';
 
@@ -545,24 +545,24 @@
 
       try {
         const tx       = currentResults.find(t => t.id === editingId);
-        const date     = document.getElementById('e-date').value;
-        const jobRef   = document.getElementById('e-jobref').value.trim() || null;
-        const site     = document.getElementById('e-site').value.trim() || null;
+        const date    = document.getElementById('e-date').value;
+        const jobRef  = document.getElementById('e-jobref').value.trim() || null;
+        const site    = document.getElementById('e-site').value.trim() || null;
+        const metres  = parseFloat(document.getElementById('e-metres').value);
+
+        if (!metres || metres <= 0) { showToast('Bonus metres must be greater than 0', 'error'); btn.disabled = false; btn.textContent = 'Save Changes'; return; }
+
+        const rate      = parseFloat(tx.rate || 0.03);
+        const shareVal  = parseFloat(((metres * rate) / editSelectedOps.length).toFixed(2));
 
         // Update transaction
         const { error: txErr } = await sb
           .from('transactions')
-          .update({ date, job_ref: jobRef, site_name: site })
+          .update({ date, job_ref: jobRef, site_name: site, bonus_metres: metres })
           .eq('id', editingId);
         if (txErr) throw new Error(txErr.message);
 
-        // Recalculate share value
-        const metres    = parseFloat(tx.bonus_metres);
-        const rate      = parseFloat(tx.rate);
-        const netVal    = metres * rate;
-        const shareVal  = parseFloat((netVal / editSelectedOps.length).toFixed(2));
-
-        // Delete old operatives and reinsert
+        // Delete old operatives and reinsert with recalculated shares
         const { error: delErr } = await sb
           .from('transaction_operatives')
           .delete()
