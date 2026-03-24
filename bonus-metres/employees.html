@@ -517,7 +517,9 @@
       const active = allEmployees.filter(e => e.status === 'active' || e.status === 'probation');
       await Promise.all(active.map(async e => {
         try {
-          const r = await fetch(`${IMG_PATH_WEB}${encodeURIComponent(e.full_name + '_cvface1.jpg')}`, { method: 'HEAD' });
+          // Check Supabase first, then GitHub fallback
+          let r = await fetch(`${IMG_PATH_WEB}${encodeURIComponent(e.full_name + '_cvface1.jpg')}`, { method: 'HEAD' });
+          if (!r.ok) r = await fetch(`/img/${encodeURIComponent(e.full_name)}_cvface1.png`, { method: 'HEAD' });
           if (!r.ok) missingPhotos.add(e.id);
         } catch {
           missingPhotos.add(e.id);
@@ -557,23 +559,23 @@
 
     // ── Optimise all existing photos ──────────────
     async function optimiseAllPhotos() {
-      const active = allEmployees.filter(e => e.status === 'active' || e.status === 'probation');
-      if (!confirm(`This will download, resize and re-upload photos for ${active.length} active employees. Continue?`)) return;
+      const active = allEmployees; // migrate all employees including inactive
+      if (!confirm(`This will migrate ${active.length} photos from GitHub to Supabase Storage. Continue?`)) return;
 
       const btn = document.getElementById('optimiseBtn');
       btn.disabled = true;
       let done = 0, skipped = 0;
 
       for (const emp of active) {
-        btn.textContent = `🗜️ Optimising… ${done + skipped + 1}/${active.length}`;
-        const fileName = `${emp.full_name}_cvface1.jpg`;
-        const url      = `${IMG_PATH_WEB}${encodeURIComponent(fileName)}`;
+        btn.textContent = `🗜️ Migrating… ${done + skipped + 1}/${active.length}`;
+        const fileName   = `${emp.full_name}_cvface1.jpg`;
+        // Fetch from GitHub source
+        const githubUrl  = `/img/${encodeURIComponent(emp.full_name)}_cvface1.png`;
 
         try {
-          // Fetch current photo
-          const r = await fetch(url, { cache: 'no-cache' });
+          const r = await fetch(githubUrl, { cache: 'no-cache' });
           if (!r.ok) { skipped++; continue; }
-          const blob = await r.blob();
+          const blob    = await r.blob();
           const dataUrl = await new Promise(res => {
             const reader = new FileReader();
             reader.onload = () => res(reader.result);
@@ -605,7 +607,7 @@
 
       btn.disabled    = false;
       btn.textContent = '🗜️ Optimise Photos';
-      showToast(`Photos optimised: ${done} resized, ${skipped} skipped`, 'success');
+      showToast(`Migration complete: ${done} uploaded, ${skipped} skipped (no photo on GitHub)`, 'success');
       checkMissingPhotosInBackground();
     }
 
@@ -636,6 +638,9 @@
 
       grid.innerHTML = filtered.map(e => {
         const photoUrl  = `${IMG_PATH_WEB}${encodeURIComponent(e.full_name + '_cvface1.jpg')}`;
+        const githubUrl = `/img/${encodeURIComponent(e.full_name)}_cvface1.png`;
+        const initials  = e.full_name.charAt(0);
+        const svgFb     = `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 72 72%22><circle cx=%2236%22 cy=%2236%22 r=%2236%22 fill=%22%23ddd%22/><text x=%2236%22 y=%2242%22 text-anchor=%22middle%22 font-size=%2224%22 fill=%22%23999%22>${initials}</text></svg>`;
         const today     = new Date().toISOString().split('T')[0];
         const isLeaving = e.status === 'inactive' && e.leaving_date && e.leaving_date >= today;
         const cls       = isLeaving ? 'leaving' : e.status;
@@ -650,7 +655,7 @@
             <img class="emp-avatar ${cls}"
                  src="${photoUrl}"
                  loading="lazy"
-                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 72 72%22><circle cx=%2236%22 cy=%2236%22 r=%2236%22 fill=%22%23ddd%22/><text x=%2236%22 y=%2242%22 text-anchor=%22middle%22 font-size=%2224%22 fill=%22%23999%22>${e.full_name.charAt(0)}</text></svg>'"
+                 onerror="this.onerror=null;this.src='${githubUrl}';this.onerror=()=>this.src='${svgFb}';"
                  alt="${e.full_name}">
             <div class="emp-name">${e.full_name}</div>
             ${e.nickname ? `<div class="emp-nick">"${e.nickname}"</div>` : ''}
@@ -737,8 +742,12 @@
       document.getElementById('fStatus').value      = emp.status;
       document.getElementById('fStartDate').value   = emp.start_date  || '';
       document.getElementById('fLeavingDate').value = emp.leaving_date || '';
-      document.getElementById('photoPreview').src   =
-        `${IMG_PATH_WEB}${encodeURIComponent(emp.full_name + '_cvface1.jpg')}`;
+      const photoEl = document.getElementById('photoPreview');
+      photoEl.src = `${IMG_PATH_WEB}${encodeURIComponent(emp.full_name + '_cvface1.jpg')}`;
+      photoEl.onerror = () => {
+        photoEl.onerror = null;
+        photoEl.src = `/img/${encodeURIComponent(emp.full_name)}_cvface1.png`;
+      };
       document.getElementById('modalTitle').textContent = `Edit — ${emp.full_name}`;
       document.getElementById('saveBtn').textContent    = 'Save Changes';
       openModal('empModal');
