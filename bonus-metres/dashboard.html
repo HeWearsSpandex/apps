@@ -328,9 +328,9 @@
     async function renderTasks() {
       const tasks = [];
       const missingPhotos = await checkMissingPhotos();
-      if (missingPhotos.length) tasks.push({ icon:'🖼️', type:'warn', title:`${missingPhotos.length} employee${missingPhotos.length>1?'s':''} missing photo`, desc:missingPhotos.slice(0,3).map(e=>e.full_name).join(', ')+(missingPhotos.length>3?` +${missingPhotos.length-3} more`:''), action:'Fix in Employee Management', href:'employees.html' });
+      if (missingPhotos.length) tasks.push({ icon:'🖼️', type:'warn', title:`${missingPhotos.length} employee${missingPhotos.length>1?'s':''} missing photo`, desc:missingPhotos.slice(0,3).map(e=>e.full_name).join(', ')+(missingPhotos.length>3?` +${missingPhotos.length-3} more`:''), action:'Fix in Employee Management', href:'employees.html?filter=no-photo' });
       const missingEmails = allEmployees.filter(e => (e.status==='active'||e.status==='probation') && !e.email);
-      if (missingEmails.length) tasks.push({ icon:'📧', type:'warn', title:`${missingEmails.length} employee${missingEmails.length>1?'s':''} missing email`, desc:missingEmails.slice(0,3).map(e=>e.full_name).join(', ')+(missingEmails.length>3?` +${missingEmails.length-3} more`:''), action:'Fix in Employee Management', href:'employees.html' });
+      if (missingEmails.length) tasks.push({ icon:'📧', type:'warn', title:`${missingEmails.length} employee${missingEmails.length>1?'s':''} missing email`, desc:missingEmails.slice(0,3).map(e=>e.full_name).join(', ')+(missingEmails.length>3?` +${missingEmails.length-3} more`:''), action:'Fix in Employee Management', href:'employees.html?filter=no-email' });
       const today = new Date(); const in7 = new Date(today); in7.setDate(today.getDate()+7);
       const urgent = allEmployees.filter(e => { if(e.status!=='inactive'||!e.leaving_date) return false; const ld=new Date(e.leaving_date); return ld>=today&&ld<=in7; });
       if (urgent.length) tasks.push({ icon:'🚨', type:'danger', title:`${urgent.length} staff leaving within 7 days`, desc:urgent.map(e=>`${e.full_name} (${e.leaving_date})`).join(', '), action:null });
