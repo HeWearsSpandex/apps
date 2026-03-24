@@ -368,7 +368,6 @@
       <h1>Employee Management</h1>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
-      <button class="btn btn-ghost" onclick="forceSyncPeopleJS()" id="syncBtn" style="font-size:12px;">🔄 Sync Leaderboard</button>
       <button class="btn btn-ghost" onclick="optimiseAllPhotos()" id="optimiseBtn" style="font-size:12px;">🗜️ Optimise Photos</button>
       <button class="btn btn-primary" onclick="openAddModal()">+ Add Employee</button>
     </div>
@@ -413,7 +412,7 @@
             <label>📷 Upload photo
               <input type="file" id="photoInput" accept="image/*" onchange="previewPhoto(this)">
             </label>
-            <div class="field-hint">Will be saved as Firstname Lastname_cvface1.png</div>
+            <div class="field-hint">Will be saved as Firstname Lastname_cvface1.jpg</div>
           </div>
         </div>
 
@@ -491,9 +490,7 @@
   </div>
 
   <script>
-    const PEOPLE_JS_PATH = 'js/people.js';
-    const IMG_PATH_REPO  = 'img';
-    const IMG_PATH_WEB   = '/img/';
+    const IMG_PATH_WEB   = STORAGE_URL;
 
     let allEmployees  = [];
     let currentFilter = 'active';
@@ -520,47 +517,37 @@
       const active = allEmployees.filter(e => e.status === 'active' || e.status === 'probation');
       await Promise.all(active.map(async e => {
         try {
-          const r = await fetch(`${IMG_PATH_WEB}${encodeURIComponent(e.full_name + '_cvface1.png')}`, { method: 'HEAD' });
+          const r = await fetch(`${IMG_PATH_WEB}${encodeURIComponent(e.full_name + '_cvface1.jpg')}`, { method: 'HEAD' });
           if (!r.ok) missingPhotos.add(e.id);
         } catch {
           missingPhotos.add(e.id);
         }
       }));
-      renderGrid(); // re-render now we know which are missing
+      renderGrid();
     }
 
     // ── Photo upload to GitHub ────────────────────
 
     async function uploadPhoto(file, fullName) {
-      const token = localStorage.getItem('gh_token') || '';
-      if (!token) {
-        showToast('Photo not uploaded — no GitHub token. Use Sync Leaderboard to set one.', 'warning');
-        return;
-      }
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async () => {
           try {
-            // ── Resize to 200×200 before upload ──
+            // Resize to 200×200 before upload
             const img = new Image();
             img.src = reader.result;
             await new Promise(r => { img.onload = r; });
-            const SIZE = 200;
+            const SIZE   = 200;
             const canvas = document.createElement('canvas');
             canvas.width = canvas.height = SIZE;
-            const ctx = canvas.getContext('2d');
-            // Cover crop — centre the image
-            const scale = Math.max(SIZE / img.width, SIZE / img.height);
+            const ctx    = canvas.getContext('2d');
+            const scale  = Math.max(SIZE / img.width, SIZE / img.height);
             const w = img.width * scale, h = img.height * scale;
             ctx.drawImage(img, (SIZE - w) / 2, (SIZE - h) / 2, w, h);
-            const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
-
-            const fileName = `${fullName}_cvface1.png`;
-            const path     = `${IMG_PATH_REPO}/${fileName}`;
-            let sha = null;
-            try { const f = await ghGet(path, token); sha = f.sha; } catch(e) {}
-            await ghPutBinary(path, base64, `Upload photo for ${fullName}`, sha, token);
-            resolve(`${IMG_PATH_WEB}${encodeURIComponent(fileName)}`);
+            const base64   = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+            const fileName = `${fullName}_cvface1.jpg`;
+            const url      = await uploadToStorage(base64, fileName);
+            resolve(url);
           } catch(e) { reject(e); }
         };
         reader.onerror = reject;
@@ -570,42 +557,33 @@
 
     // ── Optimise all existing photos ──────────────
     async function optimiseAllPhotos() {
-      const token = localStorage.getItem('gh_token') || '';
-      if (!token) {
-        showToast('No GitHub token — click Sync Leaderboard to set one first', 'error');
-        return;
-      }
-
-      const btn = document.getElementById('optimiseBtn');
       const active = allEmployees.filter(e => e.status === 'active' || e.status === 'probation');
-
       if (!confirm(`This will download, resize and re-upload photos for ${active.length} active employees. Continue?`)) return;
 
+      const btn = document.getElementById('optimiseBtn');
       btn.disabled = true;
-      let done = 0, skipped = 0, failed = 0;
+      let done = 0, skipped = 0;
 
       for (const emp of active) {
-        const fileName = `${emp.full_name}_cvface1.png`;
-        const path     = `${IMG_PATH_REPO}/${fileName}`;
-        btn.textContent = `🗜️ Optimising… ${done + skipped + failed + 1}/${active.length}`;
+        btn.textContent = `🗜️ Optimising… ${done + skipped + 1}/${active.length}`;
+        const fileName = `${emp.full_name}_cvface1.jpg`;
+        const url      = `${IMG_PATH_WEB}${encodeURIComponent(fileName)}`;
 
         try {
-          // Fetch current file from GitHub API to get content + sha
-          const existing = await ghGet(path, token);
-          if (!existing?.content) { skipped++; continue; }
+          // Fetch current photo
+          const r = await fetch(url, { cache: 'no-cache' });
+          if (!r.ok) { skipped++; continue; }
+          const blob = await r.blob();
+          const dataUrl = await new Promise(res => {
+            const reader = new FileReader();
+            reader.onload = () => res(reader.result);
+            reader.readAsDataURL(blob);
+          });
 
-          // Decode base64 → blob → image
-          const binary  = atob(existing.content.replace(/\n/g, ''));
-          const bytes   = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-          const blob    = new Blob([bytes], { type: 'image/png' });
-          const url     = URL.createObjectURL(blob);
-
-          // Draw onto 200×200 canvas
+          // Resize to 200×200
           const img = new Image();
-          await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
-          URL.revokeObjectURL(url);
-
+          img.src = dataUrl;
+          await new Promise(res => { img.onload = res; });
           const SIZE   = 200;
           const canvas = document.createElement('canvas');
           canvas.width = canvas.height = SIZE;
@@ -613,65 +591,22 @@
           const scale  = Math.max(SIZE / img.width, SIZE / img.height);
           const w = img.width * scale, h = img.height * scale;
           ctx.drawImage(img, (SIZE - w) / 2, (SIZE - h) / 2, w, h);
-          const resized = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+          const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
 
-          // Re-upload with existing sha
-          await ghPutBinary(path, resized, `Optimise photo for ${emp.full_name}`, existing.sha, token);
+          await uploadToStorage(base64, fileName);
           done++;
-
         } catch(e) {
           console.warn(`Skipped ${emp.full_name}:`, e.message);
           skipped++;
         }
 
-        // Small delay to avoid hammering GitHub API rate limit
-        await new Promise(r => setTimeout(r, 300));
+        await new Promise(r => setTimeout(r, 100));
       }
 
       btn.disabled    = false;
       btn.textContent = '🗜️ Optimise Photos';
-      showToast(`Photos optimised: ${done} resized, ${skipped} skipped (no photo), ${failed} failed`, 'success');
+      showToast(`Photos optimised: ${done} resized, ${skipped} skipped`, 'success');
       checkMissingPhotosInBackground();
-    }
-
-    // ── Sync people.js ────────────────────────────
-
-    // Manual sync button — shows token modal via getGithubToken() if not cached
-    async function forceSyncPeopleJS() {
-      const token = await getGithubToken();
-      if (!token) return;
-      const btn = document.getElementById('syncBtn');
-      btn.disabled = true; btn.textContent = '🔄 Syncing…';
-      try {
-        await writePeopleJs(token);
-        showToast(`✓ Leaderboard synced — ${countActive()} active staff`, 'success');
-      } catch(e) {
-        showToast('Sync failed: ' + e.message, 'error');
-        if (e.message.includes('Bad credentials')) localStorage.removeItem('gh_token');
-      } finally {
-        btn.disabled = false; btn.textContent = '🔄 Sync Leaderboard';
-      }
-    }
-
-    // Shared writer — builds people.js content and pushes to GitHub
-    async function writePeopleJs(token) {
-      const today   = new Date().toISOString().split('T')[0];
-      const active  = allEmployees
-        .filter(e => e.status === 'active' || e.status === 'probation' ||
-                    (e.status === 'inactive' && e.leaving_date && e.leaving_date >= today))
-        .map(e => `'${e.full_name}'`);
-      const content = `const PEOPLE = [\n  ${active.join(',\n  ')}\n];\n`;
-      let sha = null;
-      try { const f = await ghGet(PEOPLE_JS_PATH, token); sha = f.sha; } catch(e) {}
-      await ghPut(PEOPLE_JS_PATH, content, 'Update PEOPLE list', sha, token);
-    }
-
-    function countActive() {
-      const today = new Date().toISOString().split('T')[0];
-      return allEmployees.filter(e =>
-        e.status === 'active' || e.status === 'probation' ||
-        (e.status === 'inactive' && e.leaving_date && e.leaving_date >= today)
-      ).length;
     }
 
     // ── Render ────────────────────────────────────
@@ -700,7 +635,7 @@
       }
 
       grid.innerHTML = filtered.map(e => {
-        const photoUrl  = `${IMG_PATH_WEB}${encodeURIComponent(e.full_name + '_cvface1.png')}`;
+        const photoUrl  = `${IMG_PATH_WEB}${encodeURIComponent(e.full_name + '_cvface1.jpg')}`;
         const today     = new Date().toISOString().split('T')[0];
         const isLeaving = e.status === 'inactive' && e.leaving_date && e.leaving_date >= today;
         const cls       = isLeaving ? 'leaving' : e.status;
@@ -803,7 +738,7 @@
       document.getElementById('fStartDate').value   = emp.start_date  || '';
       document.getElementById('fLeavingDate').value = emp.leaving_date || '';
       document.getElementById('photoPreview').src   =
-        `${IMG_PATH_WEB}${encodeURIComponent(emp.full_name + '_cvface1.png')}`;
+        `${IMG_PATH_WEB}${encodeURIComponent(emp.full_name + '_cvface1.jpg')}`;
       document.getElementById('modalTitle').textContent = `Edit — ${emp.full_name}`;
       document.getElementById('saveBtn').textContent    = 'Save Changes';
       openModal('empModal');
@@ -849,7 +784,7 @@
             await uploadPhoto(photoFile, fullName);
             btn.textContent = '⏳ Waiting for photo…';
             // Poll GitHub CDN until photo is live (max 15s)
-            const photoUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/img/${encodeURIComponent(fullName)}_cvface1.png`;
+            const photoUrl = `${STORAGE_URL}${encodeURIComponent(fullName)}_cvface1.jpg`;
             let attempts = 0;
             while (attempts < 15) {
               await new Promise(r => setTimeout(r, 1000));
