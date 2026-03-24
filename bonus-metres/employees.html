@@ -559,7 +559,7 @@
 
     // ── Optimise all existing photos ──────────────
     async function optimiseAllPhotos() {
-      const active = allEmployees; // migrate all employees including inactive
+      const active = allEmployees;
       if (!confirm(`This will migrate ${active.length} photos from GitHub to Supabase Storage. Continue?`)) return;
 
       const btn = document.getElementById('optimiseBtn');
@@ -568,13 +568,15 @@
 
       for (const emp of active) {
         btn.textContent = `🗜️ Migrating… ${done + skipped + 1}/${active.length}`;
-        const fileName   = `${emp.full_name}_cvface1.jpg`;
-        // Fetch from GitHub source
-        const githubUrl  = `/img/${encodeURIComponent(emp.full_name)}_cvface1.png`;
+        const fileName  = `${emp.full_name}_cvface1.jpg`;
+        const githubUrl = `/img/${encodeURIComponent(emp.full_name)}_cvface1.png`;
 
         try {
+          console.log(`Fetching: ${githubUrl}`);
           const r = await fetch(githubUrl, { cache: 'no-cache' });
+          console.log(`  status: ${r.status} for ${emp.full_name}`);
           if (!r.ok) { skipped++; continue; }
+
           const blob    = await r.blob();
           const dataUrl = await new Promise(res => {
             const reader = new FileReader();
@@ -582,7 +584,6 @@
             reader.readAsDataURL(blob);
           });
 
-          // Resize to 200×200
           const img = new Image();
           img.src = dataUrl;
           await new Promise(res => { img.onload = res; });
@@ -595,10 +596,12 @@
           ctx.drawImage(img, (SIZE - w) / 2, (SIZE - h) / 2, w, h);
           const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
 
+          console.log(`  uploading to Supabase: ${fileName}`);
           await uploadToStorage(base64, fileName);
+          console.log(`  ✓ done: ${emp.full_name}`);
           done++;
         } catch(e) {
-          console.warn(`Skipped ${emp.full_name}:`, e.message);
+          console.error(`Failed ${emp.full_name}:`, e.message);
           skipped++;
         }
 
@@ -607,7 +610,7 @@
 
       btn.disabled    = false;
       btn.textContent = '🗜️ Optimise Photos';
-      showToast(`Migration complete: ${done} uploaded, ${skipped} skipped (no photo on GitHub)`, 'success');
+      showToast(`Migration complete: ${done} uploaded, ${skipped} skipped`, 'success');
       checkMissingPhotosInBackground();
     }
 
