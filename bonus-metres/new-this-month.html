@@ -60,12 +60,8 @@
     .podium-place.p1 .podium-name { font-size: 15px; color: #f9a825; }
     .podium-place.p2 .podium-name { color: #b0b8c1; }
     .podium-place.p3 .podium-name { color: #cd7f32; }
-    .podium-metres { font-size: 12px; color: rgba(255,255,255,0.6); text-align: center; margin-bottom: 4px; }
+    .podium-metres { font-size: 12px; color: rgba(255,255,255,0.6); text-align: center; margin-bottom: 8px; }
     .podium-place.p1 .podium-metres { font-size: 14px; color: rgba(255,255,255,0.8); }
-    .podium-bonus { font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 8px; }
-    .podium-place.p1 .podium-bonus { font-size: 20px; color: #f9a825; }
-    .podium-place.p2 .podium-bonus { color: #b0b8c1; }
-    .podium-place.p3 .podium-bonus { color: #cd7f32; }
     .podium-block { width: 100%; border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 900; color: rgba(255,255,255,0.15); }
     .podium-place.p1 .podium-block { height: 90px; background: linear-gradient(180deg, rgba(249,168,37,0.35), rgba(249,168,37,0.15)); border: 1px solid rgba(249,168,37,0.3); }
     .podium-place.p2 .podium-block { height: 64px; background: linear-gradient(180deg, rgba(176,184,193,0.25), rgba(176,184,193,0.1)); border: 1px solid rgba(176,184,193,0.2); }
@@ -282,7 +278,6 @@
           </div>
           <div class="podium-name">${p.name.split(' ')[0]}</div>
           <div class="podium-metres">${Math.round(p.metres).toLocaleString()}m</div>
-          <div class="podium-bonus">${fmt(p.bonus)}</div>
           <div class="podium-block" style="height:${blockH}px">${num}</div>
         </div>`;
       }).join('');
