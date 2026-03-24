@@ -167,15 +167,15 @@
   <script>
     const SUPABASE_URL = 'https://oxgehlmalbvppjmdaswn.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
-    const sb      = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const IMG_PATH = '/img/';
+    const sb           = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const IMG_PATH     = `${SUPABASE_URL}/storage/v1/object/public/images/`;
 
     async function safeImg(src, size) {
       return new Promise(res => {
         const img = new Image(); img.crossOrigin = 'anonymous';
         img.onload  = () => res(img.src);
         img.onerror = () => res(null);
-        img.src = `${IMG_PATH}${encodeURIComponent(src)}_cvface1.png`;
+        img.src = `${IMG_PATH}${encodeURIComponent(src)}_cvface1.jpg`;
       });
     }
 
