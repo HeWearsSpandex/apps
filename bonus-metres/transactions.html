@@ -993,30 +993,41 @@
       document.getElementById('recent-table').style.display   = 'none';
       document.getElementById('recent-empty').style.display   = 'none';
 
+      const today = new Date().toISOString().split('T')[0];
+
       try {
-        // Load recent job transactions
+        // Load recent job transactions — exclude operatives who have left
         const { data: jobs } = await sb
           .from('transactions')
-          .select(`id, date, job_ref, site_name, net_value, date_paid,
+          .select(`id, date, job_ref, site_name, total_value, date_paid,
                    transaction_operatives(employee_id, share_value,
-                     employees(full_name, initials))`)
+                     employees(full_name, initials, status, leaving_date))`)
           .order('date', { ascending: false })
           .order('created_at', { ascending: false })
           .limit(15);
 
-        // Load recent bonus/deduction entries
+        // Load recent bonus/deduction entries — exclude leavers
         const { data: entries } = await sb
           .from('bonus_entries')
           .select(`id, date, type, amount, reason, date_paid,
-                   employees(full_name, initials)`)
+                   employees(full_name, initials, status, leaving_date)`)
           .order('date', { ascending: false })
           .order('created_at', { ascending: false })
           .limit(15);
+
+        // Filter bonus entries — skip inactive employees who have already left
+        const filteredEntries = (entries || []).filter(e => {
+          const emp = e.employees;
+          if (!emp) return true;
+          // Exclude anyone inactive — either already left or no date set
+          if (emp.status === 'inactive') return false;
+          return true;
+        });
 
         // Merge and sort by date desc
         const all = [
           ...(jobs || []).map(j => ({ ...j, _type: 'job' })),
-          ...(entries || []).map(e => ({ ...e, _type: e.type }))
+          ...filteredEntries.map(e => ({ ...e, _type: e.type }))
         ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 20);
 
         document.getElementById('recent-spinner').style.display = 'none';
@@ -1034,8 +1045,16 @@
             : '<span style="color:var(--muted)">—</span>';
 
           if (row._type === 'job') {
-            const ops    = (row.transaction_operatives || []).map(o => o.employees?.initials || '').join(', ');
-            const value  = '£' + parseFloat(row.net_value).toFixed(2);
+            // Filter out leavers from operative display
+            const ops = (row.transaction_operatives || [])
+              .filter(o => {
+                const emp = o.employees;
+                if (!emp) return true;
+                if (emp.status === 'inactive') return false;
+                return true;
+              })
+              .map(o => o.employees?.initials || '').join(', ');
+            const value = '£' + parseFloat(row.total_value || 0).toFixed(2);
             return `<tr>
               <td>${date}</td>
               <td><span class="tx-type-badge job">Job</span></td>
