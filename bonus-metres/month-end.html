@@ -1035,16 +1035,24 @@
     async function downloadPDF(runId, periodName) {
       const fileName = `month-end/${runId}.pdf`;
       const { data, error } = await sb.storage.from('documents').download(fileName);
-      if (error) { showToast('Could not download PDF: ' + error.message, 'error'); return; }
-      const url  = URL.createObjectURL(data);
-      const win  = window.open(url, '_blank');
-      if (!win) {
-        // Fallback — trigger download
-        const a = document.createElement('a');
+      if (error) { showToast('Could not load report: ' + error.message, 'error'); return; }
+
+      // Read the HTML content and write directly into a new window so it renders properly
+      const html = await data.text();
+      const win  = window.open('', '_blank');
+      if (win) {
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+      } else {
+        // Popup blocked — trigger download instead
+        const blob = new Blob([html], { type: 'text/html' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
         a.href = url; a.download = `JHB_MonthEnd_${periodName.replace(/\s+/g,'-')}.html`;
         a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
       }
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
     }
 
     async function regeneratePDF(runId, periodName) {
