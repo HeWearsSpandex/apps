@@ -144,6 +144,18 @@
     .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── PAGINATION ── */
+    .pagination { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+    .page-btn { padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--white); color: var(--muted); transition: all 0.15s; font-family: inherit; }
+    .page-btn:hover    { border-color: var(--red); color: var(--red); }
+    .page-btn.active   { background: var(--red); color: var(--white); border-color: var(--red); }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .page-info { font-size: 13px; color: var(--muted); }
+
+    .btn-green       { background: var(--green); color: var(--white); }
+    .btn-green:hover { opacity: 0.9; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+
     @media (max-width: 900px) {
       .main { margin-left: 0; padding: 16px; }
       .summary-row { grid-template-columns: repeat(2, 1fr); }
@@ -229,6 +241,8 @@
     let allSites     = [];
     let allTx        = [];
     let currentSort  = 'total';
+    let currentPage  = 1;
+    const PAGE_SIZE  = 10;
     let searchTimer  = null;
 
     async function init() {
@@ -248,7 +262,7 @@
 
     function scheduleSearch() {
       clearTimeout(searchTimer);
-      searchTimer = setTimeout(renderSites, 300);
+      searchTimer = setTimeout(() => { currentPage = 1; renderSites(); }, 300);
     }
 
     function clearFilters() {
@@ -260,6 +274,7 @@
       document.querySelectorAll('.sort-pill').forEach(p => p.classList.remove('active'));
       el.classList.add('active');
       currentSort = el.dataset.sort;
+      currentPage = 1;
       renderSites();
     }
 
@@ -369,111 +384,164 @@
         return;
       }
 
-      list.innerHTML = `<div class="sites-list">
-        ${filtered.map((site, idx) => {
-          const rank    = idx + 1;
-          const rankHtml = rank <= 3
-            ? `<div class="site-rank top3">${rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}</div>`
-            : `<div class="site-rank">#${rank}</div>`;
-          const refs    = [...site.jobRefs].join(', ');
-          const avgVal  = site.visits > 0 ? site.total / site.visits : 0;
-          const emps    = Object.values(site.empMap).sort((a,b) => b.visits - a.visits);
+      // Pagination
+      const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+      if (currentPage > totalPages) currentPage = totalPages;
+      const startIdx   = (currentPage - 1) * PAGE_SIZE;
+      const paginated  = filtered.slice(startIdx, startIdx + PAGE_SIZE);
 
-          // Visits table rows
-          const visitRows = site.txList.slice(0, 10).map(tx => {
-            const ops  = (tx.transaction_operatives || []).map(o => o.employees?.initials || '?').join(', ');
-            const val  = parseFloat(tx.bonus_metres || 0) * parseFloat(tx.rate || 0.03);
-            const date = new Date(tx.date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
-            return `<tr>
-              <td>${date}</td>
-              <td style="font-family:monospace;font-size:11px">${tx.job_ref || '—'}</td>
-              <td>${parseFloat(tx.bonus_metres).toLocaleString()}m</td>
-              <td style="font-weight:600;color:var(--green)">£${val.toFixed(2)}</td>
-              <td><span style="font-size:11px;color:var(--muted)">${ops}</span></td>
-              <td>${tx.date_paid
-                ? `<span class="paid-badge">Paid</span>`
-                : `<span class="unpaid-badge">Unpaid</span>`}</td>
-            </tr>`;
-          }).join('');
+      const cards = paginated.map((site, pageIdx) => {
+        const idx     = startIdx + pageIdx;
+        const rank    = idx + 1;
+        const rankHtml = rank <= 3
+          ? `<div class="site-rank top3">${rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}</div>`
+          : `<div class="site-rank">#${rank}</div>`;
+        const refs = [...site.jobRefs].join(', ');
+        const emps = Object.values(site.empMap).sort((a,b) => b.visits - a.visits);
 
-          const moreVisits = site.txList.length > 10
-            ? `<tr><td colspan="6" style="text-align:center;color:var(--muted);font-size:11px;padding:8px">
-                +${site.txList.length - 10} more visits
-               </td></tr>`
-            : '';
+        // All visits in detail (no 10-limit inside expanded)
+        const visitRows = site.txList.map(tx => {
+          const ops  = (tx.transaction_operatives || []).map(o => o.employees?.full_name || '?').join(', ');
+          const inits= (tx.transaction_operatives || []).map(o => o.employees?.initials  || '?').join(', ');
+          const val  = parseFloat(tx.bonus_metres || 0) * parseFloat(tx.rate || 0.03);
+          const date = new Date(tx.date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+          return `<tr>
+            <td>${date}</td>
+            <td style="font-family:monospace;font-size:11px">${tx.job_ref || '—'}</td>
+            <td>${parseFloat(tx.bonus_metres).toLocaleString()}m</td>
+            <td style="font-weight:600;color:var(--green)">£${val.toFixed(2)}</td>
+            <td title="${ops}"><span style="font-size:11px;color:var(--muted)">${inits}</span></td>
+            <td>${tx.date_paid
+              ? `<span class="paid-badge">Paid</span>`
+              : `<span class="unpaid-badge">Unpaid</span>`}</td>
+          </tr>`;
+        }).join('');
 
-          // Employee chips
-          const empChips = emps.map(emp => {
-            const imgSrc  = `${STORAGE_IMG}${encodeURIComponent(emp.full_name)}_cvface1.jpg`;
-            const fallback = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><circle cx='10' cy='10' r='10' fill='%23e8f0fe'/><text x='10' y='14' text-anchor='middle' font-size='8' font-weight='700' fill='%231a73e8' font-family='Arial'>${emp.initials}</text></svg>`;
-            return `<div class="emp-chip">
-              <img src="${imgSrc}" onerror="this.src='${fallback}'" alt="${emp.full_name}">
-              ${emp.full_name.split(' ')[0]}
-              <span class="emp-chip-visits">${emp.visits}v</span>
-            </div>`;
-          }).join('');
-
-          return `<div class="site-card" id="site-card-${idx}">
-            <div class="site-card-header" onclick="toggleSite(${idx})">
-              ${rankHtml}
-              <div class="site-info">
-                <div class="site-name">${site.name}</div>
-                ${refs ? `<div class="site-job-refs">Job refs: ${refs}</div>` : ''}
-              </div>
-              <div style="display:flex;align-items:center;gap:0">
-                <div class="site-metrics">
-                  <div class="site-metric paid">
-                    <div class="m-val">£${site.paid.toFixed(0)}</div>
-                    <div class="m-lbl">Paid</div>
-                  </div>
-                  <div class="site-metric unpaid">
-                    <div class="m-val">£${site.unpaid.toFixed(0)}</div>
-                    <div class="m-lbl">Outstanding</div>
-                  </div>
-                  <div class="site-metric metres">
-                    <div class="m-val">${(site.metres/1000).toFixed(1)}k</div>
-                    <div class="m-lbl">Metres</div>
-                  </div>
-                  <div class="site-metric visits">
-                    <div class="m-val">${site.visits}</div>
-                    <div class="m-lbl">Visits</div>
-                  </div>
-                </div>
-                <div class="site-chevron">›</div>
-              </div>
-            </div>
-            <div class="site-detail">
-              <div class="detail-grid">
-                <div class="detail-section">
-                  <h4>Visit History ${site.txList.length > 10 ? `(showing 10 of ${site.txList.length})` : `(${site.txList.length})`}</h4>
-                  <table class="visits-table">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Job Ref</th>
-                        <th>Metres</th>
-                        <th>Value</th>
-                        <th>Crew</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>${visitRows}${moreVisits}</tbody>
-                  </table>
-                </div>
-                <div class="detail-section">
-                  <h4>Employees (${emps.length})</h4>
-                  <div class="emp-chips">${empChips || '<span style="color:var(--muted);font-size:12px">No employees</span>'}</div>
-                </div>
-              </div>
-            </div>
+        // Employee chips
+        const empChips = emps.map(emp => {
+          const imgSrc   = `${STORAGE_IMG}${encodeURIComponent(emp.full_name)}_cvface1.jpg`;
+          const fallback = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><circle cx='10' cy='10' r='10' fill='%23e8f0fe'/><text x='10' y='14' text-anchor='middle' font-size='8' font-weight='700' fill='%231a73e8' font-family='Arial'>${emp.initials}</text></svg>`;
+          return `<div class="emp-chip">
+            <img src="${imgSrc}" onerror="this.src='${fallback}'" alt="${emp.full_name}">
+            ${emp.full_name.split(' ')[0]}
+            <span class="emp-chip-visits">${emp.visits}v</span>
           </div>`;
-        }).join('')}
-      </div>`;
+        }).join('');
+
+        return `<div class="site-card" id="site-card-${idx}">
+          <div class="site-card-header" onclick="toggleSite(${idx})">
+            ${rankHtml}
+            <div class="site-info">
+              <div class="site-name">${site.name}</div>
+              ${refs ? `<div class="site-job-refs">Job refs: ${refs}</div>` : ''}
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="site-metrics">
+                <div class="site-metric paid">
+                  <div class="m-val">£${site.paid.toFixed(0)}</div>
+                  <div class="m-lbl">Paid</div>
+                </div>
+                <div class="site-metric unpaid">
+                  <div class="m-val">£${site.unpaid.toFixed(0)}</div>
+                  <div class="m-lbl">Outstanding</div>
+                </div>
+                <div class="site-metric metres">
+                  <div class="m-val">${(site.metres/1000).toFixed(1)}k</div>
+                  <div class="m-lbl">Metres</div>
+                </div>
+                <div class="site-metric visits">
+                  <div class="m-val">${site.visits}</div>
+                  <div class="m-lbl">Visits</div>
+                </div>
+              </div>
+              <button class="btn btn-green btn-sm" onclick="event.stopPropagation();exportSiteCSV(${idx})" title="Export to CSV">⬇️ CSV</button>
+              <div class="site-chevron">›</div>
+            </div>
+          </div>
+          <div class="site-detail">
+            <div class="detail-grid">
+              <div class="detail-section">
+                <h4>Visit History (${site.txList.length})</h4>
+                <table class="visits-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Job Ref</th>
+                      <th>Metres</th>
+                      <th>Value</th>
+                      <th>Operatives</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>${visitRows}</tbody>
+                </table>
+              </div>
+              <div class="detail-section">
+                <h4>Employees (${emps.length})</h4>
+                <div class="emp-chips">${empChips || '<span style="color:var(--muted);font-size:12px">No employees</span>'}</div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+
+      // Pagination controls
+      const pageBtns = [];
+      pageBtns.push(`<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹ Prev</button>`);
+      for (let p = 1; p <= totalPages; p++) {
+        if (totalPages <= 7 || p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1) {
+          pageBtns.push(`<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`);
+        } else if (Math.abs(p - currentPage) === 2) {
+          pageBtns.push(`<span class="page-info">…</span>`);
+        }
+      }
+      pageBtns.push(`<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>Next ›</button>`);
+
+      list.innerHTML = `
+        <div class="sites-list">${cards}</div>
+        ${totalPages > 1 ? `
+        <div class="pagination">
+          <span class="page-info">${filtered.length} sites · Page ${currentPage} of ${totalPages}</span>
+          ${pageBtns.join('')}
+        </div>` : ''}`;
+    }
+
+    function goPage(p) {
+      const totalPages = Math.ceil(allSites.length / PAGE_SIZE);
+      if (p < 1 || p > totalPages) return;
+      currentPage = p;
+      renderSites();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function toggleSite(idx) {
       const card = document.getElementById(`site-card-${idx}`);
       card.classList.toggle('open');
+    }
+
+    function exportSiteCSV(idx) {
+      const site = allSites[idx];
+      if (!site) return;
+
+      const rows = [
+        ['Date', 'Job Reference', 'Site Name', 'Metres', 'Rate', 'Value', 'Operatives', 'Status', 'Date Paid'],
+        ...site.txList.map(tx => {
+          const ops   = (tx.transaction_operatives || []).map(o => o.employees?.full_name || '?').join('; ');
+          const val   = parseFloat(tx.bonus_metres || 0) * parseFloat(tx.rate || 0.03);
+          const date  = new Date(tx.date).toLocaleDateString('en-GB');
+          const paid  = tx.date_paid ? new Date(tx.date_paid).toLocaleDateString('en-GB') : '';
+          return [date, tx.job_ref || '', tx.site_name || site.name, tx.bonus_metres, tx.rate, val.toFixed(2), ops, tx.date_paid ? 'Paid' : 'Unpaid', paid];
+        })
+      ];
+
+      const csv  = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `JHB_Site_${site.name.replace(/[^a-zA-Z0-9]/g,'-')}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
     }
 
     init();
