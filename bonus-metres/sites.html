@@ -307,14 +307,18 @@
 
       allTx = txData || [];
 
-      // Group by site_name
+      // Group by site_name + job_ref combination — unique per contract
       const siteMap = {};
       allTx.forEach(tx => {
-        const key   = tx.site_name || tx.job_ref || 'Unknown';
-        const value = parseFloat(tx.bonus_metres || 0) * parseFloat(tx.rate || 0.03);
+        const sitePart = tx.site_name || 'Unknown';
+        const jobPart  = tx.job_ref   || '';
+        const key      = jobPart ? `${sitePart} — ${jobPart}` : sitePart;
+        const value    = parseFloat(tx.bonus_metres || 0) * parseFloat(tx.rate || 0.03);
         if (!siteMap[key]) {
           siteMap[key] = {
-            name:     key,
+            name:     sitePart,
+            jobRef:   jobPart,
+            key,
             jobRefs:  new Set(),
             visits:   0,
             metres:   0,
@@ -432,8 +436,8 @@
           <div class="site-card-header" onclick="toggleSite(${idx})">
             ${rankHtml}
             <div class="site-info">
-              <div class="site-name">${site.name}</div>
-              ${refs ? `<div class="site-job-refs">Job refs: ${refs}</div>` : ''}
+              <div class="site-name">${site.name}${site.jobRef ? ` <span style="font-size:12px;font-weight:400;color:var(--muted)">— ${site.jobRef}</span>` : ''}</div>
+              ${!site.jobRef && refs ? `<div class="site-job-refs">Job refs: ${refs}</div>` : ''}
             </div>
             <div style="display:flex;align-items:center;gap:8px">
               <div class="site-metrics">
@@ -454,7 +458,7 @@
                   <div class="m-lbl">Visits</div>
                 </div>
               </div>
-              <button class="btn btn-green btn-sm" onclick="event.stopPropagation();exportSiteCSV(${idx})" title="Export to CSV">⬇️ CSV</button>
+              <button class="btn btn-green btn-sm" onclick="event.stopPropagation();exportSiteCSV('${encodeURIComponent(site.key)}')" title="Export to CSV">⬇️ CSV</button>
               <div class="site-chevron">›</div>
             </div>
           </div>
@@ -519,8 +523,9 @@
       card.classList.toggle('open');
     }
 
-    function exportSiteCSV(idx) {
-      const site = allSites[idx];
+    function exportSiteCSV(encodedKey) {
+      const key  = decodeURIComponent(encodedKey);
+      const site = allSites.find(s => s.key === key);
       if (!site) return;
 
       const rows = [
@@ -539,7 +544,8 @@
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
       a.href     = url;
-      a.download = `JHB_Site_${site.name.replace(/[^a-zA-Z0-9]/g,'-')}.csv`;
+      const safeName = `${site.name}${site.jobRef ? '_' + site.jobRef : ''}`.replace(/[^a-zA-Z0-9]/g, '-');
+      a.download = `JHB_Site_${safeName}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     }
