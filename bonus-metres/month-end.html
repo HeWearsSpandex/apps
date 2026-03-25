@@ -879,6 +879,9 @@
       const csv = buildCSV(previewData, previewConfig.periodName, previewConfig.paymentDate);
       const fn  = `JHB_MonthEnd_${previewConfig.periodName.replace(/\s+/g,'-')}.csv`;
       triggerDownload(csv, fn);
+      auditLog('export_csv', 'month_end_run', committedRunId, fn,
+        { period: previewConfig.periodName, rows: previewData.length }
+      );
     }
 
     async function redownloadCSV(runId, periodName) {
@@ -899,7 +902,11 @@
       }));
 
       const csv = buildCSV(data, run.period_name, run.payment_date);
-      triggerDownload(csv, `JHB_MonthEnd_${run.period_name.replace(/\s+/g,'-')}.csv`);
+      const fn = `JHB_MonthEnd_${run.period_name.replace(/\s+/g,'-')}.csv`;
+      triggerDownload(csv, fn);
+      auditLog('export_csv', 'month_end_run', runId, fn,
+        { period: run.period_name, rows: data.length }
+      );
     }
 
     // ── Navigation ────────────────────────────────────────────────────────────
@@ -1057,9 +1064,10 @@
       a.download = `JHB_MonthEnd_${periodName.replace(/\s+/g, '-')}.pdf`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
+      auditLog('export_pdf', 'month_end_run', runId,
+        `JHB_MonthEnd_${periodName.replace(/\s+/g, '-')}.pdf`, { period: periodName }
+      );
     }
-
-    async function regeneratePDF(runId, periodName) {
       // Disable the button and show progress
       const btn = document.getElementById(`pdf-btn-${runId}`);
       if (btn) { btn.disabled = true; btn.textContent = '⏳ Fetching data…'; }

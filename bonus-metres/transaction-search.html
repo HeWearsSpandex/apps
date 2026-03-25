@@ -463,9 +463,10 @@
       a.download = `JHB_Transactions_${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
+      auditLog('export_csv', 'transactions', null, `JHB_Transactions_${new Date().toISOString().split('T')[0]}.csv`,
+        { rows: currentResults.length, filters: { jobRef: document.getElementById('f-jobref').value, site: document.getElementById('f-site').value, status: document.getElementById('f-status').value } }
+      );
     }
-
-    // ── Edit modal ────────────────────────────────────────────────────────────
     function openEdit(txId) {
       const tx = currentResults.find(t => t.id === txId);
       if (!tx) return;

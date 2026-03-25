@@ -564,6 +564,9 @@
       a.download = `JHB_Site_${safeName}.csv`;
       a.click();
       URL.revokeObjectURL(url);
+      auditLog('export_csv', 'site', null, a.download,
+        { site: site.name, job_ref: site.jobRef || null, rows: site.txList.length }
+      );
     }
 
     init();
