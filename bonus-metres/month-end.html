@@ -521,7 +521,7 @@
             <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="redownloadCSV('${run.id}', '${run.period_name}')">⬇️ CSV</button>
             ${hasPdf
               ? `<button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="downloadPDF('${run.id}', '${run.period_name}')">📄 PDF</button>`
-              : `<button class="btn btn-ghost" style="font-size:12px;padding:6px 12px;opacity:0.5" onclick="regeneratePDF('${run.id}', '${run.period_name}')">📄 Generate PDF</button>`}
+              : `<button class="btn btn-ghost" id="pdf-btn-${run.id}" style="font-size:12px;padding:6px 12px;opacity:0.5" onclick="regeneratePDF('${run.id}', '${run.period_name}')">📄 Generate PDF</button>`}
           </div>
         </div>`;
       }).join('');
@@ -834,13 +834,15 @@
 
         // Generate and store PDF
         try {
-          showToast('Generating PDF report…', 'info');
+          showToast('⏳ Building PDF report…', 'info');
           await generateAndStorePDF(committedRunId, periodName, paymentDate, totalPaid, previewData);
-          showToast('PDF report saved to documents ✓', 'success');
-          await loadHistory(); // reload to show PDF button
+          showToast('⏳ Saving PDF to storage…', 'info');
+          await new Promise(r => setTimeout(r, 800));
+          showToast('✓ PDF report saved', 'success');
+          await loadHistory();
         } catch(pdfErr) {
           console.warn('PDF generation failed:', pdfErr.message);
-          showToast('PDF generation failed — you can regenerate from history', 'warning');
+          showToast('PDF generation failed — regenerate from history', 'warning');
         }
 
       } catch(e) {
@@ -1069,8 +1071,16 @@
     }
 
     async function regeneratePDF(runId, periodName) {
+      const btnId = `pdf-btn-${runId}`;
+      const btn   = document.getElementById(btnId);
+
+      const setStatus = (msg) => {
+        if (btn) { btn.textContent = msg; btn.disabled = true; }
+        showToast(msg, 'info');
+      };
+
       try {
-        showToast('Regenerating PDF…', 'info');
+        setStatus('⏳ Fetching data…');
         const { data: run }   = await sb.from('month_end_runs').select('*').eq('id', runId).single();
         const { data: lines } = await sb.from('month_end_lines')
           .select('*, employees(full_name, initials)')
@@ -1086,11 +1096,18 @@
           carry_over_out:l.carry_over_out,
         }));
 
+        setStatus('⏳ Building PDF…');
         await generateAndStorePDF(runId, run.period_name, run.payment_date, parseFloat(run.total_paid), pdfLines);
-        showToast('PDF generated ✓', 'success');
+
+        setStatus('⏳ Saving to storage…');
+        // Small pause to ensure storage is ready
+        await new Promise(r => setTimeout(r, 800));
+
+        showToast('✓ PDF ready', 'success');
         await loadHistory();
       } catch(e) {
         showToast('Failed: ' + e.message, 'error');
+        if (btn) { btn.textContent = '📄 Generate PDF'; btn.disabled = false; }
       }
     }
 
