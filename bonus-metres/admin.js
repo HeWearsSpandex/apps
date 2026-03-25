@@ -133,12 +133,16 @@ async function requireAuth() {
   if (roleEl)   roleEl.textContent   = currentAdmin.role.replace(/_/g, ' ');
 
   dbg('auth complete — user ready');
+
+  // Log login (fire and forget — don't await)
+  auditLog('user_login', 'user', currentUser.id, currentAdmin?.name || currentUser.email, null).catch(() => {});
   return true;
 }
 
 // ── Sign out ──────────────────────────────────
 
 async function adminSignOut() {
+  await auditLog('user_logout', 'user', currentUser?.id, currentAdmin?.name || currentUser?.email, null).catch(() => {});
   await sb.auth.signOut();
   window.location.href = 'dashboard.html';
 }
@@ -334,5 +338,25 @@ async function updateTaskBadge() {
     }
   } catch(e) {
     console.warn('Task badge error:', e.message);
+  }
+}
+
+// ── Audit log helper ──────────────────────────
+// Call auditLog(action, entityType, entityId, entityLabel, details)
+// from any page to record an action.
+
+async function auditLog(action, entityType, entityId = null, entityLabel = null, details = null) {
+  try {
+    await sb.from('audit_log').insert({
+      user_id:      currentUser?.id      || null,
+      user_name:    currentAdmin?.name   || currentUser?.email || 'Unknown',
+      action,
+      entity_type:  entityType,
+      entity_id:    entityId,
+      entity_label: entityLabel,
+      details:      details ? JSON.parse(JSON.stringify(details)) : null
+    });
+  } catch(e) {
+    console.warn('Audit log failed:', e.message);
   }
 }
