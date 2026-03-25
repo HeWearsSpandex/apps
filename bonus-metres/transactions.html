@@ -882,6 +882,10 @@
         if (opsErr) throw new Error(opsErr.message);
 
         showToast(`✓ Job saved — ${selectedOps.length} operative${selectedOps.length > 1 ? 's' : ''}, £${totalValue.toFixed(2)} total`, 'success');
+        await auditLog('transaction_created', 'transaction', tx.id,
+          `${site || jobRef} (${date})`,
+          { job_ref: jobRef, site_name: site, metres, rate: currentRate, total: totalValue, operatives: selectedOps.length }
+        );
         resetJob();
         await loadRecent();
 
@@ -929,6 +933,10 @@
         const total = entries.reduce((s, r) => s + r.amount, 0);
         const label = currentType === 'special_bonus' ? 'Bonus' : 'Deduction';
         showToast(`✓ ${label} saved — ${entries.length} employee${entries.length > 1 ? 's' : ''}, £${total.toFixed(2)} total`, 'success');
+        await auditLog('bonus_entry_created', 'bonus_entry', null,
+          `${label} — ${reason || 'no reason'} (${date})`,
+          { type: currentType, reason, total, employees: entries.length }
+        );
         resetEntry();
         await loadRecent();
 
