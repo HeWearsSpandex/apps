@@ -1046,6 +1046,11 @@
       });
       if (error) throw new Error(error.message);
 
+      // Verify file is actually in storage before marking as done
+      const { data: verifyData, error: verifyErr } = await sb.storage
+        .from('documents').download(fileName);
+      if (verifyErr || !verifyData) throw new Error('PDF upload could not be verified');
+
       await sb.from('month_end_runs').update({ document_path: fileName }).eq('id', runId);
     }
 
