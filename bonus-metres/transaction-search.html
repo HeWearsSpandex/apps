@@ -579,6 +579,10 @@
         if (insErr) throw new Error(insErr.message);
 
         showToast('Transaction updated', 'success');
+        await auditLog('transaction_edited', 'transaction', editingId,
+          `${site || jobRef} (${date})`,
+          { job_ref: jobRef, site_name: site, metres, operatives: editSelectedOps.length }
+        );
         closeEdit();
         await runSearch();
 
@@ -603,10 +607,14 @@
     async function doDelete() {
       if (!editingId) return;
       try {
-        // Operatives cascade delete via FK
+        const tx = currentResults.find(t => t.id === editingId);
         const { error } = await sb.from('transactions').delete().eq('id', editingId);
         if (error) throw new Error(error.message);
         showToast('Transaction deleted', 'success');
+        await auditLog('transaction_deleted', 'transaction', editingId,
+          `${tx?.site_name || tx?.job_ref || editingId}`,
+          { job_ref: tx?.job_ref, site_name: tx?.site_name, date: tx?.date }
+        );
         closeEdit();
         await runSearch();
       } catch(e) {
