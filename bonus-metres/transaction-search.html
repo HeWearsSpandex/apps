@@ -414,8 +414,16 @@
               const val    = parseFloat(tx.bonus_metres) * parseFloat(tx.rate || 0.03);
               return `<tr>
                 <td style="white-space:nowrap">${date}</td>
-                <td style="font-family:monospace;font-size:12px">${tx.job_ref || '—'}</td>
-                <td>${tx.site_name || '—'}</td>
+                <td style="font-family:monospace;font-size:12px">
+                  ${tx.job_ref
+                    ? `<a href="sites.html?job=${encodeURIComponent(tx.job_ref)}" title="View in Site Analysis" style="color:inherit;text-decoration:none">${tx.job_ref} <span style="color:var(--blue);font-size:11px">🏗️</span></a>`
+                    : '—'}
+                </td>
+                <td>
+                  ${tx.site_name
+                    ? `<a href="sites.html?site=${encodeURIComponent(tx.site_name)}" title="View in Site Analysis" style="color:inherit;text-decoration:none">${tx.site_name} <span style="color:var(--blue);font-size:11px">🏗️</span></a>`
+                    : '—'}
+                </td>
                 <td>${parseFloat(tx.bonus_metres).toLocaleString()}m</td>
                 <td><div class="ops-chips">${chips}</div></td>
                 <td style="font-weight:600;color:var(--green)">£${val.toFixed(2)}</td>

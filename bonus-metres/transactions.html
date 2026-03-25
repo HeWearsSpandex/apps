@@ -1066,8 +1066,15 @@
             return `<tr>
               <td>${date}</td>
               <td><span class="tx-type-badge job">Job</span></td>
-              <td>${row.job_ref || '—'}</td>
-              <td>${row.site_name || '—'} <span style="color:var(--muted);font-size:11px">[${ops}]</span></td>
+              <td>${row.job_ref
+                ? `<a href="sites.html?job=${encodeURIComponent(row.job_ref)}" title="View in Site Analysis" style="color:inherit;text-decoration:none">${row.job_ref} <span style="color:var(--blue);font-size:11px">🏗️</span></a>`
+                : '—'}</td>
+              <td>
+                ${row.site_name
+                  ? `<a href="sites.html?site=${encodeURIComponent(row.site_name)}" title="View in Site Analysis" style="color:inherit;text-decoration:none">${row.site_name}</a>`
+                  : '—'}
+                <span style="color:var(--muted);font-size:11px">[${ops}]</span>
+              </td>
               <td style="text-align:right;font-weight:600">${value}</td>
               <td>${paid}</td>
             </tr>`;

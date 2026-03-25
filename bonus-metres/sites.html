@@ -258,6 +258,22 @@
       document.getElementById('f-date-from').value = fromDate;
 
       await runAnalysis();
+
+      // If URL has ?site= or ?job= params, search and open matching site
+      const params  = new URLSearchParams(location.search);
+      const siteParm = params.get('site') || '';
+      const jobParm  = params.get('job')  || '';
+      if (siteParm || jobParm) {
+        const searchVal = jobParm || siteParm;
+        document.getElementById('f-search').value = searchVal;
+        currentPage = 1;
+        renderSites();
+        // Auto-open the first matching card after render
+        setTimeout(() => {
+          const firstCard = document.querySelector('.site-card');
+          if (firstCard) firstCard.classList.add('open');
+        }, 100);
+      }
     }
 
     function scheduleSearch() {
