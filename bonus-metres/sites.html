@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JHB — Site Analysis</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red:      #c00; --red-dk: #900; --red-lt: #fff0f0;
+      --green:    #2a9d2a; --green-lt: #f0fff0;
+      --orange:   #e65100; --orange-lt: #fff3e0;
+      --blue:     #1a73e8; --blue-lt: #e8f0fe;
+      --gold:     #f9a825; --gold-lt: #fffde7;
+      --purple:   #7c3aed; --purple-lt: #f5f3ff;
+      --grey:     #f4f5f7; --border: #e0e0e0;
+      --text:     #1a1a1a; --muted: #888;
+      --white:    #fff;
+      --shadow:   0 2px 8px rgba(0,0,0,0.08);
+      --shadow-lg:0 8px 32px rgba(0,0,0,0.14);
+      --radius:   10px;
+    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--grey); color: var(--text); min-height: 100vh; }
+    .main { margin-left: 220px; padding: 28px 32px; min-height: 100vh; }
+
+    .page-header { margin-bottom: 20px; display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .page-header h2 { font-size: 22px; font-weight: 700; }
+    .page-header p  { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+    /* ── FILTER BAR ── */
+    .filter-bar {
+      background: var(--white); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 14px 18px;
+      margin-bottom: 16px;
+      display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; }
+    .filter-group label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+    .filter-group input, .filter-group select {
+      padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 13px; font-family: inherit; outline: none; transition: border-color 0.15s;
+    }
+    .filter-group input:focus, .filter-group select:focus { border-color: var(--red); }
+    .filter-group input { min-width: 220px; }
+    .btn { padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; }
+    .btn-primary { background: var(--red); color: var(--white); }
+    .btn-primary:hover { background: var(--red-dk); }
+    .btn-ghost { background: var(--grey); color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── SUMMARY STATS ── */
+    .summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+    .stat-card { background: var(--white); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); border-left: 4px solid var(--border); }
+    .stat-card.gold   { border-left-color: var(--gold); }
+    .stat-card.green  { border-left-color: var(--green); }
+    .stat-card.blue   { border-left-color: var(--blue); }
+    .stat-card.orange { border-left-color: var(--orange); }
+    .stat-val { font-size: 20px; font-weight: 700; }
+    .stat-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 3px; }
+    .stat-card.gold   .stat-val { color: var(--gold); }
+    .stat-card.green  .stat-val { color: var(--green); }
+    .stat-card.blue   .stat-val { color: var(--blue); }
+    .stat-card.orange .stat-val { color: var(--orange); }
+
+    /* ── SORT PILLS ── */
+    .sort-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .sort-bar label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+    .sort-pill { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--white); color: var(--muted); transition: all 0.15s; }
+    .sort-pill.active { background: var(--red); color: var(--white); border-color: var(--red); }
+
+    /* ── SITE CARDS ── */
+    .sites-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .site-card {
+      background: var(--white); border-radius: var(--radius);
+      box-shadow: var(--shadow); overflow: hidden;
+      transition: box-shadow 0.15s;
+    }
+    .site-card:hover { box-shadow: var(--shadow-lg); }
+
+    .site-card-header {
+      display: grid;
+      grid-template-columns: 36px 1fr auto;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      cursor: pointer;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.15s;
+    }
+    .site-card-header:hover { background: #fafafa; }
+    .site-card.open .site-card-header { border-bottom-color: var(--border); }
+
+    .site-rank { font-size: 13px; font-weight: 700; color: var(--muted); text-align: center; }
+    .site-rank.top3 { color: var(--gold); font-size: 18px; }
+
+    .site-info { min-width: 0; }
+    .site-name { font-size: 15px; font-weight: 700; color: var(--text); }
+    .site-job-refs { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    .site-metrics { display: flex; gap: 24px; align-items: center; flex-shrink: 0; }
+    .site-metric { text-align: right; }
+    .site-metric .m-val { font-size: 14px; font-weight: 700; }
+    .site-metric .m-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
+    .site-metric.paid    .m-val { color: var(--green); }
+    .site-metric.unpaid  .m-val { color: var(--orange); }
+    .site-metric.metres  .m-val { color: var(--blue); }
+    .site-metric.visits  .m-val { color: var(--muted); }
+
+    .site-chevron { font-size: 14px; color: var(--muted); transition: transform 0.2s; flex-shrink: 0; margin-left: 8px; }
+    .site-card.open .site-chevron { transform: rotate(90deg); }
+
+    /* ── SITE DETAIL ── */
+    .site-detail { display: none; padding: 16px 18px; }
+    .site-card.open .site-detail { display: block; }
+
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    .detail-section h4 { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 10px; }
+
+    /* Visits table */
+    .visits-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .visits-table th { padding: 6px 10px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; color: var(--muted); background: var(--grey); border-bottom: 1px solid var(--border); }
+    .visits-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+    .visits-table tr:last-child td { border-bottom: none; }
+    .paid-badge   { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; background: var(--green-lt); color: var(--green); }
+    .unpaid-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; background: var(--orange-lt); color: var(--orange); }
+
+    /* Employee chips */
+    .emp-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .emp-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 20px;
+      background: var(--blue-lt); color: var(--blue);
+      font-size: 12px; font-weight: 600;
+    }
+    .emp-chip img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+    .emp-chip-visits { font-size: 10px; color: var(--muted); font-weight: 400; }
+
+    /* Empty / loading */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .empty-state .icon { font-size: 40px; margin-bottom: 10px; }
+    .spinner-wrap { display: flex; justify-content: center; padding: 60px; }
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 900px) {
+      .main { margin-left: 0; padding: 16px; }
+      .summary-row { grid-template-columns: repeat(2, 1fr); }
+      .site-metrics { gap: 12px; }
+      .detail-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="admin.js"></script>
+  <div id="sidebarMount"></div>
+
+  <div class="main" id="mainContent" style="display:none">
+
+    <div class="page-header">
+      <div>
+        <h2>Site Analysis</h2>
+        <p>Bonus performance by site and job reference</p>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>Search</label>
+        <input type="text" id="f-search" placeholder="Site name or job reference…" oninput="scheduleSearch()">
+      </div>
+      <div class="filter-group">
+        <label>Date From</label>
+        <input type="date" id="f-date-from" onchange="runAnalysis()">
+      </div>
+      <div class="filter-group">
+        <label>Date To</label>
+        <input type="date" id="f-date-to" onchange="runAnalysis()">
+      </div>
+      <button class="btn btn-ghost" onclick="clearFilters()">✕ Clear</button>
+    </div>
+
+    <!-- Summary stats -->
+    <div class="summary-row" id="summary-row" style="display:none">
+      <div class="stat-card gold">
+        <div class="stat-val" id="stat-total-value">—</div>
+        <div class="stat-lbl">Total Bonus Value</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-val" id="stat-paid">—</div>
+        <div class="stat-lbl">Paid</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-val" id="stat-unpaid">—</div>
+        <div class="stat-lbl">Outstanding</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-val" id="stat-sites">—</div>
+        <div class="stat-lbl">Unique Sites</div>
+      </div>
+    </div>
+
+    <!-- Sort -->
+    <div class="sort-bar" id="sort-bar" style="display:none">
+      <label>Sort By</label>
+      <span class="sort-pill active" data-sort="total"   onclick="setSortPill(this)">Total Value</span>
+      <span class="sort-pill"        data-sort="paid"    onclick="setSortPill(this)">Paid</span>
+      <span class="sort-pill"        data-sort="unpaid"  onclick="setSortPill(this)">Outstanding</span>
+      <span class="sort-pill"        data-sort="metres"  onclick="setSortPill(this)">Metres</span>
+      <span class="sort-pill"        data-sort="visits"  onclick="setSortPill(this)">Visits</span>
+    </div>
+
+    <!-- Sites list -->
+    <div id="sites-list">
+      <div class="empty-state">
+        <div class="icon">🏗️</div>
+        <p>Set a date range to load site data</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const STORAGE_IMG = STORAGE_URL;
+    let allSites     = [];
+    let allTx        = [];
+    let currentSort  = 'total';
+    let searchTimer  = null;
+
+    async function init() {
+      const ok = await requireAuth();
+      if (!ok) return;
+      document.getElementById('mainContent').style.display = 'block';
+
+      // Default date range — earliest transaction to today (all time)
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('f-date-to').value = today;
+      const { data: earliest } = await sb.from('transactions').select('date').order('date', { ascending: true }).limit(1);
+      const fromDate = earliest?.[0]?.date || today;
+      document.getElementById('f-date-from').value = fromDate;
+
+      await runAnalysis();
+    }
+
+    function scheduleSearch() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(renderSites, 300);
+    }
+
+    function clearFilters() {
+      document.getElementById('f-search').value = '';
+      runAnalysis();
+    }
+
+    function setSortPill(el) {
+      document.querySelectorAll('.sort-pill').forEach(p => p.classList.remove('active'));
+      el.classList.add('active');
+      currentSort = el.dataset.sort;
+      renderSites();
+    }
+
+    async function runAnalysis() {
+      const dateFrom = document.getElementById('f-date-from').value;
+      const dateTo   = document.getElementById('f-date-to').value;
+
+      document.getElementById('sites-list').innerHTML =
+        '<div class="spinner-wrap"><div class="spinner"></div></div>';
+      document.getElementById('summary-row').style.display = 'none';
+      document.getElementById('sort-bar').style.display    = 'none';
+
+      let query = sb
+        .from('transactions')
+        .select(`id, date, job_ref, site_name, bonus_metres, rate, date_paid,
+                 transaction_operatives(employee_id, share_value,
+                   employees(id, full_name, initials))`)
+        .order('date', { ascending: false });
+
+      if (dateFrom) query = query.gte('date', dateFrom);
+      if (dateTo)   query = query.lte('date', dateTo);
+
+      const { data: txData, error } = await query;
+
+      if (error) {
+        document.getElementById('sites-list').innerHTML =
+          `<div class="empty-state"><div class="icon">⚠️</div><p>${error.message}</p></div>`;
+        return;
+      }
+
+      allTx = txData || [];
+
+      // Group by site_name
+      const siteMap = {};
+      allTx.forEach(tx => {
+        const key   = tx.site_name || tx.job_ref || 'Unknown';
+        const value = parseFloat(tx.bonus_metres || 0) * parseFloat(tx.rate || 0.03);
+        if (!siteMap[key]) {
+          siteMap[key] = {
+            name:     key,
+            jobRefs:  new Set(),
+            visits:   0,
+            metres:   0,
+            total:    0,
+            paid:     0,
+            unpaid:   0,
+            txList:   [],
+            empMap:   {},
+          };
+        }
+        const s = siteMap[key];
+        if (tx.job_ref) s.jobRefs.add(tx.job_ref);
+        s.visits++;
+        s.metres += parseFloat(tx.bonus_metres || 0);
+        s.total  += value;
+        if (tx.date_paid) s.paid   += value;
+        else              s.unpaid += value;
+        s.txList.push(tx);
+
+        // Track employees
+        (tx.transaction_operatives || []).forEach(op => {
+          const emp = op.employees;
+          if (!emp) return;
+          if (!s.empMap[emp.id]) s.empMap[emp.id] = { ...emp, visits: 0 };
+          s.empMap[emp.id].visits++;
+        });
+      });
+
+      allSites = Object.values(siteMap);
+
+      // Summary stats
+      const totalVal = allSites.reduce((s, x) => s + x.total,  0);
+      const totalPaid= allSites.reduce((s, x) => s + x.paid,   0);
+      const totalUnp = allSites.reduce((s, x) => s + x.unpaid, 0);
+      document.getElementById('stat-total-value').textContent = `£${totalVal.toFixed(2)}`;
+      document.getElementById('stat-paid').textContent        = `£${totalPaid.toFixed(2)}`;
+      document.getElementById('stat-unpaid').textContent      = `£${totalUnp.toFixed(2)}`;
+      document.getElementById('stat-sites').textContent       = allSites.length;
+      document.getElementById('summary-row').style.display    = 'grid';
+      document.getElementById('sort-bar').style.display       = 'flex';
+
+      renderSites();
+    }
+
+    function renderSites() {
+      const search = document.getElementById('f-search').value.toLowerCase();
+
+      let filtered = allSites.filter(s =>
+        !search ||
+        s.name.toLowerCase().includes(search) ||
+        [...s.jobRefs].some(r => r.toLowerCase().includes(search))
+      );
+
+      const sortFn = {
+        total:  (a, b) => b.total   - a.total,
+        paid:   (a, b) => b.paid    - a.paid,
+        unpaid: (a, b) => b.unpaid  - a.unpaid,
+        metres: (a, b) => b.metres  - a.metres,
+        visits: (a, b) => b.visits  - a.visits,
+      };
+      filtered = [...filtered].sort(sortFn[currentSort] || sortFn.total);
+
+      const list = document.getElementById('sites-list');
+
+      if (!filtered.length) {
+        list.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>No sites found</p></div>`;
+        return;
+      }
+
+      list.innerHTML = `<div class="sites-list">
+        ${filtered.map((site, idx) => {
+          const rank    = idx + 1;
+          const rankHtml = rank <= 3
+            ? `<div class="site-rank top3">${rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}</div>`
+            : `<div class="site-rank">#${rank}</div>`;
+          const refs    = [...site.jobRefs].join(', ');
+          const avgVal  = site.visits > 0 ? site.total / site.visits : 0;
+          const emps    = Object.values(site.empMap).sort((a,b) => b.visits - a.visits);
+
+          // Visits table rows
+          const visitRows = site.txList.slice(0, 10).map(tx => {
+            const ops  = (tx.transaction_operatives || []).map(o => o.employees?.initials || '?').join(', ');
+            const val  = parseFloat(tx.bonus_metres || 0) * parseFloat(tx.rate || 0.03);
+            const date = new Date(tx.date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+            return `<tr>
+              <td>${date}</td>
+              <td style="font-family:monospace;font-size:11px">${tx.job_ref || '—'}</td>
+              <td>${parseFloat(tx.bonus_metres).toLocaleString()}m</td>
+              <td style="font-weight:600;color:var(--green)">£${val.toFixed(2)}</td>
+              <td><span style="font-size:11px;color:var(--muted)">${ops}</span></td>
+              <td>${tx.date_paid
+                ? `<span class="paid-badge">Paid</span>`
+                : `<span class="unpaid-badge">Unpaid</span>`}</td>
+            </tr>`;
+          }).join('');
+
+          const moreVisits = site.txList.length > 10
+            ? `<tr><td colspan="6" style="text-align:center;color:var(--muted);font-size:11px;padding:8px">
+                +${site.txList.length - 10} more visits
+               </td></tr>`
+            : '';
+
+          // Employee chips
+          const empChips = emps.map(emp => {
+            const imgSrc  = `${STORAGE_IMG}${encodeURIComponent(emp.full_name)}_cvface1.jpg`;
+            const fallback = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><circle cx='10' cy='10' r='10' fill='%23e8f0fe'/><text x='10' y='14' text-anchor='middle' font-size='8' font-weight='700' fill='%231a73e8' font-family='Arial'>${emp.initials}</text></svg>`;
+            return `<div class="emp-chip">
+              <img src="${imgSrc}" onerror="this.src='${fallback}'" alt="${emp.full_name}">
+              ${emp.full_name.split(' ')[0]}
+              <span class="emp-chip-visits">${emp.visits}v</span>
+            </div>`;
+          }).join('');
+
+          return `<div class="site-card" id="site-card-${idx}">
+            <div class="site-card-header" onclick="toggleSite(${idx})">
+              ${rankHtml}
+              <div class="site-info">
+                <div class="site-name">${site.name}</div>
+                ${refs ? `<div class="site-job-refs">Job refs: ${refs}</div>` : ''}
+              </div>
+              <div style="display:flex;align-items:center;gap:0">
+                <div class="site-metrics">
+                  <div class="site-metric paid">
+                    <div class="m-val">£${site.paid.toFixed(0)}</div>
+                    <div class="m-lbl">Paid</div>
+                  </div>
+                  <div class="site-metric unpaid">
+                    <div class="m-val">£${site.unpaid.toFixed(0)}</div>
+                    <div class="m-lbl">Outstanding</div>
+                  </div>
+                  <div class="site-metric metres">
+                    <div class="m-val">${(site.metres/1000).toFixed(1)}k</div>
+                    <div class="m-lbl">Metres</div>
+                  </div>
+                  <div class="site-metric visits">
+                    <div class="m-val">${site.visits}</div>
+                    <div class="m-lbl">Visits</div>
+                  </div>
+                </div>
+                <div class="site-chevron">›</div>
+              </div>
+            </div>
+            <div class="site-detail">
+              <div class="detail-grid">
+                <div class="detail-section">
+                  <h4>Visit History ${site.txList.length > 10 ? `(showing 10 of ${site.txList.length})` : `(${site.txList.length})`}</h4>
+                  <table class="visits-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Job Ref</th>
+                        <th>Metres</th>
+                        <th>Value</th>
+                        <th>Crew</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>${visitRows}${moreVisits}</tbody>
+                  </table>
+                </div>
+                <div class="detail-section">
+                  <h4>Employees (${emps.length})</h4>
+                  <div class="emp-chips">${empChips || '<span style="color:var(--muted);font-size:12px">No employees</span>'}</div>
+                </div>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }
+
+    function toggleSite(idx) {
+      const card = document.getElementById(`site-card-${idx}`);
+      card.classList.toggle('open');
+    }
+
+    init();
+  </script>
+</body>
+</html>
