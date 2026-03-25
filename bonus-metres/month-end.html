@@ -811,6 +811,10 @@
 
         await loadHistory();
         showToast(`✓ ${periodName} committed — £${totalPaid.toFixed(2)} total`, 'success');
+        await auditLog('month_end_committed', 'month_end_run', committedRunId,
+          periodName,
+          { payment_date: paymentDate, total_paid: totalPaid, employees_paid: previewData.filter(l => l.net_payable > 0).length }
+        );
 
       } catch(e) {
         console.error(e);
