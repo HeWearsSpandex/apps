@@ -802,17 +802,7 @@
           if (coErr) throw new Error(coErr.message);
         }
 
-        // Show committed panel
-        document.getElementById('panel-preview').style.display   = 'none';
-        document.getElementById('panel-committed').style.display = 'block';
-        setStep(3);
-
-        document.getElementById('committed-title').textContent =
-          `${periodName} committed and locked`;
-        document.getElementById('committed-subtitle').textContent =
-          `Payment date: ${new Date(paymentDate).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })} · Total paid: £${totalPaid.toFixed(2)} · ${previewData.filter(l=>l.net_payable>0).length} employees`;
-
-        // Mirror the table into committed view
+        // Mirror the table into committed view (kept for reference)
         document.getElementById('committed-tbody').innerHTML = document.getElementById('preview-tbody').innerHTML;
         document.getElementById('committed-tfoot').innerHTML = document.getElementById('preview-tfoot').innerHTML;
 
@@ -824,17 +814,19 @@
         );
 
         // Generate and store PDF
+        btn.textContent = '⏳ Building PDF…';
         try {
-          showToast('⏳ Building PDF report…', 'info');
           await generateAndStorePDF(committedRunId, periodName, paymentDate, totalPaid, previewData);
-          showToast('⏳ Saving PDF to storage…', 'info');
-          await new Promise(r => setTimeout(r, 800));
-          showToast('✓ PDF report saved', 'success');
           await loadHistory();
+          showToast('✓ PDF saved — returning to setup', 'success');
         } catch(pdfErr) {
-          console.warn('PDF generation failed:', pdfErr.message);
-          showToast('PDF generation failed — regenerate from history', 'warning');
+          console.error('PDF generation failed:', pdfErr);
+          showToast(`PDF failed (${pdfErr.message}) — use Generate PDF in history`, 'warning');
         }
+
+        // Return to setup after a short pause so user can see the success message
+        await new Promise(r => setTimeout(r, 2000));
+        resetToSetup();
 
       } catch(e) {
         console.error(e);
