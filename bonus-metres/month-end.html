@@ -1067,16 +1067,11 @@
     }
 
     async function regeneratePDF(runId, periodName) {
-      const btnId = `pdf-btn-${runId}`;
-      const btn   = document.getElementById(btnId);
-
-      const setStatus = (msg) => {
-        if (btn) { btn.textContent = msg; btn.disabled = true; }
-        showToast(msg, 'info');
-      };
+      // Disable the button and show progress
+      const btn = document.getElementById(`pdf-btn-${runId}`);
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Fetching data…'; }
 
       try {
-        setStatus('⏳ Fetching data…');
         const { data: run }   = await sb.from('month_end_runs').select('*').eq('id', runId).single();
         const { data: lines } = await sb.from('month_end_lines')
           .select('*, employees(full_name, initials)')
@@ -1092,18 +1087,22 @@
           carry_over_out:l.carry_over_out,
         }));
 
-        setStatus('⏳ Building PDF…');
+        // Update button text for each stage
+        const currentBtn = document.getElementById(`pdf-btn-${runId}`);
+        if (currentBtn) currentBtn.textContent = '⏳ Building PDF…';
+
         await generateAndStorePDF(runId, run.period_name, run.payment_date, parseFloat(run.total_paid), pdfLines);
 
-        setStatus('⏳ Saving to storage…');
-        // Small pause to ensure storage is ready
-        await new Promise(r => setTimeout(r, 800));
+        showToast('✓ PDF ready — reloading…', 'success');
 
-        showToast('✓ PDF ready', 'success');
+        // Reload history — this re-renders the row with the correct 📄 PDF button
         await loadHistory();
+
       } catch(e) {
+        console.error('PDF generation error:', e);
         showToast('Failed: ' + e.message, 'error');
-        if (btn) { btn.textContent = '📄 Generate PDF'; btn.disabled = false; }
+        // Re-render history to restore button to original state
+        await loadHistory();
       }
     }
 
