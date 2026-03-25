@@ -497,20 +497,11 @@
         return;
       }
 
-      // Check which runs have PDFs in storage
-      const pdfChecks = await Promise.all(data.map(async run => {
-        const fileName = `month-end/${run.id}.pdf`;
-        const { data: fileData } = await sb.storage.from('documents').list('month-end', {
-          search: `${run.id}.pdf`
-        });
-        return { id: run.id, hasPdf: fileData?.length > 0 };
-      }));
-      const pdfMap = Object.fromEntries(pdfChecks.map(r => [r.id, r.hasPdf]));
-
+      // Use document_path column — more reliable than storage list check
       el.innerHTML = data.map(run => {
-        const pd  = new Date(run.payment_date).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
-        const pa  = new Date(run.processed_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-        const hasPdf = pdfMap[run.id];
+        const pd     = new Date(run.payment_date).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+        const pa     = new Date(run.processed_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        const hasPdf = !!run.document_path;
         return `<div class="history-item">
           <div class="history-left">
             <h4>${run.period_name}</h4>
