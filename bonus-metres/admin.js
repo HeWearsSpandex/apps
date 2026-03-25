@@ -134,8 +134,13 @@ async function requireAuth() {
 
   dbg('auth complete — user ready');
 
-  // Log login (fire and forget — don't await)
-  auditLog('user_login', 'user', currentUser.id, currentAdmin?.name || currentUser.email, null).catch(() => {});
+  // Log login once per actual auth session (keyed on access token, not just tab)
+  const { data: { session } } = await sb.auth.getSession();
+  const sessionKey = session?.access_token?.slice(-16);
+  if (sessionKey && !localStorage.getItem(`logged_${sessionKey}`)) {
+    localStorage.setItem(`logged_${sessionKey}`, '1');
+    auditLog('user_login', 'user', currentUser.id, currentAdmin?.name || currentUser.email, null).catch(() => {});
+  }
   return true;
 }
 
