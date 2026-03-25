@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JHB — Audit Log</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red:      #c00; --red-dk: #900; --red-lt: #fff0f0;
+      --green:    #2a9d2a; --green-lt: #f0fff0;
+      --orange:   #e65100; --orange-lt: #fff3e0;
+      --blue:     #1a73e8; --blue-lt: #e8f0fe;
+      --gold:     #f9a825; --gold-lt: #fffde7;
+      --purple:   #7c3aed; --purple-lt: #f5f3ff;
+      --grey:     #f4f5f7; --border: #e0e0e0;
+      --text:     #1a1a1a; --muted: #888;
+      --white:    #fff;
+      --shadow:   0 2px 8px rgba(0,0,0,0.08);
+      --radius:   10px;
+    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--grey); color: var(--text); min-height: 100vh; }
+    .main { margin-left: 220px; padding: 28px 32px; min-height: 100vh; }
+
+    .page-header { margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .page-header h2 { font-size: 22px; font-weight: 700; }
+    .page-header p  { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+    /* ── FILTERS ── */
+    .filter-bar {
+      background: var(--white); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 14px 18px;
+      margin-bottom: 16px;
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; }
+    .filter-group label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+    .filter-group select, .filter-group input {
+      padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 13px; font-family: inherit; outline: none; transition: border-color 0.15s;
+    }
+    .filter-group select:focus, .filter-group input:focus { border-color: var(--red); }
+    .btn { padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; }
+    .btn-ghost { background: var(--grey); color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── RESULTS HEADER ── */
+    .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .results-count  { font-size: 13px; color: var(--muted); }
+
+    /* ── LOG TABLE ── */
+    .log-wrap { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .log-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .log-table th {
+      padding: 10px 14px; text-align: left;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.4px; color: var(--muted);
+      background: var(--grey); border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .log-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .log-table tr:last-child td { border-bottom: none; }
+    .log-table tr:hover td { background: #fafafa; }
+
+    /* Action badges */
+    .action-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 700;
+      padding: 3px 10px; border-radius: 20px;
+      white-space: nowrap;
+    }
+    .action-badge.created    { background: var(--green-lt);  color: var(--green); }
+    .action-badge.edited     { background: var(--blue-lt);   color: var(--blue); }
+    .action-badge.deleted    { background: var(--red-lt);    color: var(--red); }
+    .action-badge.month-end  { background: var(--gold-lt);   color: var(--gold); }
+    .action-badge.employee   { background: var(--purple-lt); color: var(--purple); }
+    .action-badge.photo      { background: var(--orange-lt); color: var(--orange); }
+    .action-badge.auth       { background: var(--grey);      color: var(--muted); }
+
+    .entity-label { font-size: 13px; font-weight: 600; color: var(--text); }
+    .entity-detail { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .user-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; color: var(--text);
+    }
+    .user-avatar {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--red); color: var(--white);
+      font-size: 10px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .detail-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 14px; padding: 2px 6px;
+      border-radius: 4px; transition: color 0.15s;
+    }
+    .detail-btn:hover { color: var(--blue); }
+
+    /* Detail expanded row */
+    .detail-row { display: none; }
+    .detail-row.open { display: table-row; }
+    .detail-cell {
+      padding: 8px 14px 12px 48px;
+      background: #f8f9ff;
+      border-bottom: 1px solid var(--border);
+    }
+    .detail-json {
+      font-family: monospace; font-size: 12px;
+      color: #333; background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 6px; padding: 10px 12px;
+      white-space: pre-wrap; max-width: 600px;
+    }
+
+    /* Empty / loading */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-state .icon { font-size: 40px; margin-bottom: 10px; }
+    .spinner-wrap { display: flex; justify-content: center; padding: 40px; }
+    .spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Load more */
+    .load-more-wrap { text-align: center; padding: 16px; border-top: 1px solid var(--border); }
+
+    @media (max-width: 900px) {
+      .main { margin-left: 0; padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="admin.js"></script>
+  <div id="sidebarMount"></div>
+
+  <div class="main" id="mainContent" style="display:none">
+
+    <div class="page-header">
+      <div>
+        <h2>Audit Log</h2>
+        <p>All significant actions taken in the system — last 90 days</p>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>Action Type</label>
+        <select id="f-action" onchange="loadLog()">
+          <option value="">All actions</option>
+          <option value="transaction_created">Transaction Created</option>
+          <option value="transaction_edited">Transaction Edited</option>
+          <option value="transaction_deleted">Transaction Deleted</option>
+          <option value="bonus_entry_created">Bonus / Deduction Added</option>
+          <option value="month_end_committed">Month End Committed</option>
+          <option value="employee_added">Employee Added</option>
+          <option value="employee_edited">Employee Edited</option>
+          <option value="photo_uploaded">Photo Uploaded</option>
+          <option value="photo_changed">Photo Changed</option>
+          <option value="user_login">User Login</option>
+          <option value="user_logout">User Logout</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>User</label>
+        <select id="f-user" onchange="loadLog()">
+          <option value="">All users</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Search</label>
+        <input type="text" id="f-search" placeholder="Name, job ref, site…" oninput="scheduleSearch()">
+      </div>
+      <button class="btn btn-ghost" onclick="clearFilters()">✕ Clear</button>
+    </div>
+
+    <div class="results-header" id="results-header" style="display:none">
+      <span class="results-count" id="results-count"></span>
+    </div>
+
+    <div class="log-wrap" id="log-wrap">
+      <div class="spinner-wrap"><div class="spinner"></div></div>
+    </div>
+
+  </div>
+
+  <script>
+    let allLogs    = [];
+    let offset     = 0;
+    const PAGE     = 50;
+    let searchTimer = null;
+
+    const ACTION_META = {
+      transaction_created:  { label: 'Transaction Created',  icon: '➕', cls: 'created' },
+      transaction_edited:   { label: 'Transaction Edited',   icon: '✏️', cls: 'edited' },
+      transaction_deleted:  { label: 'Transaction Deleted',  icon: '🗑️', cls: 'deleted' },
+      bonus_entry_created:  { label: 'Bonus / Deduction',    icon: '💰', cls: 'created' },
+      month_end_committed:  { label: 'Month End Committed',  icon: '📅', cls: 'month-end' },
+      employee_added:       { label: 'Employee Added',       icon: '👤', cls: 'employee' },
+      employee_edited:      { label: 'Employee Edited',      icon: '✏️', cls: 'employee' },
+      photo_uploaded:       { label: 'Photo Uploaded',       icon: '📷', cls: 'photo' },
+      photo_changed:        { label: 'Photo Changed',        icon: '🔄', cls: 'photo' },
+      user_login:           { label: 'User Login',           icon: '🔑', cls: 'auth' },
+      user_logout:          { label: 'User Logout',          icon: '🚪', cls: 'auth' },
+    };
+
+    async function init() {
+      const ok = await requireAuth();
+      if (!ok) return;
+      document.getElementById('mainContent').style.display = 'block';
+      await loadUsers();
+      await loadLog();
+    }
+
+    async function loadUsers() {
+      const { data } = await sb
+        .from('audit_log')
+        .select('user_name')
+        .not('user_name', 'is', null);
+      if (!data) return;
+      const names = [...new Set(data.map(r => r.user_name))].sort();
+      const sel   = document.getElementById('f-user');
+      names.forEach(n => {
+        const opt = document.createElement('option');
+        opt.value = n; opt.textContent = n;
+        sel.appendChild(opt);
+      });
+    }
+
+    function scheduleSearch() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(loadLog, 400);
+    }
+
+    function clearFilters() {
+      document.getElementById('f-action').value = '';
+      document.getElementById('f-user').value   = '';
+      document.getElementById('f-search').value = '';
+      loadLog();
+    }
+
+    async function loadLog(append = false) {
+      if (!append) {
+        offset = 0;
+        allLogs = [];
+        document.getElementById('log-wrap').innerHTML =
+          '<div class="spinner-wrap"><div class="spinner"></div></div>';
+        document.getElementById('results-header').style.display = 'none';
+      }
+
+      const action = document.getElementById('f-action').value;
+      const user   = document.getElementById('f-user').value;
+      const search = document.getElementById('f-search').value.trim();
+
+      // 90 days ago
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 90);
+
+      let query = sb
+        .from('audit_log')
+        .select('*')
+        .gte('created_at', cutoff.toISOString())
+        .order('created_at', { ascending: false })
+        .range(offset, offset + PAGE - 1);
+
+      if (action) query = query.eq('action', action);
+      if (user)   query = query.eq('user_name', user);
+      if (search) query = query.or(
+        `entity_label.ilike.%${search}%,user_name.ilike.%${search}%`
+      );
+
+      const { data, error } = await query;
+      if (error) {
+        document.getElementById('log-wrap').innerHTML =
+          `<div class="empty-state"><div class="icon">⚠️</div><p>${error.message}</p></div>`;
+        return;
+      }
+
+      if (append) {
+        allLogs = [...allLogs, ...(data || [])];
+      } else {
+        allLogs = data || [];
+      }
+
+      renderLog(data?.length === PAGE);
+    }
+
+    function renderLog(hasMore) {
+      const wrap = document.getElementById('log-wrap');
+
+      if (!allLogs.length) {
+        wrap.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>No log entries found</p></div>`;
+        document.getElementById('results-header').style.display = 'none';
+        return;
+      }
+
+      document.getElementById('results-header').style.display = 'flex';
+      document.getElementById('results-count').textContent =
+        `${allLogs.length}${hasMore ? '+' : ''} entries`;
+
+      const rows = allLogs.map((row, i) => {
+        const meta    = ACTION_META[row.action] || { label: row.action, icon: '•', cls: 'auth' };
+        const date    = new Date(row.created_at);
+        const dateStr = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        const timeStr = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        const initials = (row.user_name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+        const hasDetail = row.details && Object.keys(row.details).length > 0;
+
+        return `
+          <tr>
+            <td style="white-space:nowrap;color:var(--muted);font-size:12px">
+              <div>${dateStr}</div>
+              <div>${timeStr}</div>
+            </td>
+            <td>
+              <span class="action-badge ${meta.cls}">${meta.icon} ${meta.label}</span>
+            </td>
+            <td>
+              <div class="entity-label">${row.entity_label || '—'}</div>
+              ${row.entity_type ? `<div class="entity-detail">${row.entity_type.replace(/_/g, ' ')}</div>` : ''}
+            </td>
+            <td>
+              <div class="user-chip">
+                <div class="user-avatar">${initials}</div>
+                ${row.user_name || 'Unknown'}
+              </div>
+            </td>
+            <td>
+              ${hasDetail
+                ? `<button class="detail-btn" onclick="toggleDetail(${i})" title="View details">⋯</button>`
+                : ''}
+            </td>
+          </tr>
+          ${hasDetail ? `
+          <tr class="detail-row" id="detail-row-${i}">
+            <td class="detail-cell" colspan="5">
+              <div class="detail-json">${JSON.stringify(row.details, null, 2)}</div>
+            </td>
+          </tr>` : ''}`;
+      }).join('');
+
+      wrap.innerHTML = `
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Action</th>
+              <th>What</th>
+              <th>Who</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        ${hasMore ? `
+        <div class="load-more-wrap">
+          <button class="btn btn-ghost" onclick="loadMore()">Load more</button>
+        </div>` : ''}`;
+    }
+
+    function toggleDetail(i) {
+      const row = document.getElementById(`detail-row-${i}`);
+      if (row) row.classList.toggle('open');
+    }
+
+    async function loadMore() {
+      offset += PAGE;
+      await loadLog(true);
+    }
+
+    init();
+  </script>
+</body>
+</html>
