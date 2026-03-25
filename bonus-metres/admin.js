@@ -117,6 +117,9 @@ async function requireAuth() {
   await loadSidebar();
   dbg('sidebar loaded');
 
+  // Calculate and show task badge on every page
+  updateTaskBadge();
+
   const initials = currentAdmin.name
     ? currentAdmin.name.split(' ').map(n => n[0]).join('').toUpperCase()
     : (currentUser?.email?.[0] ?? '?').toUpperCase();
@@ -278,3 +281,58 @@ function showToast(msg, type = 'info') {
   `;
   document.head.appendChild(style);
 })();
+
+// ── Task badge — runs on every page ──────────────
+async function updateTaskBadge() {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    let count = 0;
+
+    // Fetch active employees
+    const { data: emps } = await sb
+      .from('employees')
+      .select('id, full_name, status, email, leaving_date')
+      .in('status', ['active', 'probation', 'inactive']);
+
+    if (!emps) return;
+
+    const active = emps.filter(e => e.status === 'active' || e.status === 'probation');
+
+    // Missing emails
+    const missingEmails = active.filter(e => !e.email);
+    if (missingEmails.length) count++;
+
+    // Upcoming leavers (within 7 days)
+    const urgent = emps.filter(e =>
+      e.status === 'inactive' && e.leaving_date &&
+      e.leaving_date >= today &&
+      Math.ceil((new Date(e.leaving_date) - new Date(today)) / 86400000) <= 7
+    );
+    if (urgent.length) count++;
+
+    // Missing photos — check Supabase Storage
+    let missingPhotos = 0;
+    await Promise.all(active.map(async e => {
+      try {
+        const r = await fetch(`${STORAGE_URL}${encodeURIComponent(e.full_name)}_cvface1.jpg`, { method: 'HEAD' });
+        if (!r.ok) {
+          // Also try GitHub fallback
+          const r2 = await fetch(`/img/${encodeURIComponent(e.full_name)}_cvface1.png`, { method: 'HEAD' });
+          if (!r2.ok) missingPhotos++;
+        }
+      } catch { missingPhotos++; }
+    }));
+    if (missingPhotos > 0) count++;
+
+    const badge = document.getElementById('taskBadge');
+    if (!badge) return;
+    if (count > 0) {
+      badge.textContent    = count;
+      badge.style.display  = 'inline-block';
+    } else {
+      badge.style.display  = 'none';
+    }
+  } catch(e) {
+    console.warn('Task badge error:', e.message);
+  }
+}
