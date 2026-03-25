@@ -858,6 +858,23 @@
         closeModal('empModal');
         showToast(`${wasEditing ? 'Updated' : 'Added'}: ${fullName}${photoFile ? ' — photo uploaded ✓' : ''}`, 'success');
 
+        // Audit log
+        if (wasEditing) {
+          await auditLog('employee_edited', 'employee', wasEditing, fullName,
+            { status, email: email || null, initials }
+          );
+          if (photoFile) {
+            await auditLog('photo_changed', 'employee', wasEditing, fullName, null);
+          }
+        } else {
+          await auditLog('employee_added', 'employee', null, fullName,
+            { status, initials }
+          );
+          if (photoFile) {
+            await auditLog('photo_uploaded', 'employee', null, fullName, null);
+          }
+        }
+
       } catch(e) {
         showToast(`Error: ${e.message}`, 'error');
         console.error('saveEmployee error:', e);
