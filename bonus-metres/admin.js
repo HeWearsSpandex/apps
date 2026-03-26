@@ -52,24 +52,7 @@ let currentAdmin = null;
 async function loadSidebar() {
   const r    = await fetch('admin-sidebar.html');
   const html = await r.text();
-
-  // Parse into a temp element — don't use innerHTML on mount directly
-  // as script tags won't execute
-  const mount = document.getElementById('sidebarMount');
-  const tmp   = document.createElement('div');
-  tmp.innerHTML = html;
-
-  // Append all non-script children first
-  Array.from(tmp.children).forEach(child => {
-    if (child.tagName !== 'SCRIPT') mount.appendChild(child.cloneNode(true));
-  });
-
-  // Execute script tags manually
-  tmp.querySelectorAll('script').forEach(oldScript => {
-    const s = document.createElement('script');
-    s.textContent = oldScript.textContent;
-    document.body.appendChild(s);
-  });
+  document.getElementById('sidebarMount').innerHTML = html;
 
   // Set active nav item based on current page
   const page = location.pathname.split('/').pop().replace('.html', '');
@@ -133,11 +116,6 @@ async function requireAuth() {
 
   await loadSidebar();
   dbg('sidebar loaded');
-
-  // Apply saved collapsed state to main content area
-  if (localStorage.getItem('sb_collapsed') === 'true') {
-    document.querySelector('.main')?.classList.add('sb-collapsed');
-  }
 
   // Calculate and show task badge on every page
   updateTaskBadge();
@@ -254,6 +232,51 @@ function showToast(msg, type = 'info') {
 
 
 // ── Task badge — runs on every page ──────────────
+// ── Shared sidebar CSS ────────────────────────
+(function injectSidebarStyles() {
+  if (document.getElementById('sidebar-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'sidebar-styles';
+  style.textContent = `
+    :root { --sidebar: 220px; }
+    .sidebar {
+      position: fixed; top: 0; left: 0;
+      width: var(--sidebar); height: 100vh;
+      background: #fff; border-right: 1px solid #e8e8e8;
+      display: flex; flex-direction: column;
+      z-index: 50; overflow: hidden;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+    }
+    .sidebar-logo {
+      padding: 20px 16px; border-bottom: 1px solid #f0f0f0;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .sidebar-logo img  { height: 28px; }
+    .sidebar-logo span { font-size: 13px; font-weight: 600; color: #1a1a1a; letter-spacing: 0.3px; }
+    .sidebar-nav       { flex: 1; padding: 12px 8px; overflow-y: auto; }
+    .nav-section       { font-size: 10px; font-weight: 700; color: #bbb; text-transform: uppercase; letter-spacing: 1px; padding: 12px 8px 6px; }
+    .nav-item          { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; color: #555; font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; transition: all 0.15s; margin-bottom: 2px; }
+    .nav-item:hover    { background: #f4f5f7; color: #1a1a1a; }
+    .nav-item.active   { background: #fff0f0; color: #c00; font-weight: 700; }
+    .nav-item .icon    { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-badge         { margin-left: auto; background: #c00; color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 10px; min-width: 18px; text-align: center; }
+    .sidebar-footer    { padding: 12px 8px; border-top: 1px solid #f0f0f0; }
+    .sidebar-user      { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; }
+    .sidebar-user-avatar { width: 32px; height: 32px; border-radius: 50%; background: #c00; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .sidebar-user-info   { flex: 1; min-width: 0; }
+    .sidebar-user-name   { font-size: 12px; font-weight: 600; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-user-role   { font-size: 10px; color: #aaa; text-transform: capitalize; }
+    .logout-btn          { background: none; border: none; color: #ccc; cursor: pointer; font-size: 16px; padding: 4px; border-radius: 4px; transition: color 0.15s; }
+    .logout-btn:hover    { color: #c00; }
+    .main { margin-left: var(--sidebar); min-height: 100vh; }
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .main    { margin-left: 0; }
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
 async function updateTaskBadge() {
   try {
     const today = new Date().toISOString().split('T')[0];
