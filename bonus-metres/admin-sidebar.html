@@ -1,40 +1,174 @@
+<style id="sidebar-styles">
+  :root { --sw: 220px; --sc: 52px; }
+
+  .sidebar {
+    position: fixed; top: 0; left: 0;
+    width: var(--sw); height: 100vh;
+    background: #fff;
+    border-right: 1px solid #e8e8e8;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.06);
+    display: flex; flex-direction: column;
+    z-index: 100; overflow: hidden;
+    transition: width 0.25s cubic-bezier(0.4,0,0.2,1);
+  }
+  .sidebar.sb-collapsed { width: var(--sc); }
+
+  /* Logo row */
+  .sidebar-logo {
+    height: 56px; flex-shrink: 0;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex; align-items: center;
+    padding: 0 10px; gap: 8px; position: relative;
+  }
+  .sidebar-logo img { height: 26px; flex-shrink: 0; }
+  .sb-logo-text {
+    font-size: 13px; font-weight: 700; color: #1a1a1a;
+    white-space: nowrap; flex: 1; transition: opacity 0.2s;
+  }
+  .sidebar.sb-collapsed .sb-logo-text { opacity: 0; }
+  .sidebar.sb-collapsed .sidebar-logo { justify-content: center; padding: 0; }
+  .sidebar.sb-collapsed .sidebar-logo img { display: none; }
+
+  /* Toggle btn */
+  .sb-toggle {
+    background: none; border: none; cursor: pointer;
+    width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #bbb; font-size: 16px;
+    transition: color 0.15s, background 0.15s;
+  }
+  .sb-toggle:hover { color: #c00; background: #fff0f0; }
+  /* Arrow rotates when collapsed */
+  .sb-toggle .sb-arrow { display: inline-block; transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); }
+  .sidebar.sb-collapsed .sb-toggle .sb-arrow { transform: rotate(180deg); }
+
+  /* Nav */
+  .sidebar-nav { flex: 1; padding: 8px; overflow-y: auto; overflow-x: hidden; }
+  .sidebar-nav::-webkit-scrollbar { width: 3px; }
+  .sidebar-nav::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 3px; }
+
+  .nav-section {
+    font-size: 9px; font-weight: 700; color: #ccc;
+    text-transform: uppercase; letter-spacing: 1px;
+    padding: 10px 10px 4px; white-space: nowrap;
+    transition: opacity 0.2s, height 0.2s, padding 0.2s;
+  }
+  .sidebar.sb-collapsed .nav-section { opacity: 0; height: 0; padding: 0; overflow: hidden; }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px; border-radius: 8px;
+    color: #555; font-size: 13px; font-weight: 500;
+    text-decoration: none; cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    margin-bottom: 2px; white-space: nowrap; overflow: hidden;
+  }
+  .nav-item:hover  { background: #f4f5f7; color: #1a1a1a; }
+  .nav-item.active { background: #fff0f0; color: #c00; font-weight: 700; }
+
+  .nav-item .icon {
+    font-size: 18px; width: 24px; text-align: center;
+    flex-shrink: 0; line-height: 1;
+  }
+  .sidebar.sb-collapsed .nav-item { justify-content: center; padding: 10px 0; }
+  .sidebar.sb-collapsed .nav-label { display: none; }
+
+  .nav-badge {
+    margin-left: auto; background: #c00; color: #fff;
+    font-size: 10px; font-weight: 700;
+    padding: 1px 6px; border-radius: 10px;
+    min-width: 18px; text-align: center; flex-shrink: 0;
+  }
+  .sidebar.sb-collapsed .nav-badge { display: none; }
+
+  /* Footer */
+  .sidebar-footer { padding: 8px; border-top: 1px solid #f0f0f0; flex-shrink: 0; }
+  .sidebar-user {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 8px;
+  }
+  .sidebar.sb-collapsed .sidebar-user { justify-content: center; padding: 8px 0; }
+  .sidebar-user-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: #c00; color: #fff; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .sidebar-user-info { flex: 1; min-width: 0; transition: opacity 0.2s; }
+  .sidebar.sb-collapsed .sidebar-user-info { opacity: 0; width: 0; overflow: hidden; }
+  .sidebar-user-name { font-size: 12px; font-weight: 600; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sidebar-user-role { font-size: 10px; color: #aaa; text-transform: capitalize; }
+  .logout-btn {
+    background: none; border: none; color: #ccc; cursor: pointer;
+    font-size: 16px; padding: 4px; border-radius: 4px;
+    transition: color 0.15s; flex-shrink: 0;
+  }
+  .sidebar.sb-collapsed .logout-btn { display: none; }
+  .logout-btn:hover { color: #c00; }
+
+  /* Main offset */
+  .main { margin-left: var(--sw); min-height: 100vh; transition: margin-left 0.25s cubic-bezier(0.4,0,0.2,1); }
+  .main.sb-collapsed { margin-left: var(--sc); }
+
+  /* Tooltip */
+  .sb-tooltip {
+    position: fixed; pointer-events: none; z-index: 9999;
+    background: #1a1a1a; color: #fff;
+    font-size: 12px; font-weight: 600;
+    padding: 6px 12px; border-radius: 8px;
+    white-space: nowrap; opacity: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: opacity 0.15s;
+  }
+  .sb-tooltip.visible { opacity: 1; }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); transition: transform 0.25s ease; width: var(--sw) !important; }
+    .sidebar.sb-mobile-open { transform: translateX(0); }
+    .main, .main.sb-collapsed { margin-left: 0 !important; }
+  }
+</style>
+
 <nav class="sidebar" id="sidebar">
   <div class="sidebar-logo">
     <img src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/JHB%20Logo.png" alt="JHB">
     <span class="sb-logo-text">Bonus Admin</span>
+    <button class="sb-toggle" onclick="toggleSidebar()" title="Toggle sidebar">
+      <span class="sb-arrow">‹</span>
+    </button>
   </div>
   <div class="sidebar-nav">
     <div class="nav-section">Main</div>
-    <a class="nav-item" href="dashboard.html" data-page="dashboard">
-      <span class="icon">🏠</span> Dashboard
+    <a class="nav-item" href="dashboard.html" data-page="dashboard" data-label="Dashboard">
+      <span class="icon">🏠</span><span class="nav-label">Dashboard</span>
       <span class="nav-badge" id="taskBadge" style="display:none">0</span>
     </a>
-    <a class="nav-item" href="employees.html" data-page="employees">
-      <span class="icon">👥</span> Employees
+    <a class="nav-item" href="employees.html" data-page="employees" data-label="Employees">
+      <span class="icon">👥</span><span class="nav-label">Employees</span>
     </a>
     <div class="nav-section">Operations</div>
-    <a class="nav-item" href="transactions.html" data-page="transactions">
-      <span class="icon">🔧</span> Transactions
+    <a class="nav-item" href="transactions.html" data-page="transactions" data-label="Transactions">
+      <span class="icon">🔧</span><span class="nav-label">Transactions</span>
     </a>
-    <a class="nav-item" href="transaction-search.html" data-page="transaction-search">
-      <span class="icon">🔍</span> Search Transactions
+    <a class="nav-item" href="transaction-search.html" data-page="transaction-search" data-label="Search Transactions">
+      <span class="icon">🔍</span><span class="nav-label">Search Transactions</span>
     </a>
-    <a class="nav-item" href="crews.html" data-page="crews">
-      <span class="icon">👷</span> Crew Analysis
+    <a class="nav-item" href="crews.html" data-page="crews" data-label="Crew Analysis">
+      <span class="icon">👷</span><span class="nav-label">Crew Analysis</span>
     </a>
-    <a class="nav-item" href="sites.html" data-page="sites">
-      <span class="icon">🏗️</span> Site Analysis
+    <a class="nav-item" href="sites.html" data-page="sites" data-label="Site Analysis">
+      <span class="icon">🏗️</span><span class="nav-label">Site Analysis</span>
     </a>
-    <a class="nav-item" href="month-end.html" data-page="month-end">
-      <span class="icon">📅</span> Month End
+    <a class="nav-item" href="month-end.html" data-page="month-end" data-label="Month End">
+      <span class="icon">📅</span><span class="nav-label">Month End</span>
     </a>
-
-    <a class="nav-item" href="notifications.html" data-page="notifications">
-      <span class="icon">🔔</span> Notifications
+    <a class="nav-item" href="notifications.html" data-page="notifications" data-label="Notifications">
+      <span class="icon">🔔</span><span class="nav-label">Notifications</span>
     </a>
     <div class="nav-section">System</div>
-    <a class="nav-item" href="audit.html" data-page="audit">
-      <span class="icon">📋</span> Audit Log
+    <a class="nav-item" href="audit.html" data-page="audit" data-label="Audit Log">
+      <span class="icon">📋</span><span class="nav-label">Audit Log</span>
     </a>
   </div>
   <div class="sidebar-footer">
@@ -48,3 +182,43 @@
     </div>
   </div>
 </nav>
+
+<script>
+  // Apply saved collapsed state immediately
+  (function() {
+    if (localStorage.getItem('sb_collapsed') === 'true') {
+      document.getElementById('sidebar')?.classList.add('sb-collapsed');
+      document.querySelector('.main')?.classList.add('sb-collapsed');
+    }
+  })();
+
+  // Tooltips
+  document.addEventListener('DOMContentLoaded', function() {
+    var tip = document.createElement('div');
+    tip.className = 'sb-tooltip';
+    document.body.appendChild(tip);
+
+    document.querySelectorAll('.nav-item[data-label]').forEach(function(item) {
+      item.addEventListener('mouseenter', function() {
+        if (!document.getElementById('sidebar').classList.contains('sb-collapsed')) return;
+        var rect = item.getBoundingClientRect();
+        tip.textContent = item.getAttribute('data-label');
+        tip.style.left = (rect.right + 10) + 'px';
+        tip.style.top  = (rect.top + rect.height / 2) + 'px';
+        tip.style.transform = 'translateY(-50%)';
+        tip.classList.add('visible');
+      });
+      item.addEventListener('mouseleave', function() {
+        tip.classList.remove('visible');
+      });
+    });
+  });
+
+  function toggleSidebar() {
+    var sidebar   = document.getElementById('sidebar');
+    var main      = document.querySelector('.main');
+    var collapsed = sidebar.classList.toggle('sb-collapsed');
+    if (main) main.classList.toggle('sb-collapsed', collapsed);
+    localStorage.setItem('sb_collapsed', collapsed);
+  }
+</script>
