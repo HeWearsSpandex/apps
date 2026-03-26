@@ -797,7 +797,7 @@
         const emp = allEmployees.find(e => e.id === id);
         if (!emp) return '';
         return `<div class="op-chip">
-          ${emp.initials}
+          ${emp.full_name}
           <button type="button" onclick="toggleOperative('${id}')" title="Remove">×</button>
         </div>`;
       }).join('');
