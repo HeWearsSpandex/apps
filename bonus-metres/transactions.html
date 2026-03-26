@@ -284,43 +284,34 @@
     .share-preview.visible { display: block; }
 
     /* ── MULTI-EMPLOYEE PICKER (bonus/deduction) ── */
-    .employee-rows { display: flex; flex-direction: column; gap: 8px; }
-    .employee-row {
+    .entry-amount-row {
       display: grid;
-      grid-template-columns: 1fr 140px auto;
-      gap: 8px;
-      align-items: center;
+      grid-template-columns: 1fr 160px;
+      gap: 12px;
+      align-items: end;
+      margin-top: 12px;
     }
-    .employee-row select { margin: 0; }
-    .add-row-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 8px;
-      padding: 7px 14px;
-      border: 1.5px dashed var(--border);
-      border-radius: 8px;
-      background: none;
-      font-size: 13px;
-      color: var(--muted);
-      cursor: pointer;
-      transition: all 0.15s;
-      font-family: inherit;
+    .entry-amount-hint {
+      font-size: 11px; color: var(--muted); margin-top: 4px;
     }
-    .add-row-btn:hover { border-color: var(--red); color: var(--red); }
-    .remove-row-btn {
-      width: 30px; height: 30px;
-      border-radius: 50%;
-      border: none;
-      background: var(--grey);
-      color: var(--muted);
-      font-size: 16px;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.15s;
-      flex-shrink: 0;
+    /* Per-chip amount override */
+    .op-chip-amount {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 8px 3px 10px;
+      background: var(--blue-lt); border: 1px solid #c5d8f8;
+      border-radius: 20px; font-size: 12px; font-weight: 600; color: var(--blue);
+      margin: 3px;
     }
-    .remove-row-btn:hover { background: var(--red-lt); color: var(--red); }
+    .op-chip-amount input {
+      width: 60px; border: none; background: transparent;
+      font-size: 12px; font-weight: 700; color: var(--blue);
+      padding: 0; outline: none; text-align: right;
+    }
+    .op-chip-amount button {
+      background: none; border: none; cursor: pointer;
+      color: var(--blue); font-size: 14px; line-height: 1; padding: 0; opacity: 0.6;
+    }
+    .op-chip-amount button:hover { opacity: 1; }
 
     /* ── FORM FOOTER ── */
     .form-footer {
@@ -570,9 +561,22 @@
         </div>
 
         <div class="form-group" style="margin-bottom:16px">
-          <label>Employees & Amounts <span class="required">*</span></label>
-          <div class="employee-rows" id="employee-rows"></div>
-          <button class="add-row-btn" tabindex="99" onclick="addEmployeeRow()">+ Add another employee</button>
+          <label>Operatives <span class="required">*</span></label>
+          <div class="operative-picker" id="entry-op-picker">
+            <input class="operative-search" type="text" placeholder="Search employees or type initials + comma…"
+                   id="entry-op-search" oninput="handleEntryOpSearch(this)" autocomplete="off">
+            <div class="operative-selected" id="entry-op-selected"></div>
+            <div class="operative-list" id="entry-op-list"></div>
+          </div>
+        </div>
+
+        <div class="entry-amount-row">
+          <div class="form-group">
+            <label>Total Amount <span class="required">*</span></label>
+            <input type="number" id="entry-amount" placeholder="0.00" min="0.01" step="0.01"
+                   oninput="updateEntryAmounts()">
+            <div class="entry-amount-hint" id="entry-amount-hint"></div>
+          </div>
         </div>
 
       </div>
@@ -615,9 +619,9 @@
     // ── State ─────────────────────────────────────────────────────────────────
     let allEmployees   = [];
     let selectedOps    = [];   // operative ids for job form
+    let entryOps       = []; // selected employee ids for entry form (bonus/deduction)
     let currentType    = null;
     let currentRate    = null;
-    let employeeRowCount = 0;
 
     // ── Pin state ─────────────────────────────────────────────────────────────
     const pinned = { ref: false, site: false, ops: false };
@@ -694,8 +698,8 @@
         document.getElementById('entry-save-btn').textContent = isBonus ? '💾 Save Bonus' : '💾 Save Deduction';
         // Show job ref/site only for deductions
         document.getElementById('entry-job-row').style.display = isBonus ? 'none' : '';
-        // Init with one row if empty
-        if (!document.getElementById('employee-rows').children.length) addEmployeeRow();
+        // Render operative list
+        renderEntryOpList('');
       }
     }
 
@@ -883,48 +887,90 @@
     }
 
     // ── Employee rows (bonus/deduction) ───────────────────────────────────────
-    function addEmployeeRow(empId = '', amount = '') {
-      employeeRowCount++;
-      const idx  = employeeRowCount;
-      const div  = document.createElement('div');
-      div.className = 'employee-row';
-      div.id = `emp-row-${idx}`;
+    // ── Entry operative picker (special bonus / deduction) ────────────────────
+    let entryOps = []; // selected employee ids for entry form
 
-      const options = allEmployees.map(e =>
-        `<option value="${e.id}" ${e.id === empId ? 'selected' : ''}>${e.full_name} [${e.initials}]</option>`
-      ).join('');
-
-      div.innerHTML = `
-        <select tabindex="${10 + idx * 2}" onchange="updateEntryTotal()">
-          <option value="">Select employee…</option>
-          ${options}
-        </select>
-        <input type="number" placeholder="£0.00" min="0.01" step="0.01"
-               value="${amount}" tabindex="${11 + idx * 2}"
-               oninput="updateEntryTotal()" style="margin:0">
-        <button class="remove-row-btn" type="button" onclick="removeEmployeeRow(${idx})" title="Remove">×</button>
-      `;
-      document.getElementById('employee-rows').appendChild(div);
-      // Focus the new select
-      div.querySelector('select').focus();
+    function handleEntryOpSearch(input) {
+      const val = input.value;
+      if (val.endsWith(',')) {
+        const query = val.slice(0, -1).trim().toUpperCase();
+        const match = allEmployees.find(e =>
+          e.initials.toUpperCase() === query &&
+          (e.status === 'active' || e.status === 'probation')
+        );
+        if (match && !entryOps.includes(match.id)) {
+          entryOps.push(match.id);
+          renderEntryChips();
+          renderEntryOpList('');
+          updateEntryAmounts();
+          showToast(`✓ ${match.full_name} added`, 'success');
+        } else if (match) {
+          showToast(`${match.full_name} already added`, 'warning');
+        } else {
+          showToast(`No match for "${query}"`, 'error');
+        }
+        input.value = '';
+        return;
+      }
+      renderEntryOpList(val);
     }
 
-    function removeEmployeeRow(idx) {
-      const row = document.getElementById(`emp-row-${idx}`);
-      if (row) row.remove();
-      // Keep at least one row
-      if (!document.getElementById('employee-rows').children.length) addEmployeeRow();
-      updateEntryTotal();
+    function renderEntryOpList(query) {
+      const q   = query.toLowerCase();
+      const el  = document.getElementById('entry-op-list');
+      const filtered = allEmployees.filter(e =>
+        (e.status === 'active' || e.status === 'probation') &&
+        (!q || e.full_name.toLowerCase().includes(q) || e.initials.toLowerCase().includes(q))
+      );
+      el.innerHTML = filtered.map(e => {
+        const sel     = entryOps.includes(e.id);
+        const imgSrc  = `${STORAGE_URL}${encodeURIComponent(e.full_name)}_cvface1.jpg`;
+        const fallback= `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'><circle cx='14' cy='14' r='14' fill='%23e8f0fe'/><text x='14' y='18' text-anchor='middle' font-size='10' font-weight='700' fill='%231a73e8' font-family='Arial'>${e.initials}</text></svg>`;
+        return `<div class="op-option ${sel ? 'selected' : ''}" onclick="toggleEntryOp('${e.id}')">
+          <img src="${imgSrc}" onerror="this.src='${fallback}'" alt="${e.full_name}">
+          <span class="op-name">${e.full_name}</span>
+          <span class="op-initials">${e.initials}</span>
+        </div>`;
+      }).join('');
     }
 
-    function updateEntryTotal() {
-      let total = 0;
-      document.querySelectorAll('#employee-rows .employee-row').forEach(row => {
-        const amt = parseFloat(row.querySelector('input[type=number]').value) || 0;
-        total += amt;
-      });
-      document.getElementById('entry-total-display').textContent = 'Total: £' + total.toFixed(2);
+    function toggleEntryOp(id) {
+      if (entryOps.includes(id)) {
+        entryOps = entryOps.filter(x => x !== id);
+      } else {
+        entryOps.push(id);
+      }
+      renderEntryChips();
+      renderEntryOpList(document.getElementById('entry-op-search').value);
+      updateEntryAmounts();
     }
+
+    function renderEntryChips() {
+      const el = document.getElementById('entry-op-selected');
+      el.innerHTML = entryOps.map(id => {
+        const emp = allEmployees.find(e => e.id === id);
+        if (!emp) return '';
+        return `<div class="op-chip">
+          ${emp.full_name}
+          <button type="button" onclick="toggleEntryOp('${id}')" title="Remove">×</button>
+        </div>`;
+      }).join('');
+    }
+
+    function updateEntryAmounts() {
+      const total = parseFloat(document.getElementById('entry-amount').value) || 0;
+      const count = entryOps.length;
+      const hint  = document.getElementById('entry-amount-hint');
+      if (count > 0 && total > 0) {
+        const share = (total / count).toFixed(2);
+        hint.textContent = `£${share} each across ${count} employee${count > 1 ? 's' : ''}`;
+      } else {
+        hint.textContent = '';
+      }
+      document.getElementById('entry-total-display').textContent = `Total: £${total.toFixed(2)}`;
+    }
+
+    function updateEntryTotal() { updateEntryAmounts(); }
 
     // ── Save job ──────────────────────────────────────────────────────────────
     async function saveJob() {
@@ -989,32 +1035,27 @@
 
     // ── Save bonus/deduction ──────────────────────────────────────────────────
     async function saveEntry() {
-      const date    = document.getElementById('entry-date').value;
-      const reason  = document.getElementById('entry-reason').value.trim() || null;
-      const jobRef  = currentType === 'deduction' ? (document.getElementById('entry-ref').value.trim() || null) : null;
-      const siteName= currentType === 'deduction' ? (document.getElementById('entry-site').value.trim() || null) : null;
+      const date     = document.getElementById('entry-date').value;
+      const reason   = document.getElementById('entry-reason').value.trim() || null;
+      const jobRef   = currentType === 'deduction' ? (document.getElementById('entry-ref').value.trim() || null) : null;
+      const siteName = currentType === 'deduction' ? (document.getElementById('entry-site').value.trim() || null) : null;
+      const total    = parseFloat(document.getElementById('entry-amount').value);
 
-      if (!date) { showToast('Date is required', 'error'); return; }
+      if (!date)              { showToast('Date is required', 'error'); return; }
+      if (!entryOps.length)   { showToast('Select at least one employee', 'error'); return; }
+      if (!total || total <= 0) { showToast('Enter an amount', 'error'); return; }
 
-      const rows = [...document.querySelectorAll('#employee-rows .employee-row')];
-      const entries = rows.map(row => ({
-        empId:  row.querySelector('select').value,
-        amount: parseFloat(row.querySelector('input[type=number]').value)
-      })).filter(r => r.empId && r.amount > 0);
-
-      if (!entries.length) {
-        showToast('Add at least one employee with an amount', 'error'); return;
-      }
+      const share = parseFloat((total / entryOps.length).toFixed(2));
 
       const btn = document.getElementById('entry-save-btn');
       btn.disabled = true; btn.textContent = 'Saving…';
 
       try {
-        const records = entries.map(r => ({
+        const records = entryOps.map(empId => ({
           date:        date,
           type:        currentType,
-          employee_id: r.empId,
-          amount:      r.amount,
+          employee_id: empId,
+          amount:      share,
           reason:      reason,
           job_ref:     jobRef,
           site_name:   siteName,
@@ -1024,12 +1065,11 @@
         const { error } = await sb.from('bonus_entries').insert(records);
         if (error) throw new Error(error.message);
 
-        const total = entries.reduce((s, r) => s + r.amount, 0);
         const label = currentType === 'special_bonus' ? 'Bonus' : 'Deduction';
-        showToast(`✓ ${label} saved — ${entries.length} employee${entries.length > 1 ? 's' : ''}, £${total.toFixed(2)} total`, 'success');
+        showToast(`✓ ${label} saved — ${entryOps.length} employee${entryOps.length > 1 ? 's' : ''}, £${total.toFixed(2)} total`, 'success');
         await auditLog('bonus_entry_created', 'bonus_entry', null,
           `${label} — ${reason || 'no reason'} (${date})`,
-          { type: currentType, reason, job_ref: jobRef, site_name: siteName, total, employees: entries.length }
+          { type: currentType, reason, job_ref: jobRef, site_name: siteName, total, employees: entryOps.length }
         );
         resetEntry();
         await loadRecent();
@@ -1084,10 +1124,13 @@
       document.getElementById('entry-reason').value = '';
       document.getElementById('entry-ref').value    = '';
       document.getElementById('entry-site').value   = '';
-      document.getElementById('employee-rows').innerHTML = '';
-      employeeRowCount = 0;
-      addEmployeeRow();
-      updateEntryTotal();
+      document.getElementById('entry-amount').value = '';
+      document.getElementById('entry-amount-hint').textContent = '';
+      document.getElementById('entry-total-display').textContent = 'Total: £0.00';
+      entryOps = [];
+      renderEntryChips();
+      renderEntryOpList('');
+      document.getElementById('entry-op-search').value = '';
       document.getElementById('entry-date').focus();
     }
 
