@@ -419,11 +419,11 @@
         <div class="form-row">
           <div class="form-group">
             <label>First Name *</label>
-            <input type="text" id="fFirstName" placeholder="Edward">
+            <input type="text" id="fFirstName" placeholder="Edward" oninput="autoInitials()">
           </div>
           <div class="form-group">
             <label>Last Name *</label>
-            <input type="text" id="fLastName" placeholder="Shanley">
+            <input type="text" id="fLastName" placeholder="Shanley" oninput="autoInitials()">
           </div>
         </div>
 
@@ -440,7 +440,8 @@
         <div class="form-row">
           <div class="form-group">
             <label>Initials *</label>
-            <input type="text" id="fInitials" placeholder="ES" maxlength="5" style="text-transform:uppercase">
+            <input type="text" id="fInitials" placeholder="ES" maxlength="5" style="text-transform:uppercase"
+                   oninput="this.dataset.manuallyEdited = this.value ? 'true' : ''">
             <div class="field-hint">Used for job matching (e.g. ES, BT)</div>
           </div>
           <div class="form-group">
@@ -668,7 +669,7 @@
               ${noPhoto ? '<span class="missing-flag no-photo">📷 No photo</span>' : ''}
               ${noEmail ? '<span class="missing-flag no-email">✉️ No email</span>' : ''}
             </div>` : ''}
-            ${isActive ? `<a href="/bonus-metres/player.html?name=${encodeURIComponent(e.full_name)}"
+            ${isActive ? `<a href="/bonus-metres/newplayer.html?name=${encodeURIComponent(e.full_name)}"
                 target="_blank"
                 onclick="event.stopPropagation()"
                 style="display:block;margin-top:8px;font-size:11px;font-weight:600;color:var(--blue);text-decoration:none;text-align:center;padding:4px 8px;border-radius:6px;border:1px solid var(--blue-lt);background:var(--blue-lt);">
@@ -715,6 +716,20 @@
 
     function filterEmployees() { renderGrid(); }
 
+    function autoInitials() {
+      const first = document.getElementById('fFirstName').value.trim();
+      const last  = document.getElementById('fLastName').value.trim();
+      const initialsEl = document.getElementById('fInitials');
+      // Only auto-generate if field is empty or was previously auto-generated
+      if (!initialsEl.dataset.manuallyEdited) {
+        const generated = `${first} ${last}`.trim()
+          .split(/\s+/)
+          .map(w => w[0]?.toUpperCase() || '')
+          .join('');
+        initialsEl.value = generated;
+      }
+    }
+
     // ── Modal helpers ─────────────────────────────
 
     function openModal(id)  { document.getElementById(id).classList.add('open'); }
@@ -722,7 +737,10 @@
 
     function resetForm() {
       ['fFirstName','fLastName','fNickname','fEmail','fInitials','fStartDate','fLeavingDate']
-        .forEach(id => document.getElementById(id).value = '');
+        .forEach(id => {
+          const el = document.getElementById(id);
+          if (el) { el.value = ''; delete el.dataset.manuallyEdited; }
+        });
       document.getElementById('fStatus').value = 'active';
       document.getElementById('photoPreview').src = '';
       document.getElementById('photoInput').value = '';

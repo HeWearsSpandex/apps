@@ -1068,6 +1068,8 @@
         `JHB_MonthEnd_${periodName.replace(/\s+/g, '-')}.pdf`, { period: periodName }
       );
     }
+
+    async function regeneratePDF(runId, periodName) {
       // Disable the button and show progress
       const btn = document.getElementById(`pdf-btn-${runId}`);
       if (btn) { btn.disabled = true; btn.textContent = '⏳ Fetching data…'; }
@@ -1106,16 +1108,6 @@
         await loadHistory();
       }
     }
-
-    // Check jsPDF loaded correctly
-    window.addEventListener('load', () => {
-      if (!window.jspdf) {
-        console.error('jsPDF failed to load from CDN');
-        showToast('Warning: PDF library failed to load — PDF generation may not work', 'error');
-      } else {
-        console.log('jsPDF loaded OK:', !!window.jspdf.jsPDF);
-      }
-    });
 
     init();
   </script>

@@ -516,8 +516,8 @@
             <button type="button" class="pin-btn" id="pin-btn-ops" onclick="togglePin('ops')" title="Pin this field">📌</button>
           </label>
           <div class="operative-picker" id="op-picker">
-            <input class="operative-search" type="text" placeholder="Search employees…"
-                   id="op-search" tabindex="8" oninput="filterOperatives()" autocomplete="off">
+            <input class="operative-search" type="text" placeholder="Search employees or type initials + comma…"
+                   id="op-search" tabindex="8" oninput="handleOpSearch(this)" autocomplete="off">
             <div class="operative-selected" id="op-selected"></div>
             <div class="operative-list" id="op-list"></div>
           </div>
@@ -750,6 +750,34 @@
 
     function filterOperatives() {
       renderOperativeList(document.getElementById('op-search').value);
+    }
+
+    function handleOpSearch(input) {
+      const val = input.value;
+
+      // Comma-lock: if value ends with comma, try to match initials
+      if (val.endsWith(',')) {
+        const query    = val.slice(0, -1).trim().toUpperCase();
+        const match    = allEmployees.find(e =>
+          e.initials.toUpperCase() === query &&
+          (e.status === 'active' || e.status === 'probation')
+        );
+        if (match && !selectedOps.includes(match.id)) {
+          selectedOps.push(match.id);
+          renderSelectedChips();
+          updateSharePreview();
+          showToast(`✓ ${match.full_name} added`, 'success');
+        } else if (match && selectedOps.includes(match.id)) {
+          showToast(`${match.full_name} already added`, 'warning');
+        } else {
+          showToast(`No match for "${query}"`, 'error');
+        }
+        input.value = ''; // clear after lock
+        renderOperativeList('');
+        return;
+      }
+
+      renderOperativeList(val);
     }
 
     function toggleOperative(id) {
