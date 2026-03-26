@@ -271,18 +271,38 @@ function initSidebarToggle() {
     }
   });
 
-  // Restore saved state
+  // Mobile overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'sb-overlay';
+  overlay.onclick   = () => closeMobile();
+  document.body.appendChild(overlay);
   const isCollapsed = localStorage.getItem('sb_collapsed') === 'true';
   if (isCollapsed) {
     sidebar.classList.add('sb-collapsed');
     main?.classList.add('sb-collapsed');
   }
 
-  // Mobile overlay
-  const overlay = document.createElement('div');
-  overlay.className = 'sb-overlay';
-  overlay.onclick   = () => closeMobile();
-  document.body.appendChild(overlay);
+  // DOM tooltip for collapsed state
+  const tooltip = document.createElement('div');
+  tooltip.className = 'sb-tooltip';
+  document.body.appendChild(tooltip);
+
+  sidebar.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('mouseenter', () => {
+      if (!sidebar.classList.contains('sb-collapsed')) return;
+      const label = item.getAttribute('data-label');
+      if (!label) return;
+      const rect = item.getBoundingClientRect();
+      tooltip.textContent = label;
+      tooltip.style.top  = `${rect.top + rect.height / 2}px`;
+      tooltip.style.left = `${rect.right + 10}px`;
+      tooltip.style.transform = 'translateY(-50%)';
+      tooltip.classList.add('visible');
+    });
+    item.addEventListener('mouseleave', () => {
+      tooltip.classList.remove('visible');
+    });
+  });
 }
 
 function toggleSidebar() {
@@ -320,15 +340,9 @@ function closeMobile() {
       box-shadow: 2px 0 8px rgba(0,0,0,0.04);
       display: flex; flex-direction: column;
       z-index: 100;
-      overflow: visible;
+      overflow: hidden;
       transition: width 0.25s cubic-bezier(0.4,0,0.2,1);
       will-change: width;
-    }
-    /* Background clip so nav has white bg even with overflow:visible */
-    .sidebar::before {
-      content: ''; position: absolute; inset: 0;
-      background: #fff; z-index: -1;
-      border-right: 1px solid #e8e8e8;
     }
     .sidebar.sb-collapsed { width: var(--sc); }
 
@@ -365,7 +379,7 @@ function closeMobile() {
     .sidebar-logo { position: relative; }
 
     /* ── Nav ── */
-    .sidebar-nav { flex: 1; padding: 8px; overflow-y: auto; overflow-x: visible; }
+    .sidebar-nav { flex: 1; padding: 8px; overflow-y: auto; overflow-x: hidden; }
     .sidebar-nav::-webkit-scrollbar { width: 0; }
 
     .nav-section {
@@ -416,21 +430,18 @@ function closeMobile() {
       font-size: 8px; padding: 1px 4px; min-width: 14px;
     }
 
-    /* Tooltip in collapsed state */
-    .sidebar.sb-collapsed .nav-item::before {
-      content: attr(data-label);
-      position: absolute;
-      left: calc(var(--sc) + 10px);
-      top: 50%; transform: translateY(-50%);
+    /* DOM tooltip — appended to body so never clipped */
+    .sb-tooltip {
+      position: fixed;
       background: #1a1a1a; color: #fff;
       font-size: 12px; font-weight: 600;
       padding: 6px 12px; border-radius: 8px;
       white-space: nowrap; pointer-events: none;
-      opacity: 0; transition: opacity 0.15s;
       z-index: 9999;
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      opacity: 0; transition: opacity 0.15s;
     }
-    .sidebar.sb-collapsed .nav-item:hover::before { opacity: 1; }
+    .sb-tooltip.visible { opacity: 1; }
 
     /* ── Footer ── */
     .sidebar-footer {
