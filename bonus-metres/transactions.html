@@ -110,8 +110,11 @@
       color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
     }
-    label .required { color: var(--red); margin-left: 2px; }
+    label .required { color: var(--red); font-size: 13px; line-height: 1; }
 
     input[type=text],
     input[type=date],
@@ -476,7 +479,7 @@
               Job Reference
               <button type="button" class="pin-btn" id="pin-btn-ref" onclick="togglePin('ref')" title="Pin this field">📌</button>
             </label>
-            <input type="text" id="job-ref" placeholder="R40209" tabindex="2">
+            <input type="text" id="job-ref" placeholder="R40209" tabindex="2" oninput="lookupSiteByJobRef(this.value)">
           </div>
           <div class="form-group">
             <label style="display:flex;align-items:center;justify-content:space-between;">
@@ -551,6 +554,18 @@
           <div class="form-group">
             <label>Reason</label>
             <input type="text" id="entry-reason" placeholder="e.g. End of year bonus" tabindex="2">
+          </div>
+        </div>
+
+        <!-- Job ref + site (deduction only) -->
+        <div class="form-row cols-2" id="entry-job-row" style="display:none">
+          <div class="form-group">
+            <label>Job Reference</label>
+            <input type="text" id="entry-ref" placeholder="R40209" tabindex="3" oninput="lookupSiteByJobRefEntry(this.value)">
+          </div>
+          <div class="form-group">
+            <label>Site Name</label>
+            <input type="text" id="entry-site" placeholder="Tesco Bristol" tabindex="4">
           </div>
         </div>
 
@@ -677,9 +692,56 @@
         document.getElementById('entry-badge').textContent = isBonus ? 'Special Bonus' : 'Deduction';
         document.getElementById('entry-badge').className   = 'header-badge ' + (isBonus ? 'badge-bonus' : 'badge-deduction');
         document.getElementById('entry-save-btn').textContent = isBonus ? '💾 Save Bonus' : '💾 Save Deduction';
+        // Show job ref/site only for deductions
+        document.getElementById('entry-job-row').style.display = isBonus ? 'none' : '';
         // Init with one row if empty
         if (!document.getElementById('employee-rows').children.length) addEmployeeRow();
       }
+    }
+
+    // ── Job ref → site name lookup ────────────────────────────────────────────
+    let jobRefTimer = null;
+    function lookupSiteByJobRef(val) {
+      clearTimeout(jobRefTimer);
+      if (!val || val.length < 3) return;
+      jobRefTimer = setTimeout(async () => {
+        const siteEl = document.getElementById('job-site');
+        if (siteEl.value) return; // don't overwrite if already filled
+        const { data } = await sb
+          .from('transactions')
+          .select('site_name')
+          .ilike('job_ref', `%${val}%`)
+          .not('site_name', 'is', null)
+          .order('date', { ascending: false })
+          .limit(1);
+        if (data?.[0]?.site_name) {
+          siteEl.value = data[0].site_name;
+          siteEl.classList.add('pinned-field');
+          setTimeout(() => siteEl.classList.remove('pinned-field'), 1500);
+        }
+      }, 400);
+    }
+
+    let entryRefTimer = null;
+    function lookupSiteByJobRefEntry(val) {
+      clearTimeout(entryRefTimer);
+      if (!val || val.length < 3) return;
+      entryRefTimer = setTimeout(async () => {
+        const siteEl = document.getElementById('entry-site');
+        if (siteEl.value) return;
+        const { data } = await sb
+          .from('transactions')
+          .select('site_name')
+          .ilike('job_ref', `%${val}%`)
+          .not('site_name', 'is', null)
+          .order('date', { ascending: false })
+          .limit(1);
+        if (data?.[0]?.site_name) {
+          siteEl.value = data[0].site_name;
+          siteEl.classList.add('pinned-field');
+          setTimeout(() => siteEl.classList.remove('pinned-field'), 1500);
+        }
+      }, 400);
     }
 
     // ── Rate lookup ───────────────────────────────────────────────────────────
@@ -927,8 +989,10 @@
 
     // ── Save bonus/deduction ──────────────────────────────────────────────────
     async function saveEntry() {
-      const date   = document.getElementById('entry-date').value;
-      const reason = document.getElementById('entry-reason').value.trim() || null;
+      const date    = document.getElementById('entry-date').value;
+      const reason  = document.getElementById('entry-reason').value.trim() || null;
+      const jobRef  = currentType === 'deduction' ? (document.getElementById('entry-ref').value.trim() || null) : null;
+      const siteName= currentType === 'deduction' ? (document.getElementById('entry-site').value.trim() || null) : null;
 
       if (!date) { showToast('Date is required', 'error'); return; }
 
@@ -952,6 +1016,8 @@
           employee_id: r.empId,
           amount:      r.amount,
           reason:      reason,
+          job_ref:     jobRef,
+          site_name:   siteName,
           created_by:  currentUser.id
         }));
 
@@ -963,7 +1029,7 @@
         showToast(`✓ ${label} saved — ${entries.length} employee${entries.length > 1 ? 's' : ''}, £${total.toFixed(2)} total`, 'success');
         await auditLog('bonus_entry_created', 'bonus_entry', null,
           `${label} — ${reason || 'no reason'} (${date})`,
-          { type: currentType, reason, total, employees: entries.length }
+          { type: currentType, reason, job_ref: jobRef, site_name: siteName, total, employees: entries.length }
         );
         resetEntry();
         await loadRecent();
@@ -1014,8 +1080,10 @@
 
     function resetEntry() {
       const today = new Date().toISOString().split('T')[0];
-      document.getElementById('entry-date').value  = today;
+      document.getElementById('entry-date').value   = today;
       document.getElementById('entry-reason').value = '';
+      document.getElementById('entry-ref').value    = '';
+      document.getElementById('entry-site').value   = '';
       document.getElementById('employee-rows').innerHTML = '';
       employeeRowCount = 0;
       addEmployeeRow();

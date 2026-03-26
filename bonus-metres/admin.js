@@ -52,7 +52,24 @@ let currentAdmin = null;
 async function loadSidebar() {
   const r    = await fetch('admin-sidebar.html');
   const html = await r.text();
-  document.getElementById('sidebarMount').innerHTML = html;
+
+  // Parse into a temp element — don't use innerHTML on mount directly
+  // as script tags won't execute
+  const mount = document.getElementById('sidebarMount');
+  const tmp   = document.createElement('div');
+  tmp.innerHTML = html;
+
+  // Append all non-script children first
+  Array.from(tmp.children).forEach(child => {
+    if (child.tagName !== 'SCRIPT') mount.appendChild(child.cloneNode(true));
+  });
+
+  // Execute script tags manually
+  tmp.querySelectorAll('script').forEach(oldScript => {
+    const s = document.createElement('script');
+    s.textContent = oldScript.textContent;
+    document.body.appendChild(s);
+  });
 
   // Set active nav item based on current page
   const page = location.pathname.split('/').pop().replace('.html', '');
@@ -117,8 +134,10 @@ async function requireAuth() {
   await loadSidebar();
   dbg('sidebar loaded');
 
-  // ── Sidebar collapse / pin ────────────────────
-  // Sidebar state applied by admin-sidebar.html directly
+  // Apply saved collapsed state to main content area
+  if (localStorage.getItem('sb_collapsed') === 'true') {
+    document.querySelector('.main')?.classList.add('sb-collapsed');
+  }
 
   // Calculate and show task badge on every page
   updateTaskBadge();
