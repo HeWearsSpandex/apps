@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JHB Grand Prix 🏁</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Barlow+Condensed:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100vh; overflow: hidden; background: #1a1a2e; font-family: 'Barlow Condensed', sans-serif; }
+
+    .header {
+      height: 52px;
+      background: linear-gradient(135deg, #cc0000, #880000);
+      border-bottom: 4px solid #ffcc00;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px;
+      box-shadow: 0 3px 0 #550000;
+    }
+    .header img { height: 36px; }
+    .header-title { font-family: 'Press Start 2P', monospace; font-size: 13px; color: #ffe000; text-shadow: 2px 2px 0 #880000; }
+    .header-sub { font-size: 11px; color: #ffaaaa; letter-spacing: 2px; text-transform: uppercase; margin-top: 3px; }
+    .header-right { text-align: right; }
+    .fy-badge { background: #ffe000; color: #880000; font-family: 'Press Start 2P', monospace; font-size: 7px; padding: 3px 8px; border-radius: 3px; }
+    .update-time { font-size: 10px; color: #ffaaaa; margin-top: 3px; }
+
+    .race-wrap {
+      display: flex;
+      height: calc(100vh - 52px);
+    }
+
+    /* Canvas takes up the main area */
+    #raceCanvas {
+      flex: 1;
+      display: block;
+      cursor: default;
+    }
+
+    /* Leaderboard */
+    .leaderboard {
+      width: 240px;
+      flex-shrink: 0;
+      background: #0d0d1a;
+      border-left: 3px solid #ffe000;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .lb-head {
+      background: #cc0000;
+      padding: 10px 12px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: #ffe000;
+      text-align: center;
+      border-bottom: 2px solid #ffe000;
+      flex-shrink: 0;
+    }
+    .lb-body { overflow-y: auto; flex: 1; }
+    .lb-body::-webkit-scrollbar { width: 3px; }
+    .lb-body::-webkit-scrollbar-thumb { background: #cc0000; }
+
+    .lb-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .lb-num { font-family: 'Press Start 2P', monospace; font-size: 8px; width: 18px; text-align: center; flex-shrink: 0; }
+    .lb-num.n1 { color: #ffd700; } .lb-num.n2 { color: #c0c0c0; } .lb-num.n3 { color: #cd7f32; } .lb-num.nx { color: #555; }
+    .lb-av { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 2px solid rgba(255,255,255,0.1); }
+    .lb-av-fb { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900; color: #fff; border: 2px solid rgba(255,255,255,0.1); }
+    .lb-info { flex: 1; min-width: 0; }
+    .lb-name { font-size: 12px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lb-m { font-size: 10px; color: #ffe000; font-weight: 700; }
+    .lb-delta { font-size: 9px; font-weight: 900; padding: 1px 4px; border-radius: 2px; flex-shrink: 0; }
+    .lb-delta.up { background: #0d3d0d; color: #52c41a; }
+    .lb-delta.dn { background: #3d0d0d; color: #ff4444; }
+
+    .spinner-overlay {
+      position: fixed; inset: 0; background: rgba(10,10,30,0.95);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 20px; z-index: 100;
+    }
+    .spinner-kart { font-size: 56px; animation: kbounce 0.5s ease-in-out infinite alternate; }
+    @keyframes kbounce { to { transform: translateY(-12px) rotate(5deg); } }
+    .spinner-txt { font-family: 'Press Start 2P', monospace; font-size: 14px; color: #ffe000; animation: blink 0.7s step-end infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <img src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/JHB%20Logo.png" alt="JHB">
+  <div>
+    <div class="header-title">🏁 JHB GRAND PRIX</div>
+    <div class="header-sub" id="period-label">This Month — Unpaid Metres</div>
+  </div>
+  <div class="header-right">
+    <div class="fy-badge" id="month-badge">Loading…</div>
+    <div class="update-time" id="update-time"></div>
+  </div>
+</div>
+
+<div class="race-wrap">
+  <canvas id="raceCanvas"></canvas>
+  <div class="leaderboard">
+    <div class="lb-head">🏆 STANDINGS</div>
+    <div class="lb-body" id="lb-body"></div>
+  </div>
+</div>
+
+<div class="spinner-overlay" id="spinner">
+  <div class="spinner-kart">🏎️</div>
+  <div class="spinner-txt">ENGINES STARTING…</div>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://oxgehlmalbvppjmdaswn.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
+const STORAGE_URL  = `${SUPABASE_URL}/storage/v1/object/public/images/`;
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const COLOURS = ['#e60026','#1a6be6','#00b050','#e67300','#8800cc','#cc0077','#00aacc','#cc5500','#557700','#004488'];
+
+// ── Canvas setup ───────────────────────────────────────────────────
+const canvas = document.getElementById('raceCanvas');
+const ctx    = canvas.getContext('2d');
+let W = 0, H = 0;
+
+function resize() {
+  const wrap = canvas.parentElement;
+  W = wrap.offsetWidth - 240;
+  H = wrap.offsetHeight;
+  canvas.width  = W;
+  canvas.height = H;
+  buildTrack();
+  render();
+}
+
+// ── Track: closed oval with two chicanes ───────────────────────────
+// All coords normalised 0-1, scaled on draw
+let RAW = [];
+function buildTrack() {
+  // A proper closed oval race track sitting on the ground
+  const pad = 0.08;
+  RAW = [
+    // Start/finish straight — top
+    [0.50, 0.18],
+    [0.70, 0.18],
+    [0.82, 0.20],
+    // Right sweeping curve down
+    [0.90, 0.28],
+    [0.92, 0.40],
+    // Right chicane
+    [0.90, 0.52],
+    [0.78, 0.54],
+    [0.80, 0.64],
+    // Bottom right sweep
+    [0.85, 0.74],
+    [0.80, 0.82],
+    // Bottom straight
+    [0.60, 0.86],
+    [0.40, 0.86],
+    // Bottom left hairpin
+    [0.20, 0.86],
+    [0.14, 0.78],
+    [0.16, 0.68],
+    // Left chicane
+    [0.22, 0.58],
+    [0.12, 0.50],
+    [0.10, 0.40],
+    // Top left curve
+    [0.12, 0.28],
+    [0.18, 0.20],
+    [0.30, 0.18],
+    [0.50, 0.18], // close loop
+  ];
+}
+
+function pt(t) {
+  const pts = RAW;
+  const n   = pts.length - 1;
+  const ft  = t * n;
+  const i   = Math.min(Math.floor(ft), n - 1);
+  const u   = ft - i;
+  const p0  = pts[Math.max(0, i - 1)];
+  const p1  = pts[i];
+  const p2  = pts[Math.min(n, i + 1)];
+  const p3  = pts[Math.min(n, i + 2)];
+  const x   = 0.5*((2*p1[0])+(-p0[0]+p2[0])*u+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*u*u+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*u*u*u);
+  const y   = 0.5*((2*p1[1])+(-p0[1]+p2[1])*u+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*u*u+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*u*u*u);
+  return [x * W, y * H];
+}
+
+function angle(t) {
+  const dt = 0.003;
+  const a  = pt(Math.max(0, t - dt));
+  const b  = pt(Math.min(1, t + dt));
+  return Math.atan2(b[1]-a[1], b[0]-a[0]);
+}
+
+// ── Draw track ─────────────────────────────────────────────────────
+function drawTrack() {
+  const STEPS = 300;
+
+  // Sky
+  const sky = ctx.createLinearGradient(0, 0, 0, H * 0.6);
+  sky.addColorStop(0, '#2255cc');
+  sky.addColorStop(1, '#66aaff');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+
+  // Distant mountains
+  ctx.fillStyle = '#1a5c1a';
+  ctx.beginPath();
+  ctx.moveTo(0, H * 0.55);
+  for (let x = 0; x <= W; x += 30) {
+    const y = H * 0.38 + Math.sin(x * 0.007) * H * 0.10 + Math.sin(x * 0.019 + 1) * H * 0.04;
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.fill();
+
+  // Ground
+  const ground = ctx.createLinearGradient(0, H * 0.52, 0, H);
+  ground.addColorStop(0, '#33aa33');
+  ground.addColorStop(1, '#1a6b1a');
+  ctx.fillStyle = ground; ctx.fillRect(0, H * 0.52, W, H * 0.48);
+
+  // Clouds
+  drawClouds();
+
+  // Track shadow
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.lineWidth   = 52; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  tracePath(STEPS); ctx.stroke();
+
+  // Outer kerb (alternating red/white)
+  for (let i = 0; i < STEPS; i++) {
+    const t   = i / STEPS;
+    const [x, y] = pt(t);
+    const ang = angle(t);
+    const perp = ang + Math.PI / 2;
+    const d   = 26;
+    const col = Math.floor(i * 8 / STEPS) % 2 === 0 ? '#dd2222' : '#ffffff';
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.arc(x + Math.cos(perp)*d, y + Math.sin(perp)*d, 4.5, 0, Math.PI*2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x - Math.cos(perp)*d, y - Math.sin(perp)*d, 4.5, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // Track surface
+  ctx.strokeStyle = '#5a5a5a'; ctx.lineWidth = 44;
+  tracePath(STEPS); ctx.stroke();
+
+  // Track texture lines
+  ctx.strokeStyle = '#636363'; ctx.lineWidth = 1;
+  for (let j = 0; j < 3; j++) {
+    ctx.setLineDash([8, 16]);
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
+    tracePath(STEPS); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // Centre dashes
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 2; ctx.setLineDash([14, 14]);
+  tracePath(STEPS); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Start/finish line
+  const [sx, sy] = pt(0.01);
+  const sa       = angle(0.01);
+  drawStartLine(sx, sy, sa);
+}
+
+function tracePath(steps) {
+  ctx.beginPath();
+  const [x0, y0] = pt(0);
+  ctx.moveTo(x0, y0);
+  for (let i = 1; i <= steps; i++) ctx.lineTo(...pt(i / steps));
+  ctx.closePath();
+}
+
+function drawClouds() {
+  const clouds = [[0.1,0.08,120],[0.35,0.05,90],[0.6,0.10,110],[0.82,0.06,80]];
+  clouds.forEach(([fx, fy, w]) => {
+    const x = fx * W, y = fy * H, h = w * 0.38;
+    ctx.fillStyle = 'rgba(255,255,255,0.88)';
+    ctx.beginPath();
+    ctx.ellipse(x, y, w/2, h/2, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(x - w*0.22, y + h*0.08, w*0.3, h*0.45, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(x + w*0.25, y + h*0.05, w*0.28, h*0.42, 0, 0, Math.PI*2); ctx.fill();
+  });
+}
+
+function drawStartLine(x, y, ang) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang + Math.PI/2);
+  const sqW = 7, sqH = 6, rows = 6, cols = 3;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      ctx.fillStyle = (r+c)%2===0 ? '#fff' : '#000';
+      ctx.fillRect(c*sqW - cols*sqW/2, r*sqH - rows*sqH/2, sqW, sqH);
+    }
+  }
+  ctx.fillStyle = '#fff'; ctx.fillRect(-1, -rows*sqH/2-22, 2, 22);
+  ctx.restore();
+}
+
+// ── Kart drawing ───────────────────────────────────────────────────
+const KART_W = 36, KART_H = 20;
+
+function drawKart(x, y, ang, col, photoImg, initials, rank) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang);
+
+  // Drop shadow
+  ctx.save();
+  ctx.translate(4, 5);
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(0, 0, KART_W*0.6, KART_H*0.35, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // Rear wing
+  ctx.fillStyle = '#111';
+  ctx.fillRect(-KART_W*0.52, -KART_H*0.65, 5, KART_H*1.3);
+  ctx.fillStyle = '#333';
+  ctx.fillRect(-KART_W*0.55, -KART_H*0.65, 11, 3);
+  ctx.fillRect(-KART_W*0.55,  KART_H*0.62, 11, 3);
+
+  // Wheels
+  const tyreCol = '#1a1a1a', rimCol = '#888';
+  [[-0.35, -0.62],[-0.35, 0.62],[0.38, -0.62],[0.38, 0.62]].forEach(([wx, wy]) => {
+    ctx.save();
+    ctx.translate(wx*KART_W*1.1, wy*KART_H*1.05);
+    // Tyre
+    ctx.fillStyle = tyreCol;
+    ctx.beginPath(); ctx.ellipse(0, 0, 8, 6, 0, 0, Math.PI*2); ctx.fill();
+    // Rim
+    ctx.fillStyle = rimCol;
+    ctx.beginPath(); ctx.ellipse(0, 0, 5, 4, 0, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  });
+
+  // Body
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.roundRect(-KART_W*0.5, -KART_H*0.45, KART_W, KART_H*0.9, 6);
+  ctx.fill();
+
+  // Highlight stripe
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.beginPath();
+  ctx.roundRect(-KART_W*0.45, -KART_H*0.42, KART_W*0.9, KART_H*0.3, 3);
+  ctx.fill();
+
+  // Nose
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.moveTo(KART_W*0.5, -KART_H*0.22);
+  ctx.lineTo(KART_W*0.78, 0);
+  ctx.lineTo(KART_W*0.5, KART_H*0.22);
+  ctx.closePath(); ctx.fill();
+
+  // Windshield
+  ctx.fillStyle = 'rgba(140,210,255,0.85)';
+  ctx.beginPath();
+  ctx.roundRect(KART_W*0.0, -KART_H*0.35, KART_W*0.28, KART_H*0.7, 3);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.fillRect(KART_W*0.02, -KART_H*0.3, 3, KART_H*0.25);
+
+  // Driver cockpit circle
+  const dr = KART_H * 0.42;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(-KART_W*0.05, 0, dr, 0, Math.PI*2);
+  ctx.clip();
+  if (photoImg && photoImg.complete && photoImg.naturalWidth > 0) {
+    ctx.drawImage(photoImg, -KART_W*0.05-dr, -dr, dr*2, dr*2);
+  } else {
+    ctx.fillStyle = '#ddd';
+    ctx.fillRect(-KART_W*0.05-dr, -dr, dr*2, dr*2);
+    ctx.fillStyle = col;
+    ctx.font = `bold ${Math.round(dr*0.85)}px Barlow Condensed`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(initials, -KART_W*0.05, 1);
+  }
+  ctx.restore();
+
+  // Cockpit ring
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(-KART_W*0.05, 0, dr, 0, Math.PI*2); ctx.stroke();
+
+  // Rank badge
+  const bx = -KART_W*0.5, by = -KART_H*0.85, br = 10;
+  ctx.fillStyle = rank===1?'#ffd700':rank===2?'#c0c0c0':rank===3?'#cd7f32':'#222';
+  ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI*2); ctx.stroke();
+  ctx.fillStyle = rank<=3?'#000':'#fff';
+  ctx.font = `bold ${br*1.0}px Barlow Condensed`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(String(rank), bx, by+1);
+
+  // Name tag below
+  const firstName = initials.length > 3 ? initials : null; // handled outside
+  ctx.restore();
+
+  // Name label (drawn after restore so not rotated wrongly)
+  // We'll draw name separately in render()
+}
+
+// ── State ──────────────────────────────────────────────────────────
+let racers      = [];
+let photos      = {};
+let currentT    = {};
+let targetT     = {};
+let prevRanks   = {};
+let animating   = false;
+
+function easeToTarget() {
+  let moved = false;
+  racers.forEach(r => {
+    const cur = currentT[r.id] ?? r.t;
+    const tgt = targetT[r.id]  ?? r.t;
+    const d   = tgt - cur;
+    if (Math.abs(d) > 0.0003) {
+      currentT[r.id] = cur + d * 0.05;
+      moved = true;
+    } else {
+      currentT[r.id] = tgt;
+    }
+    r._drawT = currentT[r.id];
+  });
+  return moved;
+}
+
+function render() {
+  drawTrack();
+  // Draw karts in reverse rank order (leader on top)
+  const sorted = [...racers].sort((a, b) => b.rank - a.rank);
+  sorted.forEach(r => {
+    const t      = r._drawT ?? r.t;
+    const [x, y] = pt(t);
+    const ang    = angle(t);
+    drawKart(x, y, ang, r.col, photos[r.id], r.initials, r.rank);
+
+    // Name label (unrotated)
+    const firstName = r.name.split(' ')[0];
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.font = 'bold 11px Barlow Condensed';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
+    ctx.strokeText(firstName, 0, KART_H*0.7);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(firstName, 0, KART_H*0.7);
+    ctx.restore();
+  });
+}
+
+function loop() {
+  const moved = easeToTarget();
+  render();
+  requestAnimationFrame(loop);
+}
+
+// ── Data loading ───────────────────────────────────────────────────
+async function loadData() {
+  const now  = new Date();
+  const y    = now.getFullYear();
+  const m    = now.getMonth();
+  const from = new Date(y, m, 1).toISOString().split('T')[0];
+  const to   = new Date(y, m+1, 0).toISOString().split('T')[0];
+
+  document.getElementById('month-badge').textContent =
+    now.toLocaleDateString('en-GB', { month:'short', year:'numeric' }).toUpperCase();
+  document.getElementById('period-label').textContent = 'This Month — Unpaid Metres';
+
+  const { data: ops } = await sb
+    .from('transaction_operatives')
+    .select(`employee_id, share_value,
+             transactions!inner(date, bonus_metres, date_paid),
+             employees!inner(full_name, initials, status)`)
+    .gte('transactions.date', from)
+    .lte('transactions.date', to)
+    .is('transactions.date_paid', null)
+    .not('employees.status', 'eq', 'inactive')
+    .not('employees.status', 'eq', 'token');
+
+  const empMap = {};
+  (ops || []).forEach(o => {
+    const emp = o.employees;
+    if (!emp) return;
+    const id = o.employee_id;
+    if (!empMap[id]) empMap[id] = { id, name: emp.full_name, initials: emp.initials, metres: 0 };
+    empMap[id].metres += parseFloat(o.transactions?.bonus_metres || 0);
+  });
+
+  // If no unpaid this month, load all active employees on grid
+  if (!Object.keys(empMap).length) {
+    const { data: emps } = await sb.from('employees')
+      .select('id, full_name, initials, status')
+      .in('status', ['active','probation'])
+      .order('full_name');
+    (emps || []).forEach(e => { empMap[e.id] = { id: e.id, name: e.full_name, initials: e.initials, metres: 0 }; });
+  }
+
+  const sorted = Object.values(empMap).sort((a,b) => b.metres - a.metres);
+  const total  = sorted.length;
+
+  return sorted.map((e, i) => ({
+    ...e,
+    rank: i + 1,
+    col:  COLOURS[i % COLOURS.length],
+    // Leader at 0.97, last at ~0.58 — spread proportionally by metres
+    t: total === 1 ? 0.97 : 0.97 - (i / (total - 1)) * 0.39,
+    img: `${STORAGE_URL}${encodeURIComponent(e.name)}_cvface1.jpg`,
+  }));
+}
+
+function preloadPhotos(newRacers) {
+  newRacers.forEach(r => {
+    if (!photos[r.id]) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => { photos[r.id] = img; };
+      img.onerror = () => { photos[r.id] = null; };
+      img.src = r.img;
+      photos[r.id] = img;
+    }
+  });
+}
+
+function renderLeaderboard(newRacers) {
+  const body = document.getElementById('lb-body');
+  body.innerHTML = newRacers.map((r, i) => {
+    const nc  = i===0?'n1':i===1?'n2':i===2?'n3':'nx';
+    const col = r.col;
+    const prev = prevRanks[r.id];
+    let delta = '';
+    if (prev !== undefined && prev !== i) {
+      delta = prev > i
+        ? `<div class="lb-delta up">▲${prev-i}</div>`
+        : `<div class="lb-delta dn">▼${i-prev}</div>`;
+    }
+    return `<div class="lb-row">
+      <div class="lb-num ${nc}">${i+1}</div>
+      <img class="lb-av" src="${r.img}"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+        alt="${r.initials}">
+      <div class="lb-av-fb" style="background:${col};display:none">${r.initials}</div>
+      <div class="lb-info">
+        <div class="lb-name">${r.name}</div>
+        <div class="lb-m">${r.metres>0?Math.round(r.metres).toLocaleString()+'m':'On grid'}</div>
+      </div>
+      ${delta}
+    </div>`;
+  }).join('');
+}
+
+async function refresh() {
+  const newRacers = await loadData();
+  prevRanks = Object.fromEntries(racers.map((r,i) => [r.id, i]));
+
+  // Update targets
+  newRacers.forEach(r => {
+    targetT[r.id] = r.t;
+    r.col = r.col || COLOURS[r.rank - 1];
+  });
+
+  preloadPhotos(newRacers);
+  racers = newRacers;
+  renderLeaderboard(racers);
+
+  document.getElementById('update-time').textContent =
+    'Updated ' + new Date().toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+}
+
+async function init() {
+  window.addEventListener('resize', resize);
+  resize();
+  buildTrack();
+
+  const newRacers = await loadData();
+  racers = newRacers;
+  preloadPhotos(racers);
+
+  // Set initial positions
+  racers.forEach(r => { currentT[r.id] = r.t; targetT[r.id] = r.t; r._drawT = r.t; });
+  prevRanks = Object.fromEntries(racers.map((r,i) => [r.id,i]));
+
+  renderLeaderboard(racers);
+  document.getElementById('spinner').style.display = 'none';
+  document.getElementById('update-time').textContent =
+    'Updated ' + new Date().toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+
+  loop();
+  setInterval(refresh, 60000);
+}
+
+init();
+</script>
+</body>
+</html>
