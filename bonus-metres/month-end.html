@@ -373,6 +373,28 @@
           <div class="spinner-wrap"><div class="spinner"></div></div>
         </div>
       </div>
+
+      <!-- Year End -->
+      <div class="card" style="border-left: 4px solid var(--orange)">
+        <div class="card-header">
+          <h3>📅 Year End</h3>
+        </div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--muted);margin-bottom:16px">
+            Running year end will calculate any employees with a negative balance and carry their debt forward into the new financial year as a deduction dated 1st April. Unpaid job bonuses are left as-is and roll forward naturally.
+          </p>
+          <div id="year-end-status" style="margin-bottom:12px"></div>
+          <div id="year-end-confirm" style="display:none;background:var(--orange-lt);border:1px solid var(--orange);border-radius:8px;padding:14px;margin-bottom:12px">
+            <p style="font-size:13px;font-weight:600;color:var(--orange);margin-bottom:10px">⚠️ Are you sure you want to run year end for <span id="ye-period-label"></span>?</p>
+            <p style="font-size:12px;color:var(--muted);margin-bottom:12px">This will create carry-over deduction entries for employees in debt. This cannot be undone.</p>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost" onclick="cancelYearEnd()">Cancel</button>
+              <button class="btn" style="background:var(--orange);color:#fff" onclick="runYearEnd()">✓ Confirm Year End</button>
+            </div>
+          </div>
+          <button class="btn btn-ghost" id="ye-btn" onclick="initiateYearEnd()">📅 Run Year End</button>
+        </div>
+      </div>
     </div>
 
     <!-- ── STEP 2: PREVIEW ── -->
@@ -1106,6 +1128,124 @@
         showToast('Failed: ' + e.message, 'error');
         // Re-render history to restore button to original state
         await loadHistory();
+      }
+    }
+
+    // ── Year End ──────────────────────────────────────────────────────────────
+
+    function getFYBounds() {
+      const now    = new Date();
+      const fyYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+      return {
+        from:    `${fyYear}-04-01`,
+        to:      `${fyYear + 1}-03-31`,
+        newYear: `${fyYear + 1}-04-01`,
+        label:   `Apr ${fyYear} – Mar ${fyYear + 1}`,
+        fyYear
+      };
+    }
+
+    async function initiateYearEnd() {
+      const { from, to, label } = getFYBounds();
+      document.getElementById('ye-period-label').textContent = label;
+
+      const statusEl = document.getElementById('year-end-status');
+      statusEl.innerHTML = '<div class="spinner-wrap" style="padding:10px"><div class="spinner"></div></div>';
+
+      // Block if any unpaid transactions exist
+      const { count: unpaidTx } = await sb
+        .from('transactions')
+        .select('id', { count: 'exact', head: true })
+        .is('date_paid', null);
+
+      const { count: unpaidEntries } = await sb
+        .from('bonus_entries')
+        .select('id', { count: 'exact', head: true })
+        .is('date_paid', null);
+
+      if (unpaidTx > 0 || unpaidEntries > 0) {
+        statusEl.innerHTML = `
+          <div style="background:var(--red-lt);border:1px solid var(--red);border-radius:8px;padding:12px;font-size:13px;color:var(--red);font-weight:600">
+            ✕ Cannot run year end — there are still ${(unpaidTx || 0) + (unpaidEntries || 0)} unpaid transaction${((unpaidTx || 0) + (unpaidEntries || 0)) !== 1 ? 's' : ''} outstanding. Please complete month end first.
+          </div>`;
+        return;
+      }
+
+      // All clear — check for any unpaid carry-over deductions (opening balances)
+      const { data: entries } = await sb
+        .from('bonus_entries')
+        .select('employee_id, type, amount, employees(full_name, status)')
+        .is('date_paid', null);
+
+      // Calculate net balance from any remaining unpaid entries (carry-overs/opening balances)
+      const balances = {};
+      (entries || []).forEach(e => {
+        if (!balances[e.employee_id]) balances[e.employee_id] = { name: e.employees?.full_name || e.employee_id, balance: 0 };
+        if (e.type === 'deduction')     balances[e.employee_id].balance -= parseFloat(e.amount || 0);
+        if (e.type === 'special_bonus') balances[e.employee_id].balance += parseFloat(e.amount || 0);
+      });
+
+      // Find employees in debt
+      const inDebt = Object.entries(balances)
+        .filter(([, e]) => e.balance < 0)
+        .map(([id, e]) => ({ id, name: e.name, balance: e.balance }));
+
+      if (!inDebt.length) {
+        statusEl.innerHTML = `<div style="background:var(--green-lt);border-radius:8px;padding:12px;font-size:13px;color:var(--green);font-weight:600">✓ No employees in debt — no carry-overs needed</div>`;
+        document.getElementById('year-end-confirm').style.display = 'block';
+      } else {
+        statusEl.innerHTML = `
+          <div style="background:var(--orange-lt);border-radius:8px;padding:12px;margin-bottom:8px">
+            <p style="font-size:13px;font-weight:600;color:var(--orange);margin-bottom:8px">⚠️ ${inDebt.length} employee${inDebt.length > 1 ? 's' : ''} will have debt carried forward:</p>
+            ${inDebt.map(e => `<div style="font-size:12px;color:var(--muted);padding:2px 0">${e.name} — <strong style="color:var(--orange)">-£${Math.abs(e.balance).toFixed(2)}</strong></div>`).join('')}
+          </div>`;
+        document.getElementById('year-end-confirm').style.display = 'block';
+      }
+
+      // Store for use in runYearEnd
+      window._yearEndDebt = inDebt;
+    }
+
+    function cancelYearEnd() {
+      document.getElementById('year-end-confirm').style.display = 'none';
+      document.getElementById('year-end-status').innerHTML = '';
+      window._yearEndDebt = null;
+    }
+
+    async function runYearEnd() {
+      const { newYear, label } = getFYBounds();
+      const inDebt = window._yearEndDebt || [];
+      const btn = document.querySelector('#year-end-confirm .btn[onclick="runYearEnd()"]');
+      btn.disabled = true; btn.textContent = 'Running…';
+
+      try {
+        // Create carry-over deductions for employees in debt
+        if (inDebt.length) {
+          const records = inDebt.map(e => ({
+            date:        newYear,
+            type:        'deduction',
+            employee_id: e.id,
+            amount:      parseFloat(Math.abs(e.balance).toFixed(2)),
+            reason:      `Carry-over from previous year (${label})`,
+            created_by:  currentUser.id
+          }));
+          const { error } = await sb.from('bonus_entries').insert(records);
+          if (error) throw new Error(error.message);
+        }
+
+        await auditLog('year_end_committed', 'year_end', null, label,
+          { period: label, carry_overs: inDebt.length, new_year_date: newYear }
+        );
+
+        showToast(`✓ Year end complete — ${inDebt.length} carry-over${inDebt.length !== 1 ? 's' : ''} created`, 'success');
+        cancelYearEnd();
+        document.getElementById('year-end-status').innerHTML =
+          `<div style="background:var(--green-lt);border-radius:8px;padding:12px;font-size:13px;color:var(--green);font-weight:600">✓ Year end for ${label} completed on ${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}</div>`;
+
+      } catch(e) {
+        showToast('Year end failed: ' + e.message, 'error');
+        console.error(e);
+        btn.disabled = false; btn.textContent = '✓ Confirm Year End';
       }
     }
 
