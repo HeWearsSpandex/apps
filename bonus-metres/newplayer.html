@@ -392,7 +392,11 @@
           .is('transactions.date_paid', null)
           .order('transactions(date)', { ascending: false });
 
-        // ── All paid jobs (for history view) ──
+        // ── All paid jobs (last 12 months for history view) ──
+        const twelveMonthsAgo = new Date();
+        twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+        const cutoff = twelveMonthsAgo.toISOString().split('T')[0];
+
         const { data: allOps } = await sb
           .from('transaction_operatives')
           .select(`share_value,
@@ -400,6 +404,7 @@
                      transaction_operatives(employee_id))`)
           .eq('employee_id', employeeId)
           .not('transactions.date_paid', 'is', null)
+          .gte('transactions.date_paid', cutoff)
           .order('transactions(date)', { ascending: false });
 
         // ── Unpaid deductions / bonuses ──
