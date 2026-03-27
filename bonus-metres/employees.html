@@ -503,7 +503,8 @@
 
     async function loadEmployees() {
       try {
-        allEmployees = await sbFetch('employees');
+        const data = await sbFetch('employees');
+        allEmployees = (data || []).filter(e => e.status !== 'token');
         renderGrid();
         renderStats();
         applyUrlFilter();

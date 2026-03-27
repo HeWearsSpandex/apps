@@ -56,7 +56,7 @@
     .stat-card.blue  .stat-val { color:var(--blue); }
 
     /* Grid */
-    .dashboard-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .dashboard-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
     .panel { background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
     .stat-mini { background:var(--grey); border-radius:8px; padding:12px 14px; }
     .sm-val { font-size:18px; font-weight:700; color:var(--text); }
@@ -297,7 +297,7 @@
       const today   = new Date().toISOString().split('T')[0];
       const active  = allEmployees.filter(e => e.status === 'active').length;
       const prob    = allEmployees.filter(e => e.status === 'probation').length;
-      const leaving = allEmployees.filter(e => e.status === 'inactive' && e.leaving_date && e.leaving_date >= today).length;
+      const leaving = allEmployees.filter(e => e.leaving_date && e.status!=='token' && e.leaving_date >= today).length;
       const month   = new Date().toLocaleDateString('en-GB', { month:'long', year:'numeric' });
 
       // Calculate outstanding pot per-person, floored at zero each
@@ -359,10 +359,10 @@
       const tasks = [];
       const missingPhotos = await checkMissingPhotos();
       if (missingPhotos.length) tasks.push({ icon:'🖼️', type:'warn', title:`${missingPhotos.length} employee${missingPhotos.length>1?'s':''} missing photo`, desc:missingPhotos.slice(0,3).map(e=>e.full_name).join(', ')+(missingPhotos.length>3?` +${missingPhotos.length-3} more`:''), action:'Fix in Employee Management', href:'employees.html?filter=no-photo' });
-      const missingEmails = allEmployees.filter(e => (e.status==='active'||e.status==='probation') && !e.email);
+      const missingEmails = allEmployees.filter(e => (e.status==='active'||e.status==='probation') && e.status!=='token' && !e.email);
       if (missingEmails.length) tasks.push({ icon:'📧', type:'warn', title:`${missingEmails.length} employee${missingEmails.length>1?'s':''} missing email`, desc:missingEmails.slice(0,3).map(e=>e.full_name).join(', ')+(missingEmails.length>3?` +${missingEmails.length-3} more`:''), action:'Fix in Employee Management', href:'employees.html?filter=no-email' });
       const today = new Date(); const in7 = new Date(today); in7.setDate(today.getDate()+7);
-      const urgent = allEmployees.filter(e => { if(e.status!=='inactive'||!e.leaving_date) return false; const ld=new Date(e.leaving_date); return ld>=today&&ld<=in7; });
+      const urgent = allEmployees.filter(e => { if(!e.leaving_date||e.status==='token') return false; const ld=new Date(e.leaving_date); return ld>=today&&ld<=in7; });
       if (urgent.length) tasks.push({ icon:'🚨', type:'danger', title:`${urgent.length} staff leaving within 7 days`, desc:urgent.map(e=>`${e.full_name} (${e.leaving_date})`).join(', '), action:null });
       const badge = document.getElementById('taskBadge');
       if (tasks.length) { badge.textContent=tasks.length; badge.style.display='inline-block'; } else badge.style.display='none';
@@ -385,7 +385,7 @@
 
     function renderLeavers() {
       const today=new Date(); const in30=new Date(today); in30.setDate(today.getDate()+30);
-      const leavers=allEmployees.filter(e=>e.status==='inactive'&&e.leaving_date&&new Date(e.leaving_date)>=today&&new Date(e.leaving_date)<=in30).sort((a,b)=>new Date(a.leaving_date)-new Date(b.leaving_date));
+      const leavers=allEmployees.filter(e=>e.leaving_date&&e.status!=='token'&&new Date(e.leaving_date)>=today&&new Date(e.leaving_date)<=in30).sort((a,b)=>new Date(a.leaving_date)-new Date(b.leaving_date));
       const fallback = e => `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 36 36%22><circle cx=%2218%22 cy=%2218%22 r=%2218%22 fill=%22%23ddd%22/><text x=%2218%22 y=%2223%22 text-anchor=%22middle%22 font-size=%2214%22 fill=%22%23999%22>${e.full_name.charAt(0)}</text></svg>`;
       document.getElementById('leaversPanel').innerHTML = !leavers.length
         ? `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No upcoming leavers in the next 30 days</div>`
