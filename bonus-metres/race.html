@@ -7,115 +7,255 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Barlow+Condensed:wght@400;600;700;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --turf:   #2d7a2d;
-      --turf2:  #267326;
-      --rail:   #8B4513;
-      --rail2:  #a0522d;
-      --dirt:   #c8a96e;
-      --sky:    #87CEEB;
-      --white:  #fff;
-      --cream:  #fffde7;
-      --gold:   #d4a017;
-      --dark:   #1a0a00;
+      --gold: #d4a017;
+      --dark: #1a0a00;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       width: 100%; height: 100vh; overflow: hidden;
-      background: var(--turf);
       font-family: 'Barlow Condensed', sans-serif;
+      background: #2d7a2d;
     }
 
     /* ── HEADER ── */
     .header {
-      height: 56px;
-      background: linear-gradient(135deg, #1a0a00 0%, #3d1a00 50%, #1a0a00 100%);
+      height: 54px;
+      background: linear-gradient(135deg, #1a0a00, #3d1a00, #1a0a00);
       border-bottom: 3px solid var(--gold);
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 20px;
-      position: relative; z-index: 10;
+      padding: 0 20px; position: relative; z-index: 10;
     }
-    .header-logo { height: 38px; }
+    .header-logo { height: 36px; }
     .header-title {
       font-family: 'Playfair Display', serif;
-      font-size: 22px; font-weight: 900;
-      color: var(--gold);
+      font-size: 20px; font-weight: 900; color: var(--gold);
       text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
-      letter-spacing: 1px;
     }
-    .header-sub { font-size: 12px; color: #c8a96e; letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
-    .header-right { text-align: right; }
+    .header-sub { font-size: 11px; color: #c8a96e; letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
     .month-pill {
       background: var(--gold); color: var(--dark);
       font-family: 'Playfair Display', serif;
-      font-size: 13px; font-weight: 700;
-      padding: 4px 12px; border-radius: 20px;
-      display: inline-block;
+      font-size: 12px; font-weight: 700;
+      padding: 3px 12px; border-radius: 20px; display: inline-block;
     }
-    .update-lbl { font-size: 10px; color: #c8a96e; margin-top: 4px; letter-spacing: 1px; }
+    .update-lbl { font-size: 10px; color: #c8a96e; margin-top: 3px; letter-spacing: 1px; }
 
-    /* ── MAIN LAYOUT ── */
+    /* ── LAYOUT ── */
     .race-layout {
       display: flex;
-      height: calc(100vh - 56px);
+      height: calc(100vh - 54px);
     }
 
-    /* ── CANVAS ── */
-    #raceCanvas {
+    /* ── TRACK AREA ── */
+    .track-area {
       flex: 1;
-      display: block;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Sky strip */
+    .sky-strip {
+      height: 80px; flex-shrink: 0;
+      background: linear-gradient(180deg, #3a7bd5 0%, #87ceeb 100%);
+      position: relative; overflow: hidden;
+    }
+    .crowd {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 50px;
+      background: #8B4513;
+      display: flex; align-items: flex-start; padding: 4px 0;
+      overflow: hidden;
+    }
+    .crowd-head {
+      width: 14px; height: 14px; border-radius: 50%;
+      flex-shrink: 0; margin: 0 2px;
+    }
+    .cloud {
+      position: absolute; background: rgba(255,255,255,0.9);
+      border-radius: 40px;
+    }
+    .cloud::before, .cloud::after {
+      content: ''; position: absolute; background: rgba(255,255,255,0.9); border-radius: 50%;
+    }
+    .cloud::before { width: 55%; height: 170%; top: -50%; left: 15%; }
+    .cloud::after  { width: 38%; height: 140%; top: -35%; right: 15%; }
+
+    /* Rail */
+    .top-rail {
+      height: 10px; flex-shrink: 0;
+      background: linear-gradient(180deg, #a0522d, #6b3410);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    }
+
+    /* Lanes */
+    .lanes {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .lane {
+      display: flex;
+      align-items: center;
+      position: absolute; left: 0; right: 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .lane:nth-child(odd)  { background: #2d7a2d; }
+    .lane:nth-child(even) { background: #267326; }
+
+    /* Lane number */
+    .lane-num {
+      width: 28px; flex-shrink: 0; text-align: center;
+      font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4);
+      font-family: 'Playfair Display', serif;
+    }
+
+    /* Horse + rider unit */
+    .horse-unit {
+      position: absolute;
+      display: flex; align-items: center; gap: 0;
+      transition: left 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      will-change: left;
+    }
+
+    /* Jockey silks blob */
+    .jockey-wrap {
+      position: relative;
+      display: flex; flex-direction: column; align-items: center;
+      margin-right: -4px;
+      z-index: 2;
+    }
+    .jockey-photo {
+      width: 32px; height: 32px; border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      background: #ccc;
+    }
+    .jockey-silk {
+      width: 22px; height: 18px; border-radius: 3px 3px 6px 6px;
+      margin-top: -4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+      position: relative; overflow: hidden;
+    }
+    .silk-stripe {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 8px; height: 100%; background: rgba(255,255,255,0.3);
+    }
+
+    /* Horse emoji */
+    .horse-emoji {
+      font-size: 42px;
+      line-height: 1;
+      filter: drop-shadow(2px 3px 3px rgba(0,0,0,0.4));
+      animation: gallop 0.32s ease-in-out infinite alternate;
+      transform-origin: bottom center;
+    }
+    @keyframes gallop {
+      0%   { transform: scaleY(1.0)   translateY(0px)   rotate(-2deg); }
+      100% { transform: scaleY(0.92)  translateY(3px)   rotate(2deg); }
+    }
+    .horse-unit:nth-child(2n)   .horse-emoji { animation-delay: -0.08s; }
+    .horse-unit:nth-child(3n)   .horse-emoji { animation-delay: -0.16s; }
+    .horse-unit:nth-child(4n)   .horse-emoji { animation-delay: -0.24s; }
+    .horse-unit:nth-child(5n)   .horse-emoji { animation-delay: -0.05s; }
+    .horse-unit:nth-child(6n)   .horse-emoji { animation-delay: -0.19s; }
+
+    /* Name + metres tag */
+    .horse-tag {
+      margin-left: 6px;
+      display: flex; flex-direction: column;
+    }
+    .horse-name {
+      font-size: 13px; font-weight: 700; color: #fff;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8), -1px -1px 2px rgba(0,0,0,0.8);
+      white-space: nowrap;
+    }
+    .horse-metres {
+      font-size: 11px; font-weight: 600; color: #ffe082;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+      white-space: nowrap;
+    }
+
+    /* Position badge on horse */
+    .pos-badge {
+      position: absolute;
+      top: -6px; left: -6px;
+      width: 18px; height: 18px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 900;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+      z-index: 3;
+    }
+
+    /* Finish line */
+    .finish-line {
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 24px;
+      background: repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 0 0 / 12px 12px;
+      opacity: 0.85;
+      box-shadow: 0 0 0 2px rgba(0,0,0,0.3);
+      z-index: 5;
+      pointer-events: none;
+    }
+    .finish-post {
+      position: absolute;
+      top: -20px; bottom: -10px;
+      width: 6px;
+      background: linear-gradient(180deg, #fff, #ccc);
+      box-shadow: 2px 0 4px rgba(0,0,0,0.4);
+      z-index: 6;
+    }
+
+    /* Distance markers */
+    .distance-marker {
+      position: absolute; top: 0; bottom: 0;
+      width: 1px; background: rgba(255,255,255,0.15);
+      pointer-events: none; z-index: 3;
+    }
+    .distance-label {
+      position: absolute; top: -18px;
+      font-size: 9px; color: rgba(255,255,255,0.4);
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+
+    /* Bottom rail */
+    .bottom-rail {
+      height: 10px; flex-shrink: 0;
+      background: linear-gradient(180deg, #6b3410, #a0522d);
+      box-shadow: 0 -2px 4px rgba(0,0,0,0.4);
     }
 
     /* ── LEADERBOARD ── */
     .lb-panel {
-      width: 230px;
-      flex-shrink: 0;
-      background: linear-gradient(180deg, #1a0a00 0%, #2d1400 100%);
+      width: 230px; flex-shrink: 0;
+      background: linear-gradient(180deg, #1a0a00, #2d1400);
       border-left: 3px solid var(--gold);
-      display: flex; flex-direction: column;
-      overflow: hidden;
+      display: flex; flex-direction: column; overflow: hidden;
     }
     .lb-head {
       padding: 12px 14px;
-      background: linear-gradient(135deg, #2d1400, #1a0a00);
-      border-bottom: 2px solid var(--gold);
       font-family: 'Playfair Display', serif;
       font-size: 15px; color: var(--gold);
+      border-bottom: 2px solid var(--gold);
       text-align: center; flex-shrink: 0;
-      letter-spacing: 1px;
     }
     .lb-scroll { flex: 1; overflow-y: auto; }
     .lb-scroll::-webkit-scrollbar { width: 3px; }
     .lb-scroll::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 2px; }
-
     .lb-row {
       display: flex; align-items: center; gap: 8px;
       padding: 7px 10px;
       border-bottom: 1px solid rgba(212,160,23,0.1);
-      transition: background 0.3s;
     }
-    .lb-row:hover { background: rgba(212,160,23,0.06); }
-    .lb-pos {
-      font-family: 'Playfair Display', serif;
-      font-size: 14px; font-weight: 700;
-      width: 20px; text-align: center; flex-shrink: 0;
-    }
-    .lb-pos.p1 { color: #ffd700; }
-    .lb-pos.p2 { color: #c0c0c0; }
-    .lb-pos.p3 { color: #cd7f32; }
-    .lb-pos.px { color: #555; font-size: 11px; }
-    .lb-swatch { width: 10px; height: 32px; border-radius: 3px; flex-shrink: 0; }
-    .lb-av {
-      width: 32px; height: 32px; border-radius: 50%;
-      object-fit: cover; flex-shrink: 0;
-      border: 2px solid rgba(212,160,23,0.3);
-    }
-    .lb-av-fb {
-      width: 32px; height: 32px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 10px; font-weight: 900; color: #fff;
-      border: 2px solid rgba(212,160,23,0.3);
-      flex-shrink: 0;
-    }
+    .lb-pos { font-family: 'Playfair Display', serif; font-size: 14px; font-weight: 700; width: 20px; text-align: center; flex-shrink: 0; }
+    .lb-pos.p1 { color: #ffd700; } .lb-pos.p2 { color: #c0c0c0; } .lb-pos.p3 { color: #cd7f32; } .lb-pos.px { color: #555; font-size: 11px; }
+    .lb-swatch { width: 10px; height: 30px; border-radius: 3px; flex-shrink: 0; }
+    .lb-av { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 2px solid rgba(212,160,23,0.3); }
+    .lb-av-fb { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900; color: #fff; border: 2px solid rgba(212,160,23,0.3); flex-shrink: 0; }
     .lb-info { flex: 1; min-width: 0; }
     .lb-name { font-size: 12px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .lb-metres { font-size: 11px; color: var(--gold); font-weight: 600; }
@@ -125,20 +265,13 @@
 
     /* ── SPINNER ── */
     .spinner-overlay {
-      position: fixed; inset: 0;
-      background: rgba(10,5,0,0.95);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 16px;
-      z-index: 100;
+      position: fixed; inset: 0; background: rgba(10,5,0,0.95);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 100;
     }
-    .spinner-icon { font-size: 52px; animation: gallop 0.4s ease-in-out infinite alternate; }
-    @keyframes gallop { to { transform: translateY(-10px) scaleX(1.05); } }
-    .spinner-txt {
-      font-family: 'Playfair Display', serif;
-      font-size: 18px; color: var(--gold);
-      animation: fade 0.8s ease-in-out infinite alternate;
-    }
-    @keyframes fade { to { opacity: 0.3; } }
+    .spinner-icon { font-size: 56px; animation: gallop-spin 0.35s ease-in-out infinite alternate; }
+    @keyframes gallop-spin { to { transform: translateY(-12px) rotate(4deg) scaleX(1.08); } }
+    .spinner-txt { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--gold); animation: fade 0.8s ease-in-out infinite alternate; }
+    @keyframes fade { to { opacity: 0.2; } }
   </style>
 </head>
 <body>
@@ -147,24 +280,43 @@
   <img class="header-logo" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/JHB%20Logo.png" alt="JHB">
   <div>
     <div class="header-title">🏇 Bonus Metres — Current Leaderboard</div>
-    <div class="header-sub">Heading for the finish line</div>
+    <div class="header-sub" id="period-sub">This Month · Pending Metres</div>
   </div>
-  <div class="header-right">
+  <div style="text-align:right">
     <div class="month-pill" id="month-badge">Loading…</div>
     <div class="update-lbl" id="update-lbl"></div>
   </div>
 </div>
 
 <div class="race-layout">
-  <canvas id="raceCanvas"></canvas>
+
+  <!-- Track -->
+  <div class="track-area">
+    <div class="sky-strip" id="sky-strip">
+      <div class="crowd" id="crowd"></div>
+    </div>
+    <div class="top-rail"></div>
+    <div class="lanes" id="lanes">
+      <!-- Finish line -->
+      <div class="finish-line" id="finish-line" style="right:40px">
+        <div class="finish-post" style="left:0"></div>
+        <div class="finish-post" style="right:-6px"></div>
+      </div>
+      <!-- Lanes rendered by JS -->
+    </div>
+    <div class="bottom-rail"></div>
+  </div>
+
+  <!-- Leaderboard -->
   <div class="lb-panel">
     <div class="lb-head">🏆 Standings</div>
     <div class="lb-scroll" id="lb-scroll"></div>
   </div>
+
 </div>
 
 <div class="spinner-overlay" id="spinner">
-  <div class="spinner-icon">🐎</div>
+  <div class="spinner-icon">🏇</div>
   <div class="spinner-txt">And they're off…</div>
 </div>
 
@@ -175,438 +327,203 @@ const SUPABASE_KEY = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
 const STORAGE_URL  = `${SUPABASE_URL}/storage/v1/object/public/images/`;
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ── Jockey silks colours ──────────────────────────────────────────
 const SILKS = [
-  { body: '#cc0000', cap: '#ffffff' },
-  { body: '#1155cc', cap: '#ffcc00' },
-  { body: '#00993d', cap: '#ffffff' },
-  { body: '#cc7700', cap: '#000000' },
-  { body: '#7700cc', cap: '#ffcc00' },
-  { body: '#cc0077', cap: '#ffffff' },
-  { body: '#00aacc', cap: '#000033' },
-  { body: '#884400', cap: '#ffffcc' },
-  { body: '#336600', cap: '#ffff00' },
-  { body: '#003366', cap: '#ff9900' },
-  { body: '#cc3300', cap: '#003366' },
-  { body: '#006633', cap: '#ffcc00' },
+  '#cc0000','#1155cc','#00993d','#cc7700','#7700cc',
+  '#cc0077','#00aacc','#884400','#336600','#003366',
+  '#cc3300','#006633','#5500aa','#aa5500','#007755',
+];
+const SILK_CAPS = [
+  '#ffffff','#ffcc00','#ffffff','#000000','#ffcc00',
+  '#ffffff','#000033','#ffffcc','#ffff00','#ff9900',
+  '#003366','#ffcc00','#ffee00','#ffffff','#ffcc00',
 ];
 
-// ── Canvas ────────────────────────────────────────────────────────
-const canvas = document.getElementById('raceCanvas');
-const ctx    = canvas.getContext('2d');
-let W = 0, H = 0;
+let racers    = [];
+let prevRanks = {};
+let photos    = {};
 
-function resize() {
-  W = canvas.parentElement.offsetWidth - 230;
-  H = canvas.parentElement.offsetHeight;
-  canvas.width  = W;
-  canvas.height = H;
-}
-
-// ── Race state ────────────────────────────────────────────────────
-let racers     = [];
-let photos     = {};
-let currentX   = {};   // animated X position (0=start, 1=finish)
-let targetX    = {};
-let prevRanks  = {};
-let maxMetres  = 1;
-
-// ── Layout constants ──────────────────────────────────────────────
-const RAIL_TOP_F   = 0.08;   // top rail as fraction of H
-const RAIL_BOT_F   = 0.82;   // bottom rail
-const FINISH_F     = 0.88;   // finish line X fraction
-const START_F      = 0.06;   // start boxes X fraction
-const LANE_H       = 28;     // pixels per lane (horse+jockey height)
-const HORSE_W      = 56;
-const HORSE_H      = 22;
-
-function laneY(i, total) {
-  const trackH = (RAIL_BOT_F - RAIL_TOP_F) * H;
-  const laneH  = Math.min(LANE_H + 4, trackH / total);
-  const totalH = laneH * total;
-  const startY = RAIL_TOP_F * H + (trackH - totalH) / 2;
-  return startY + i * laneH + laneH / 2;
-}
-
-// ── Drawing ───────────────────────────────────────────────────────
-
-function drawScene() {
-  if (!W || !H) return;
-  ctx.clearRect(0, 0, W, H);
-
-  drawBackground();
-  drawTurf();
-  drawRails();
-  drawLaneStripes();
-  drawStartBoxes();
-  drawFinishLine();
-  drawHorses();
-  drawDistanceMarkers();
-}
-
-function drawBackground() {
-  // Sky
-  const sky = ctx.createLinearGradient(0, 0, 0, H * 0.18);
-  sky.addColorStop(0, '#4a90d9');
-  sky.addColorStop(1, '#87ceeb');
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, W, H * 0.20);
-
-  // Crowd stands suggestion (top)
-  ctx.fillStyle = '#b8860b';
-  ctx.fillRect(0, H * 0.02, W, H * 0.06);
-  // Crowd dots
-  for (let x = 20; x < W; x += 18) {
-    const colours = ['#cc0000','#1155cc','#228b22','#ff8800','#8800cc','#fff'];
-    ctx.fillStyle = colours[Math.floor(Math.random() * colours.length)];
-    ctx.beginPath();
-    ctx.arc(x + (Math.sin(x) * 4), H * 0.05, 4, 0, Math.PI * 2);
-    ctx.fill();
+// ── Build crowd ────────────────────────────────────────────────────
+function buildCrowd() {
+  const crowd  = document.getElementById('crowd');
+  const colours = ['#cc0000','#1155cc','#228b22','#ff8800','#8800cc','#fff','#ff69b4','#ffd700','#00ced1'];
+  const W = crowd.offsetWidth;
+  for (let x = 0; x < W; x += 16) {
+    const d = document.createElement('div');
+    d.className = 'crowd-head';
+    d.style.background = colours[Math.floor(Math.random() * colours.length)];
+    d.style.marginLeft  = (Math.random() * 4) + 'px';
+    d.style.marginTop   = (Math.random() * 12) + 'px';
+    crowd.appendChild(d);
   }
-
-  // Grandstand roof
-  ctx.fillStyle = '#8B4513';
-  ctx.fillRect(0, H * 0.01, W, H * 0.015);
+  // Clouds
+  const sky = document.getElementById('sky-strip');
+  [[10, 10, 90],[38, 5, 70],[68, 12, 110],[85, 6, 80]].forEach(([left, top, w]) => {
+    const c = document.createElement('div');
+    c.className = 'cloud';
+    c.style.cssText = `left:${left}%;top:${top}px;width:${w}px;height:${w*0.35}px`;
+    sky.appendChild(c);
+  });
 }
 
-function drawTurf() {
-  const total = racers.length || 8;
-  // Alternate turf stripes between lanes
-  for (let i = 0; i < total; i++) {
-    const y1 = laneY(i, total) - (H * (RAIL_BOT_F - RAIL_TOP_F) / total / 2);
-    const y2 = laneY(i, total) + (H * (RAIL_BOT_F - RAIL_TOP_F) / total / 2);
-    ctx.fillStyle = i % 2 === 0 ? '#2d7a2d' : '#267326';
-    ctx.fillRect(0, y1, W, y2 - y1);
-  }
+// ── Render lanes ───────────────────────────────────────────────────
+function renderRace(raceData) {
+  const lanesEl  = document.getElementById('lanes');
+  const totalH   = lanesEl.offsetHeight;
+  const trackW   = lanesEl.offsetWidth;
+  const n        = raceData.length;
+  const laneH    = Math.floor(totalH / n);
+  const topM     = raceData[0]?.metres || 1;
 
-  // Bottom area (below rails)
-  ctx.fillStyle = '#1a5c1a';
-  ctx.fillRect(0, RAIL_BOT_F * H, W, H * (1 - RAIL_BOT_F));
-}
+  // Finish line position
+  const finishX  = trackW - 64;
+  const startX   = 50;
+  const raceW    = finishX - startX;
 
-function drawRails() {
-  // Top rail
-  ctx.fillStyle = '#8B4513';
-  ctx.fillRect(0, RAIL_TOP_F * H - 5, W, 8);
-  ctx.fillStyle = '#a0522d';
-  ctx.fillRect(0, RAIL_TOP_F * H - 4, W, 3);
+  document.getElementById('finish-line').style.left = finishX + 'px';
+  document.getElementById('finish-line').style.right = 'auto';
 
-  // Bottom rail
-  ctx.fillStyle = '#8B4513';
-  ctx.fillRect(0, RAIL_BOT_F * H - 2, W, 8);
-  ctx.fillStyle = '#a0522d';
-  ctx.fillRect(0, RAIL_BOT_F * H - 1, W, 3);
+  // Distance markers
+  lanesEl.querySelectorAll('.distance-marker').forEach(e => e.remove());
+  [0.25, 0.5, 0.75].forEach(f => {
+    const dm = document.createElement('div');
+    dm.className = 'distance-marker';
+    dm.style.left = (startX + f * raceW) + 'px';
+    const dl = document.createElement('div');
+    dl.className = 'distance-label';
+    dl.style.left = (startX + f * raceW) + 'px';
+    dl.textContent = Math.round(f * 100) + '%';
+    lanesEl.appendChild(dm);
+    lanesEl.appendChild(dl);
+  });
 
-  // Rail posts
-  for (let x = 30; x < W; x += 60) {
-    ctx.fillStyle = '#6b3410';
-    ctx.fillRect(x - 3, RAIL_TOP_F * H - 8, 6, 18);
-    ctx.fillRect(x - 3, RAIL_BOT_F * H - 6, 6, 18);
-  }
-}
+  // Build or update lanes
+  raceData.forEach((r, i) => {
+    const silk   = SILKS[i % SILKS.length];
+    const cap    = SILK_CAPS[i % SILK_CAPS.length];
+    const y      = i * laneH;
+    const prog   = topM > 0 ? r.metres / topM : 0;
+    const xPos   = startX + prog * raceW;
 
-function drawLaneStripes() {
-  const total = racers.length || 8;
-  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([12, 16]);
-  for (let i = 1; i < total; i++) {
-    const y = laneY(i, total) - (H * (RAIL_BOT_F - RAIL_TOP_F) / total / 2);
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-  }
-  ctx.setLineDash([]);
-}
+    let unit = document.getElementById(`horse-${r.id}`);
+    if (!unit) {
+      // Create lane background
+      const lane = document.createElement('div');
+      lane.className = 'lane';
+      lane.id = `lane-${r.id}`;
+      lane.style.cssText = `height:${laneH}px;top:${y}px`;
 
-function drawStartBoxes() {
-  const total = racers.length || 1;
-  const sx    = START_F * W;
-  ctx.fillStyle = 'rgba(255,255,255,0.12)';
-  ctx.fillRect(sx - 24, RAIL_TOP_F * H, 28, (RAIL_BOT_F - RAIL_TOP_F) * H);
-  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(sx, RAIL_TOP_F * H); ctx.lineTo(sx, RAIL_BOT_F * H); ctx.stroke();
+      const num = document.createElement('div');
+      num.className = 'lane-num';
+      num.textContent = i + 1;
+      lane.appendChild(num);
+      lanesEl.appendChild(lane);
 
-  // "START" label
-  ctx.save();
-  ctx.translate(sx - 10, H * (RAIL_TOP_F + RAIL_BOT_F) / 2);
-  ctx.rotate(-Math.PI / 2);
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.font = 'bold 11px Barlow Condensed';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('START', 0, 0);
-  ctx.restore();
-}
+      // Create horse unit
+      unit = document.createElement('div');
+      unit.className = 'horse-unit';
+      unit.id = `horse-${r.id}`;
+      unit.style.cssText = `top:${y + laneH * 0.5 - 28}px;left:${xPos}px`;
 
-function drawFinishLine() {
-  const fx = FINISH_F * W;
+      // Position badge
+      const badge = document.createElement('div');
+      badge.className = 'pos-badge';
+      badge.id = `badge-${r.id}`;
+      badge.style.background = i===0?'#ffd700':i===1?'#c0c0c0':i===2?'#cd7f32':'#333';
+      badge.style.color = i<3?'#000':'#fff';
+      badge.textContent = i + 1;
+      unit.appendChild(badge);
 
-  // Chequered finish line
-  const sqH = 10, sqW = 8;
-  const lineH = (RAIL_BOT_F - RAIL_TOP_F) * H;
-  const rows  = Math.ceil(lineH / sqH);
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < 3; c++) {
-      ctx.fillStyle = (r + c) % 2 === 0 ? '#fff' : '#000';
-      ctx.fillRect(fx + c * sqW - sqW, RAIL_TOP_F * H + r * sqH, sqW, sqH);
+      // Jockey wrap
+      const jWrap = document.createElement('div');
+      jWrap.className = 'jockey-wrap';
+
+      const photo = document.createElement('img');
+      photo.className = 'jockey-photo';
+      photo.src = r.img;
+      photo.alt = r.initials;
+      photo.onerror = function() {
+        this.style.display = 'none';
+        const fb = document.createElement('div');
+        fb.className = 'jockey-photo';
+        fb.style.cssText = `background:${silk};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff;border:3px solid #fff`;
+        fb.textContent = r.initials.slice(0, 2);
+        this.parentNode.insertBefore(fb, this.nextSibling);
+      };
+      jWrap.appendChild(photo);
+
+      const silkDiv = document.createElement('div');
+      silkDiv.className = 'jockey-silk';
+      silkDiv.style.background = silk;
+      const stripe = document.createElement('div');
+      stripe.className = 'silk-stripe';
+      stripe.style.background = cap;
+      silkDiv.appendChild(stripe);
+      jWrap.appendChild(silkDiv);
+
+      unit.appendChild(jWrap);
+
+      // Horse emoji
+      const horse = document.createElement('div');
+      horse.className = 'horse-emoji';
+      horse.textContent = '🐎';
+      unit.appendChild(horse);
+
+      // Tag
+      const tag = document.createElement('div');
+      tag.className = 'horse-tag';
+      const nameEl = document.createElement('div');
+      nameEl.className = 'horse-name';
+      nameEl.id = `hname-${r.id}`;
+      nameEl.textContent = r.name.split(' ')[0] + ' ' + (r.name.split(' ')[1]?.[0]||'') + '.';
+      const mEl = document.createElement('div');
+      mEl.className = 'horse-metres';
+      mEl.id = `hm-${r.id}`;
+      mEl.textContent = r.metres > 0 ? Math.round(r.metres).toLocaleString() + 'm' : 'On grid';
+      tag.appendChild(nameEl);
+      tag.appendChild(mEl);
+      unit.appendChild(tag);
+
+      lanesEl.appendChild(unit);
+    } else {
+      // Update existing
+      unit.style.left = xPos + 'px';
+      unit.style.top  = `${y + laneH * 0.5 - 28}px`;
+
+      const mEl = document.getElementById(`hm-${r.id}`);
+      if (mEl) mEl.textContent = r.metres > 0 ? Math.round(r.metres).toLocaleString() + 'm' : 'On grid';
+
+      const badge = document.getElementById(`badge-${r.id}`);
+      if (badge) {
+        badge.textContent = i + 1;
+        badge.style.background = i===0?'#ffd700':i===1?'#c0c0c0':i===2?'#cd7f32':'#333';
+        badge.style.color = i<3?'#000':'#fff';
+      }
+
+      const laneEl = document.getElementById(`lane-${r.id}`);
+      if (laneEl) { laneEl.style.top = `${y}px`; laneEl.style.height = `${laneH}px`; }
     }
-  }
-
-  // Finish post
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(fx + sqW, RAIL_TOP_F * H - 30, 5, 30);
-  ctx.fillRect(fx + sqW, RAIL_BOT_F * H, 5, 30);
-
-  // "FINISH" label
-  ctx.save();
-  ctx.translate(fx + 18, H * (RAIL_TOP_F + RAIL_BOT_F) / 2);
-  ctx.rotate(-Math.PI / 2);
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 13px Barlow Condensed';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
-  ctx.strokeText('FINISH', 0, 0);
-  ctx.fillText('FINISH', 0, 0);
-  ctx.restore();
-}
-
-function drawDistanceMarkers() {
-  // Distance % markers along the track
-  const total = racers.length || 1;
-  const trackW = (FINISH_F - START_F) * W;
-  const yTop   = RAIL_TOP_F * H - 2;
-
-  [0.25, 0.5, 0.75].forEach(frac => {
-    const x = START_F * W + frac * trackW;
-    ctx.fillStyle = 'rgba(255,255,255,0.25)';
-    ctx.fillRect(x, yTop, 1.5, (RAIL_BOT_F - RAIL_TOP_F) * H);
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = '10px Barlow Condensed';
-    ctx.textAlign = 'center';
-    ctx.fillText(Math.round(frac * 100) + '%', x, yTop - 4);
   });
-}
-
-function drawHorses() {
-  const total = racers.length;
-  if (!total) return;
-
-  racers.forEach((r, i) => {
-    const progress = currentX[r.id] ?? 0;
-    const x = START_F * W + progress * (FINISH_F - START_F) * W;
-    const y = laneY(i, total);
-    const silk = SILKS[i % SILKS.length];
-
-    drawHorseAndRider(x, y, silk, r, i, total);
-  });
-}
-
-function drawHorseAndRider(cx, cy, silk, racer, idx, total) {
-  const laneH = Math.min(LANE_H + 4, ((RAIL_BOT_F - RAIL_TOP_F) * H) / total);
-  const scale = Math.min(1.0, laneH / 32);
-  const hw    = HORSE_W * scale;
-  const hh    = HORSE_H * scale;
-
-  ctx.save();
-  ctx.translate(cx, cy);
-
-  // ── HORSE (side-on silhouette) ──
-  const gallop = Math.sin(Date.now() * 0.012 + idx * 1.3) * 1.5 * scale;
-
-  // Horse body
-  ctx.fillStyle = ['#8B6914','#5c3d11','#2c1810','#8B8B6B','#6B5B3E'][idx % 5];
-  ctx.beginPath();
-  ctx.ellipse(0, gallop, hw * 0.42, hh * 0.36, -0.08, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Horse neck & head
-  ctx.beginPath();
-  ctx.ellipse(hw * 0.28, gallop - hh * 0.28, hw * 0.12, hh * 0.22, 0.4, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(hw * 0.40, gallop - hh * 0.38, hw * 0.10, hh * 0.14, 0.6, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Eye
-  ctx.fillStyle = '#000';
-  ctx.beginPath();
-  ctx.arc(hw * 0.44, gallop - hh * 0.40, 2 * scale, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Nostril
-  ctx.fillStyle = '#5c1a00';
-  ctx.beginPath();
-  ctx.arc(hw * 0.47, gallop - hh * 0.35, 1.5 * scale, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Legs (4, animated)
-  const legColour = ctx.fillStyle;
-  ctx.fillStyle = ['#8B6914','#5c3d11','#2c1810','#8B8B6B','#6B5B3E'][idx % 5];
-  const legPhase = Date.now() * 0.014 + idx * 1.3;
-  const legPairs = [
-    [ hw * 0.22, Math.sin(legPhase) * 8 * scale,     Math.cos(legPhase) * 8 * scale ],
-    [ hw * 0.10, Math.sin(legPhase + 1) * 8 * scale, Math.cos(legPhase + 1) * 8 * scale ],
-    [-hw * 0.10, Math.sin(legPhase + 2) * 8 * scale, Math.cos(legPhase + 2) * 8 * scale ],
-    [-hw * 0.22, Math.sin(legPhase + 3) * 8 * scale, Math.cos(legPhase + 3) * 8 * scale ],
-  ];
-  legPairs.forEach(([lx, dy1, dy2]) => {
-    ctx.beginPath();
-    ctx.lineWidth = 2.5 * scale;
-    ctx.strokeStyle = ctx.fillStyle;
-    ctx.moveTo(lx, gallop + hh * 0.28);
-    ctx.lineTo(lx + dy1 * 0.3, gallop + hh * 0.28 + hh * 0.35 + dy1 * 0.5);
-    ctx.lineTo(lx + dy2 * 0.4, gallop + hh * 0.28 + hh * 0.62 + dy2 * 0.5);
-    ctx.stroke();
-  });
-
-  // Tail
-  ctx.strokeStyle = ctx.fillStyle;
-  ctx.lineWidth = 3 * scale;
-  const tailWag = Math.sin(Date.now() * 0.010 + idx) * 6 * scale;
-  ctx.beginPath();
-  ctx.moveTo(-hw * 0.40, gallop - hh * 0.05);
-  ctx.quadraticCurveTo(-hw * 0.55, gallop + tailWag, -hw * 0.52, gallop + hh * 0.30 + tailWag);
-  ctx.stroke();
-
-  // Mane
-  ctx.strokeStyle = '#2c1810';
-  ctx.lineWidth = 2 * scale;
-  for (let m = 0; m < 4; m++) {
-    const mx = hw * (0.18 + m * 0.05);
-    ctx.beginPath();
-    ctx.moveTo(mx, gallop - hh * 0.18);
-    ctx.lineTo(mx - 4 * scale, gallop - hh * 0.04);
-    ctx.stroke();
-  }
-
-  // ── JOCKEY ──
-  const jy = gallop - hh * 0.52;
-
-  // Silk shirt (body)
-  ctx.fillStyle = silk.body;
-  ctx.beginPath();
-  ctx.ellipse(hw * 0.05, jy, hw * 0.12 * scale * 1.1, hh * 0.20 * scale * 1.1, -0.2, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Silk stripes
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.beginPath();
-  ctx.ellipse(hw * 0.05, jy, hw * 0.06 * scale, hh * 0.12 * scale, -0.2, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Helmet
-  ctx.fillStyle = silk.cap;
-  ctx.beginPath();
-  ctx.arc(hw * 0.10, jy - hh * 0.20, hh * 0.14 * scale * 1.1, Math.PI, Math.PI * 2);
-  ctx.fill();
-
-  // Helmet peak
-  ctx.fillStyle = silk.cap;
-  ctx.beginPath();
-  ctx.moveTo(hw * 0.22, jy - hh * 0.20);
-  ctx.lineTo(hw * 0.28, jy - hh * 0.14);
-  ctx.lineTo(hw * 0.16, jy - hh * 0.14);
-  ctx.closePath(); ctx.fill();
-
-  // Goggles
-  ctx.fillStyle = 'rgba(255,220,100,0.8)';
-  ctx.beginPath();
-  ctx.ellipse(hw * 0.17, jy - hh * 0.18, 4 * scale, 3 * scale, 0.4, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Whip
-  ctx.strokeStyle = '#8B4513';
-  ctx.lineWidth = 1.5 * scale;
-  const whipAngle = Math.sin(Date.now() * 0.015 + idx) * 0.3;
-  ctx.beginPath();
-  ctx.moveTo(hw * 0.05, jy + hh * 0.10);
-  ctx.lineTo(hw * 0.05 - 14 * scale * Math.cos(whipAngle), jy + hh * 0.10 + 14 * scale * Math.sin(whipAngle + 0.5));
-  ctx.stroke();
-
-  // Photo circle (above horse, floating)
-  const photoR = Math.min(16, laneH * 0.38);
-  const photoX = 0;
-  const photoY = -hh - photoR - 4;
-
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(photoX, photoY, photoR, 0, Math.PI * 2);
-  ctx.clip();
-  const photo = photos[racer.id];
-  if (photo && photo.complete && photo.naturalWidth > 0) {
-    ctx.drawImage(photo, photoX - photoR, photoY - photoR, photoR * 2, photoR * 2);
-  } else {
-    ctx.fillStyle = silk.body;
-    ctx.fillRect(photoX - photoR, photoY - photoR, photoR * 2, photoR * 2);
-    ctx.fillStyle = '#fff';
-    ctx.font = `bold ${Math.round(photoR * 0.8)}px Barlow Condensed`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(racer.initials.slice(0, 2), photoX, photoY);
-  }
-  ctx.restore();
-
-  // Photo ring
-  ctx.strokeStyle = silk.body;
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(photoX, photoY, photoR, 0, Math.PI * 2); ctx.stroke();
-
-  // Name label
-  ctx.fillStyle = '#fff';
-  ctx.font = `bold ${Math.max(9, Math.round(laneH * 0.32))}px Barlow Condensed`;
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 2.5;
-  const label = racer.name.split(' ')[0] + ' ' + (racer.name.split(' ')[1]?.[0] || '') + '.';
-  ctx.strokeText(label, hw * 0.52, gallop);
-  ctx.fillStyle = '#fff';
-  ctx.fillText(label, hw * 0.52, gallop);
-
-  // Metres
-  ctx.fillStyle = '#ffe082';
-  ctx.font = `${Math.max(8, Math.round(laneH * 0.26))}px Barlow Condensed`;
-  ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 2;
-  const mLabel = racer.metres > 0 ? Math.round(racer.metres).toLocaleString() + 'm' : 'On grid';
-  ctx.strokeText(mLabel, hw * 0.52, gallop + Math.max(9, laneH * 0.30));
-  ctx.fillText(mLabel, hw * 0.52, gallop + Math.max(9, laneH * 0.30));
-
-  ctx.restore();
-}
-
-// ── Animation ─────────────────────────────────────────────────────
-function easeFrame() {
-  racers.forEach(r => {
-    const cur = currentX[r.id] ?? 0;
-    const tgt = targetX[r.id]  ?? 0;
-    const d   = tgt - cur;
-    currentX[r.id] = Math.abs(d) > 0.0002 ? cur + d * 0.04 : tgt;
-  });
-}
-
-function loop() {
-  easeFrame();
-  drawScene();
-  requestAnimationFrame(loop);
 }
 
 // ── Leaderboard ────────────────────────────────────────────────────
-function renderLeaderboard(newRacers) {
+function renderLeaderboard(raceData) {
   const scroll = document.getElementById('lb-scroll');
-  scroll.innerHTML = newRacers.map((r, i) => {
+  scroll.innerHTML = raceData.map((r, i) => {
     const pc   = i===0?'p1':i===1?'p2':i===2?'p3':'px';
     const silk = SILKS[i % SILKS.length];
     const prev = prevRanks[r.id];
     let delta  = '';
     if (prev !== undefined && prev !== i) {
       delta = prev > i
-        ? `<div class="lb-delta up">▲${prev - i}</div>`
-        : `<div class="lb-delta dn">▼${i - prev}</div>`;
+        ? `<div class="lb-delta up">▲${prev-i}</div>`
+        : `<div class="lb-delta dn">▼${i-prev}</div>`;
     }
     return `<div class="lb-row">
       <div class="lb-pos ${pc}">${i+1}</div>
-      <div class="lb-swatch" style="background:${silk.body}"></div>
+      <div class="lb-swatch" style="background:${silk}"></div>
       <img class="lb-av" src="${r.img}"
-        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
-        alt="${r.initials}">
-      <div class="lb-av-fb" style="background:${silk.body};display:none">${r.initials}</div>
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="">
+      <div class="lb-av-fb" style="background:${silk};display:none">${r.initials}</div>
       <div class="lb-info">
         <div class="lb-name">${r.name}</div>
         <div class="lb-metres">${r.metres > 0 ? Math.round(r.metres).toLocaleString() + 'm' : 'On grid'}</div>
@@ -627,7 +544,6 @@ async function loadData() {
   document.getElementById('month-badge').textContent =
     now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 
-  // Unpaid transactions this month — individual metres (bonus_metres / crew)
   const { data: ops } = await sb
     .from('transaction_operatives')
     .select(`employee_id,
@@ -651,76 +567,49 @@ async function loadData() {
     empMap[id].metres += myM;
   });
 
-  // If nobody has pending metres, show all active on the grid
   if (!Object.keys(empMap).length) {
     const { data: emps } = await sb.from('employees')
       .select('id, full_name, initials')
       .in('status', ['active','probation'])
       .order('full_name');
-    (emps || []).forEach(e => {
-      empMap[e.id] = { id: e.id, name: e.full_name, initials: e.initials, metres: 0 };
-    });
+    (emps || []).forEach(e => { empMap[e.id] = { id: e.id, name: e.full_name, initials: e.initials, metres: 0 }; });
   }
 
-  const sorted  = Object.values(empMap).sort((a,b) => b.metres - a.metres);
-  const topM    = sorted[0]?.metres || 1;
-
-  return sorted.map((e, i) => ({
-    ...e,
-    rank: i + 1,
-    progress: e.metres / topM,  // 0-1 relative to leader
-    img: `${STORAGE_URL}${encodeURIComponent(e.name)}_cvface1.jpg`,
-  }));
-}
-
-function preloadPhotos(racerList) {
-  racerList.forEach(r => {
-    if (!photos[r.id]) {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload  = () => { photos[r.id] = img; };
-      img.onerror = () => { photos[r.id] = null; };
-      img.src = r.img;
-      photos[r.id] = img;
-    }
-  });
+  return Object.values(empMap)
+    .sort((a, b) => b.metres - a.metres)
+    .map((e, i) => ({
+      ...e,
+      rank: i + 1,
+      img: `${STORAGE_URL}${encodeURIComponent(e.name)}_cvface1.jpg`,
+    }));
 }
 
 async function refresh() {
   const newRacers = await loadData();
   prevRanks = Object.fromEntries(racers.map((r, i) => [r.id, i]));
   racers = newRacers;
-
-  racers.forEach(r => { targetX[r.id] = r.progress; });
-  preloadPhotos(racers);
+  renderRace(racers);
   renderLeaderboard(racers);
-
   document.getElementById('update-lbl').textContent =
     'Updated ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
 }
 
 async function init() {
-  resize();
-  window.addEventListener('resize', () => { resize(); });
-
-  const newRacers = await loadData();
-  racers = newRacers;
-  preloadPhotos(racers);
-
-  racers.forEach(r => {
-    currentX[r.id] = r.progress;
-    targetX[r.id]  = r.progress;
-  });
-  prevRanks = Object.fromEntries(racers.map((r,i) => [r.id, i]));
-
+  buildCrowd();
+  racers = await loadData();
+  renderRace(racers);
   renderLeaderboard(racers);
+  prevRanks = Object.fromEntries(racers.map((r, i) => [r.id, i]));
   document.getElementById('spinner').style.display = 'none';
   document.getElementById('update-lbl').textContent =
     'Updated ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
-
-  loop();
   setInterval(refresh, 60000);
 }
+
+window.addEventListener('resize', () => {
+  document.getElementById('lanes').innerHTML = '';
+  renderRace(racers);
+});
 
 init();
 </script>
