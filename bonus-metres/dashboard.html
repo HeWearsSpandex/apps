@@ -410,7 +410,17 @@
 
     // ── Month-on-Month Chart ──────────────────────────────────────────────────
     let momChartInstance = null;
-    let currentFYOffset  = 0; // 0 = current FY, -1 = previous, etc.
+    let currentFYOffset  = 0;
+
+    // Default to the FY that contains next month
+    (function setDefaultFY() {
+      const now      = new Date();
+      const nextMonth= new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const nextFYStart = nextMonth.getMonth() >= 3 ? nextMonth.getFullYear() : nextMonth.getFullYear() - 1;
+      const curFYStart  = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+      // If next month is in a different FY, default to that FY
+      if (nextFYStart !== curFYStart) currentFYOffset = 1;
+    })();
 
     function getFYBounds(offset = 0) {
       const now    = new Date();
@@ -426,51 +436,73 @@
 
     function shiftYear(dir) {
       currentFYOffset += dir;
-      // Don't go into the future
-      if (currentFYOffset > 0) { currentFYOffset = 0; return; }
+      // Allow up to 1 year ahead, unlimited back
+      if (currentFYOffset > 1) { currentFYOffset = 1; return; }
       loadMomChart();
     }
 
     async function loadMomChart() {
       const { from, to, label, fyStart } = getFYBounds(currentFYOffset);
+      const isCurrentFY = currentFYOffset === 0;
       document.getElementById('fy-label').textContent = label;
 
-      // Build month buckets Apr → Mar
+      // Build month buckets Apr → Mar, plus next month if current FY
       const months = [];
       for (let m = 0; m < 12; m++) {
-        const month = (m + 3) % 12; // 3=Apr, 4=May ... 2=Mar
-        const year  = month >= 3 ? fyStart : fyStart + 1;
+        const month   = (m + 3) % 12;
+        const year    = month >= 3 ? fyStart : fyStart + 1;
         const dateStr = `${year}-${String(month + 1).padStart(2,'0')}`;
         months.push({ label: new Date(`${dateStr}-01`).toLocaleDateString('en-GB', { month:'short', year:'2-digit' }), dateStr, paid: 0, unpaid: 0, jobs: 0 });
       }
 
-      // Fetch transactions in range
+      // Add next month bucket for current FY (for unpaid pending)
+      const nextMonthDate = new Date();
+      nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
+      const nextMonthStr = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2,'0')}`;
+      if (isCurrentFY) {
+        months.push({
+          label:   new Date(`${nextMonthStr}-01`).toLocaleDateString('en-GB', { month:'short', year:'2-digit' }) + ' ⟳',
+          dateStr: nextMonthStr,
+          paid: 0, unpaid: 0, jobs: 0,
+          isPending: true
+        });
+      }
+
+      // Fetch paid transactions in FY range
       const { data: txData } = await sb
         .from('transactions')
         .select('date, bonus_metres, rate, date_paid')
         .gte('date', from)
         .lte('date', to);
 
-      // Calculate next month's dateStr for unpaid bucketing
-      const nextMonthDate = new Date();
-      nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
-      const nextMonthStr = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2,'0')}`;
+      // Fetch ALL unpaid transactions (regardless of date) for current FY only
+      let unpaidTxData = [];
+      if (isCurrentFY) {
+        const { data: unpaid } = await sb
+          .from('transactions')
+          .select('date, bonus_metres, rate, date_paid')
+          .is('date_paid', null);
+        unpaidTxData = unpaid || [];
+      }
 
-      (txData || []).forEach(tx => {
+      // Calculate next month's dateStr for unpaid bucketing
+      ;(txData || []).forEach(tx => {
         const val = parseFloat(tx.bonus_metres || 0) * parseFloat(tx.rate || 0.03);
         if (tx.date_paid) {
-          // Paid — bucket by payment date
           const bucket = months.find(m => m.dateStr === tx.date_paid.slice(0, 7));
           if (!bucket) return;
           bucket.jobs++;
           bucket.paid += val;
-        } else {
-          // Unpaid — always bucket into next month
-          const bucket = months.find(m => m.dateStr === nextMonthStr);
-          if (!bucket) return;
-          bucket.jobs++;
-          bucket.unpaid += val;
         }
+      });
+
+      // All unpaid go into next month bucket
+      unpaidTxData.forEach(tx => {
+        const val    = parseFloat(tx.bonus_metres || 0) * parseFloat(tx.rate || 0.03);
+        const bucket = months.find(m => m.dateStr === nextMonthStr);
+        if (!bucket) return;
+        bucket.jobs++;
+        bucket.unpaid += val;
       });
 
       const totalEarned      = months.reduce((s, m) => s + m.paid + m.unpaid, 0);
@@ -498,14 +530,14 @@
             {
               label: 'Paid',
               data:  months.map(m => parseFloat(m.paid.toFixed(2))),
-              backgroundColor: 'rgba(42,157,42,0.7)',
+              backgroundColor: months.map(m => m.isPending ? 'rgba(42,157,42,0.2)' : 'rgba(42,157,42,0.7)'),
               borderRadius: 4,
               stack: 'bonus',
             },
             {
-              label: 'Outstanding',
+              label: 'Pending Payment',
               data:  months.map(m => parseFloat(m.unpaid.toFixed(2))),
-              backgroundColor: 'rgba(230,81,0,0.6)',
+              backgroundColor: months.map(m => m.isPending ? 'rgba(26,115,232,0.7)' : 'rgba(230,81,0,0.6)'),
               borderRadius: 4,
               stack: 'bonus',
             },
