@@ -452,9 +452,10 @@
         .lte('date', to);
 
       (txData || []).forEach(tx => {
-        const val     = parseFloat(tx.bonus_metres || 0) * parseFloat(tx.rate || 0.03);
-        const monthStr = tx.date.slice(0, 7);
-        const bucket   = months.find(m => m.dateStr === monthStr);
+        const val      = parseFloat(tx.bonus_metres || 0) * parseFloat(tx.rate || 0.03);
+        // Paid transactions bucket by payment date, unpaid by work date
+        const bucketDate = tx.date_paid ? tx.date_paid.slice(0, 7) : tx.date.slice(0, 7);
+        const bucket     = months.find(m => m.dateStr === bucketDate);
         if (!bucket) return;
         bucket.jobs++;
         if (tx.date_paid) bucket.paid   += val;
