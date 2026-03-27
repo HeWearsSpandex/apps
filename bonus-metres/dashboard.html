@@ -461,7 +461,6 @@
           const dateStr = `${year}-${String(month+1).padStart(2,'0')}`;
           months.push({ label: new Date(`${dateStr}-01`).toLocaleDateString('en-GB',{month:'short',year:'2-digit'}), dateStr, paid:0, unpaid:0, jobs:0 });
         }
-        months.push({ label: nextMD.toLocaleDateString('en-GB',{month:'short',year:'2-digit'})+' ⟳', dateStr: nextMonthStr, paid:0, unpaid:0, jobs:0, isPending:true });
       }
 
       // Fetch paid transactions
