@@ -371,6 +371,7 @@
     let bonusLoaded   = false;
 
     async function loadBonusTab() {
+      if (!employeeId) { console.warn('loadBonusTab called before employeeId set'); return; }
       if (bonusLoaded) return;
       bonusLoaded = true;
       renderBonusTab();
@@ -402,11 +403,13 @@
           .order('transactions(date)', { ascending: false });
 
         // ── Unpaid deductions / bonuses ──
-        const { data: unpaidEntries } = await sb
+        const { data: unpaidEntries, error: entriesErr } = await sb
           .from('bonus_entries')
           .select('id, date, type, amount, reason')
           .eq('employee_id', employeeId)
           .is('date_paid', null);
+
+        console.log('bonus_entries query:', { employeeId, unpaidEntries, entriesErr });
 
         // ── Month-end history ──
         const { data: history } = await sb
@@ -539,67 +542,68 @@
           <!-- Full history view -->
           <div id="view-all" style="display:${bonusScope==='all'?'flex':'none'};flex-direction:column;gap:10px;">
 
-            <!-- Payment history -->
-            <div class="bonus-section">
-              <div class="bonus-section-header">
-                <h3>📅 Payment History</h3>
-                <span class="total-chip green">${fmt(totalEverPaid)} total</span>
-              </div>
-              ${hist.length === 0
-                ? '<div class="empty-row">No payment history yet</div>'
-                : hist.map((h, i) => {
-                    const run = h.month_end_runs;
-                    const pd  = new Date(run.payment_date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
-                    return `
-                      <div class="hist-row" onclick="toggleHistDetail(${i})">
-                        <div class="hist-period">
-                          <div class="name">${run.period_name}</div>
-                          <div class="date">Paid ${pd}</div>
-                        </div>
-                        <div style="text-align:right">
-                          <div class="hist-amount">${fmt(h.net_payable)}</div>
-                          ${parseFloat(h.carry_over_out) > 0
-                            ? `<div class="hist-carry">+${fmt(h.carry_over_out)} carried over</div>`
-                            : ''}
-                        </div>
-                        <div class="hist-chevron" id="chev-${i}">›</div>
-                      </div>
-                      <div class="hist-detail" id="hist-detail-${i}">
-                        <div class="hist-detail-row"><span>Job Bonuses + Special Bonuses</span><span>${fmt(h.gross_earned)}</span></div>
-                        ${parseFloat(h.deductions) > 0 ? `<div class="hist-detail-row"><span>Deductions</span><span style="color:#c00">-${fmt(h.deductions)}</span></div>` : ''}
-                        ${parseFloat(h.carry_over_in) > 0 ? `<div class="hist-detail-row"><span>Carry-over from previous month</span><span style="color:#e65100">-${fmt(h.carry_over_in)}</span></div>` : ''}
-                        <div class="hist-detail-row total"><span>Net Paid</span><span style="color:#2a9d2a">${fmt(h.net_payable)}</span></div>
-                        ${parseFloat(h.carry_over_out) > 0 ? `<div class="hist-detail-row" style="color:#e65100"><span>Carried to next month</span><span>-${fmt(h.carry_over_out)}</span></div>` : ''}
-                      </div>`;
-                  }).join('')}
-            </div>
+            ${(() => {
+              // Group paid jobs by date_paid
+              const paymentGroups = {};
+              paidJobs.forEach(o => {
+                const tx  = o.transactions;
+                const key = tx.date_paid;
+                if (!paymentGroups[key]) paymentGroups[key] = { date_paid: key, jobs: [], total: 0 };
+                paymentGroups[key].jobs.push(o);
+                paymentGroups[key].total += parseFloat(o.share_value);
+              });
 
-            <!-- All paid jobs -->
-            <div class="bonus-section">
-              <div class="bonus-section-header">
-                <h3>🔧 All Jobs</h3>
-                <span class="total-chip">${paidJobs.length} jobs</span>
-              </div>
-              ${paidJobs.length === 0
-                ? '<div class="empty-row">No paid jobs yet</div>'
-                : paidJobs.map(o => {
-                    const tx = o.transactions;
-                    const d  = fmtDate(tx.date);
-                    const pd = tx.date_paid ? new Date(tx.date_paid).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '';
-                    return `<div class="job-row">
-                      <div class="job-date">
-                        <div class="day">${d.day}</div>
-                        <div class="mon">${d.mon}</div>
-                      </div>
-                      <div class="job-info">
-                        <div class="job-site">${tx.site_name || '—'}</div>
-                        <div class="job-ref">${tx.job_ref || ''}</div>
-                        <div class="job-meta">${Math.round(parseFloat(tx.bonus_metres) / Math.max(1, (tx.transaction_operatives||[]).length)).toLocaleString()}m (${(tx.transaction_operatives||[]).length} crew) · Paid ${pd}</div>
-                      </div>
-                      <div class="job-val">${fmt(o.share_value)}</div>
-                    </div>`;
-                  }).join('')}
-            </div>
+              const groups = Object.values(paymentGroups).sort((a,b) => new Date(b.date_paid) - new Date(a.date_paid));
+
+              if (!groups.length) return '<div class="empty-row">No payment history yet</div>';
+
+              return groups.map((g, gi) => {
+                const pd = new Date(g.date_paid).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+
+                // Check if there's a month_end_run for this payment date
+                const run = hist.find(h => h.month_end_runs?.payment_date?.startsWith(g.date_paid));
+
+                const jobRows = g.jobs.map(o => {
+                  const tx = o.transactions;
+                  const d  = fmtDate(tx.date);
+                  return `<div class="job-row" style="border-bottom:1px solid #f0f0f0;padding:10px 16px">
+                    <div class="job-date">
+                      <div class="day">${d.day}</div>
+                      <div class="mon">${d.mon}</div>
+                    </div>
+                    <div class="job-info">
+                      <div class="job-site">${tx.site_name || '—'}</div>
+                      <div class="job-ref">${tx.job_ref || ''}</div>
+                      <div class="job-meta">${Math.round(parseFloat(tx.bonus_metres) / Math.max(1,(tx.transaction_operatives||[]).length)).toLocaleString()}m · ${(tx.transaction_operatives||[]).length} crew</div>
+                    </div>
+                    <div class="job-val">${fmt(o.share_value)}</div>
+                  </div>`;
+                }).join('');
+
+                return `
+                  <div class="hist-row" onclick="toggleHistDetail(${gi})" style="cursor:pointer">
+                    <div class="hist-period">
+                      <div class="name">Payment — ${pd}</div>
+                      <div class="date">${g.jobs.length} job${g.jobs.length!==1?'s':''}</div>
+                    </div>
+                    <div style="text-align:right">
+                      <div class="hist-amount">${fmt(g.total)}</div>
+                      ${run && parseFloat(run.carry_over_out) > 0 ? `<div class="hist-carry">+${fmt(run.carry_over_out)} carried over</div>` : ''}
+                    </div>
+                    <div class="hist-chevron" id="chev-${gi}">›</div>
+                  </div>
+                  <div class="hist-detail" id="hist-detail-${gi}">
+                    ${run ? `
+                      <div style="padding:10px 16px;background:#f9f9f9;border-bottom:1px solid #f0f0f0;display:flex;gap:16px;flex-wrap:wrap;font-size:12px">
+                        <span>Job Bonuses: <strong>${fmt(run.gross_earned)}</strong></span>
+                        ${parseFloat(run.deductions)>0?`<span style="color:#c00">Deductions: <strong>-${fmt(run.deductions)}</strong></span>`:''}
+                        ${parseFloat(run.carry_over_in)>0?`<span style="color:#e65100">Carry-over in: <strong>-${fmt(run.carry_over_in)}</strong></span>`:''}
+                        <span style="color:#2a9d2a">Net paid: <strong>${fmt(run.net_payable)}</strong></span>
+                      </div>` : ''}
+                    ${jobRows}
+                  </div>`;
+              }).join('');
+            })()}
 
           </div>
         `;
