@@ -667,7 +667,7 @@
     async function loadEmployees() {
       const { data } = await sb.from('employees')
         .select('id, full_name, initials, status')
-        .in('status', ['active', 'probation'])
+        .in('status', ['active', 'probation', 'inactive', 'token'])
         .order('full_name');
       allEmployees = data || [];
     }
@@ -707,14 +707,14 @@
     let jobRefTimer = null;
     function lookupSiteByJobRef(val) {
       clearTimeout(jobRefTimer);
-      if (!val || val.length < 3) return;
+      if (!val || val.length < 6) return;
       jobRefTimer = setTimeout(async () => {
         const siteEl = document.getElementById('job-site');
         if (siteEl.value) return; // don't overwrite if already filled
         const { data } = await sb
           .from('transactions')
           .select('site_name')
-          .ilike('job_ref', `%${val}%`)
+          .eq('job_ref', val.trim())
           .not('site_name', 'is', null)
           .order('date', { ascending: false })
           .limit(1);
@@ -723,20 +723,20 @@
           siteEl.classList.add('pinned-field');
           setTimeout(() => siteEl.classList.remove('pinned-field'), 1500);
         }
-      }, 400);
+      }, 600);
     }
 
     let entryRefTimer = null;
     function lookupSiteByJobRefEntry(val) {
       clearTimeout(entryRefTimer);
-      if (!val || val.length < 3) return;
+      if (!val || val.length < 6) return;
       entryRefTimer = setTimeout(async () => {
         const siteEl = document.getElementById('entry-site');
         if (siteEl.value) return;
         const { data } = await sb
           .from('transactions')
           .select('site_name')
-          .ilike('job_ref', `%${val}%`)
+          .eq('job_ref', val.trim())
           .not('site_name', 'is', null)
           .order('date', { ascending: false })
           .limit(1);
@@ -745,7 +745,7 @@
           siteEl.classList.add('pinned-field');
           setTimeout(() => siteEl.classList.remove('pinned-field'), 1500);
         }
-      }, 400);
+      }, 600);
     }
 
     // ── Rate lookup ───────────────────────────────────────────────────────────
@@ -797,17 +797,28 @@
     function renderOperativeList(query) {
       const list = document.getElementById('op-list');
       const q    = query.toLowerCase();
+
+      // Include active, probation and token ('Left') — exclude inactive leavers
       const filtered = allEmployees.filter(e =>
-        !q || e.full_name.toLowerCase().includes(q) || e.initials.toLowerCase().includes(q)
+        (e.status === 'active' || e.status === 'probation' || e.status === 'token') &&
+        (!q || e.full_name.toLowerCase().includes(q) || e.initials.toLowerCase().includes(q))
       );
 
+      // Sort: active/probation first, token last
+      filtered.sort((a, b) => {
+        const aToken = a.status === 'token' ? 1 : 0;
+        const bToken = b.status === 'token' ? 1 : 0;
+        return aToken - bToken || a.full_name.localeCompare(b.full_name);
+      });
+
       list.innerHTML = filtered.map(e => {
-        const sel     = selectedOps.includes(e.id);
-        const imgSrc  = `/img/${encodeURIComponent(e.full_name)}_cvface1.png`;
-        const fallback = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'><circle cx='14' cy='14' r='14' fill='%23ddd'/><text x='14' y='19' text-anchor='middle' font-size='12' fill='%23999'>${e.full_name.charAt(0)}</text></svg>`;
+        const sel      = selectedOps.includes(e.id);
+        const isToken  = e.status === 'token';
+        const imgSrc   = `${STORAGE_URL}${encodeURIComponent(e.full_name)}_cvface1.jpg`;
+        const fallback = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'><circle cx='14' cy='14' r='14' fill='%23${isToken ? 'fee2e2' : 'e8f0fe'}'/><text x='14' y='18' text-anchor='middle' font-size='10' font-weight='700' fill='%23${isToken ? 'c00' : '1a73e8'}' font-family='Arial'>${e.initials}</text></svg>`;
         return `<div class="op-option ${sel ? 'selected' : ''}" data-id="${e.id}" onclick="toggleOperative('${e.id}')">
           <img src="${imgSrc}" onerror="this.src='${fallback}'" width="28" height="28">
-          <span class="op-name">${e.full_name}</span>
+          <span class="op-name" style="${isToken ? 'color:var(--red);font-style:italic' : ''}">${e.full_name}</span>
           <span class="op-initials">${e.initials}</span>
           ${sel ? '<span style="color:var(--blue);font-size:16px">✓</span>' : ''}
         </div>`;
@@ -826,7 +837,7 @@
         const query    = val.slice(0, -1).trim().toUpperCase();
         const match    = allEmployees.find(e =>
           e.initials.toUpperCase() === query &&
-          (e.status === 'active' || e.status === 'probation')
+          (e.status === 'active' || e.status === 'probation' || e.status === 'token')
         );
         if (match && !selectedOps.includes(match.id)) {
           selectedOps.push(match.id);
@@ -916,21 +927,46 @@
 
     function renderEntryOpList(query) {
       const q   = query.toLowerCase();
-      const el  = document.getElementById('entry-op-list');
+      const isDeduction = currentType === 'deduction';
+
+      // For deductions include leavers, for bonuses active/probation only — never token
       const filtered = allEmployees.filter(e =>
-        (e.status === 'active' || e.status === 'probation') &&
+        e.status !== 'token' &&
+        (isDeduction || e.status === 'active' || e.status === 'probation') &&
         (!q || e.full_name.toLowerCase().includes(q) || e.initials.toLowerCase().includes(q))
       );
-      el.innerHTML = filtered.map(e => {
-        const sel     = entrySelectedOps.includes(e.id);
-        const imgSrc  = `${STORAGE_URL}${encodeURIComponent(e.full_name)}_cvface1.jpg`;
-        const fallback= `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'><circle cx='14' cy='14' r='14' fill='%23e8f0fe'/><text x='14' y='18' text-anchor='middle' font-size='10' font-weight='700' fill='%231a73e8' font-family='Arial'>${e.initials}</text></svg>`;
-        return `<div class="op-option ${sel ? 'selected' : ''}" onclick="toggleEntryOp('${e.id}')">
-          <img src="${imgSrc}" onerror="this.src='${fallback}'" alt="${e.full_name}">
-          <span class="op-name">${e.full_name}</span>
+
+      // Sort: active/probation first, then leavers
+      filtered.sort((a, b) => {
+        const aActive = a.status !== 'inactive' ? 0 : 1;
+        const bActive = b.status !== 'inactive' ? 0 : 1;
+        return aActive - bActive || a.full_name.localeCompare(b.full_name);
+      });
+
+      const el = document.getElementById('entry-op-list');
+      let html = '';
+      let shownLeaver = false;
+
+      filtered.forEach(e => {
+        const sel      = entrySelectedOps.includes(e.id);
+        const isLeaver = e.status === 'inactive';
+        const imgSrc   = `${STORAGE_URL}${encodeURIComponent(e.full_name)}_cvface1.jpg`;
+        const fallback = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'><circle cx='14' cy='14' r='14' fill='%23e8f0fe'/><text x='14' y='18' text-anchor='middle' font-size='10' font-weight='700' fill='%231a73e8' font-family='Arial'>${e.initials}</text></svg>`;
+
+        // Add a divider before first leaver
+        if (isDeduction && isLeaver && !shownLeaver) {
+          shownLeaver = true;
+          html += `<div style="padding:6px 12px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;background:var(--grey);border-top:1px solid var(--border)">Leavers</div>`;
+        }
+
+        html += `<div class="op-option ${sel ? 'selected' : ''}" onclick="toggleEntryOp('${e.id}')">
+          <img src="${imgSrc}" onerror="this.src='${fallback}'" alt="${e.full_name}" style="${isLeaver ? 'opacity:0.6;filter:grayscale(1)' : ''}">
+          <span class="op-name" style="${isLeaver ? 'color:var(--muted)' : ''}">${e.full_name}${isLeaver ? ' <span style="font-size:10px">(Left)</span>' : ''}</span>
           <span class="op-initials">${e.initials}</span>
         </div>`;
-      }).join('');
+      });
+
+      el.innerHTML = html || '<div style="padding:12px;font-size:13px;color:var(--muted);text-align:center">No matches</div>';
     }
 
     function toggleEntryOp(id) {
@@ -1167,6 +1203,7 @@
           if (!emp) return true;
           // Exclude anyone inactive — either already left or no date set
           if (emp.status === 'inactive') return false;
+          if (emp.status === 'token') return false;
           return true;
         });
 
