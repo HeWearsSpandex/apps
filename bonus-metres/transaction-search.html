@@ -322,11 +322,11 @@
 
       const { data } = await sb.from('employees')
         .select('id, full_name, initials, status')
-        .in('status', ['active', 'probation', 'inactive'])
+        .in('status', ['active', 'probation'])
         .order('full_name');
       allEmployees = data || [];
 
-      // Populate employee filter
+      // Populate employee filter — active and probation only
       const sel = document.getElementById('f-employee');
       allEmployees.forEach(e => {
         const opt = document.createElement('option');
@@ -383,10 +383,12 @@
         if (txErr) throw new Error(txErr.message);
 
         // ── Bonus entries (special bonus + deduction) ──
+        // ── Bonus entries — filter to active employees only ──
         let entryQuery = sb
           .from('bonus_entries')
           .select(`id, date, type, amount, reason, job_ref, site_name, date_paid,
-                   employees(id, full_name, initials)`)
+                   employees!inner(id, full_name, initials, status)`)
+          .in('employees.status', ['active', 'probation'])
           .order('date', { ascending: false })
           .limit(500);
 
@@ -403,7 +405,8 @@
 
         // ── Merge and filter ──
         let jobs = (txData || []).map(tx => ({ ...tx, _source: 'job' }));
-        let entries = (entryData || []).map(e => ({ ...e, _source: e.type }));
+        let entries = (entryData || []).map(e => ({ ...e, _source: e.type }))
+          .filter(e => e.employees?.status === 'active' || e.employees?.status === 'probation');
 
         // Client-side filters for jobs
         if (empId) {
