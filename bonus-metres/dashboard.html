@@ -451,15 +451,26 @@
         .gte('date', from)
         .lte('date', to);
 
+      // Calculate next month's dateStr for unpaid bucketing
+      const nextMonthDate = new Date();
+      nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
+      const nextMonthStr = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2,'0')}`;
+
       (txData || []).forEach(tx => {
-        const val      = parseFloat(tx.bonus_metres || 0) * parseFloat(tx.rate || 0.03);
-        // Paid transactions bucket by payment date, unpaid by work date
-        const bucketDate = tx.date_paid ? tx.date_paid.slice(0, 7) : tx.date.slice(0, 7);
-        const bucket     = months.find(m => m.dateStr === bucketDate);
-        if (!bucket) return;
-        bucket.jobs++;
-        if (tx.date_paid) bucket.paid   += val;
-        else              bucket.unpaid += val;
+        const val = parseFloat(tx.bonus_metres || 0) * parseFloat(tx.rate || 0.03);
+        if (tx.date_paid) {
+          // Paid — bucket by payment date
+          const bucket = months.find(m => m.dateStr === tx.date_paid.slice(0, 7));
+          if (!bucket) return;
+          bucket.jobs++;
+          bucket.paid += val;
+        } else {
+          // Unpaid — always bucket into next month
+          const bucket = months.find(m => m.dateStr === nextMonthStr);
+          if (!bucket) return;
+          bucket.jobs++;
+          bucket.unpaid += val;
+        }
       });
 
       const totalEarned      = months.reduce((s, m) => s + m.paid + m.unpaid, 0);
