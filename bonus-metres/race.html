@@ -3,115 +3,169 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JHB Grand Prix 🏁</title>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Barlow+Condensed:wght@700;900&display=swap" rel="stylesheet">
+  <title>JHB Bonus Metres — Current Leaderboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Barlow+Condensed:wght@400;600;700;900&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --turf:   #2d7a2d;
+      --turf2:  #267326;
+      --rail:   #8B4513;
+      --rail2:  #a0522d;
+      --dirt:   #c8a96e;
+      --sky:    #87CEEB;
+      --white:  #fff;
+      --cream:  #fffde7;
+      --gold:   #d4a017;
+      --dark:   #1a0a00;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { width: 100%; height: 100vh; overflow: hidden; background: #1a1a2e; font-family: 'Barlow Condensed', sans-serif; }
+    html, body {
+      width: 100%; height: 100vh; overflow: hidden;
+      background: var(--turf);
+      font-family: 'Barlow Condensed', sans-serif;
+    }
 
+    /* ── HEADER ── */
     .header {
-      height: 52px;
-      background: linear-gradient(135deg, #cc0000, #880000);
-      border-bottom: 4px solid #ffcc00;
+      height: 56px;
+      background: linear-gradient(135deg, #1a0a00 0%, #3d1a00 50%, #1a0a00 100%);
+      border-bottom: 3px solid var(--gold);
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 16px;
-      box-shadow: 0 3px 0 #550000;
+      padding: 0 20px;
+      position: relative; z-index: 10;
     }
-    .header img { height: 36px; }
-    .header-title { font-family: 'Press Start 2P', monospace; font-size: 13px; color: #ffe000; text-shadow: 2px 2px 0 #880000; }
-    .header-sub { font-size: 11px; color: #ffaaaa; letter-spacing: 2px; text-transform: uppercase; margin-top: 3px; }
+    .header-logo { height: 38px; }
+    .header-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px; font-weight: 900;
+      color: var(--gold);
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+      letter-spacing: 1px;
+    }
+    .header-sub { font-size: 12px; color: #c8a96e; letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
     .header-right { text-align: right; }
-    .fy-badge { background: #ffe000; color: #880000; font-family: 'Press Start 2P', monospace; font-size: 7px; padding: 3px 8px; border-radius: 3px; }
-    .update-time { font-size: 10px; color: #ffaaaa; margin-top: 3px; }
+    .month-pill {
+      background: var(--gold); color: var(--dark);
+      font-family: 'Playfair Display', serif;
+      font-size: 13px; font-weight: 700;
+      padding: 4px 12px; border-radius: 20px;
+      display: inline-block;
+    }
+    .update-lbl { font-size: 10px; color: #c8a96e; margin-top: 4px; letter-spacing: 1px; }
 
-    .race-wrap {
+    /* ── MAIN LAYOUT ── */
+    .race-layout {
       display: flex;
-      height: calc(100vh - 52px);
+      height: calc(100vh - 56px);
     }
 
-    /* Canvas takes up the main area */
+    /* ── CANVAS ── */
     #raceCanvas {
       flex: 1;
       display: block;
-      cursor: default;
     }
 
-    /* Leaderboard */
-    .leaderboard {
-      width: 240px;
+    /* ── LEADERBOARD ── */
+    .lb-panel {
+      width: 230px;
       flex-shrink: 0;
-      background: #0d0d1a;
-      border-left: 3px solid #ffe000;
-      display: flex;
-      flex-direction: column;
+      background: linear-gradient(180deg, #1a0a00 0%, #2d1400 100%);
+      border-left: 3px solid var(--gold);
+      display: flex; flex-direction: column;
       overflow: hidden;
     }
     .lb-head {
-      background: #cc0000;
-      padding: 10px 12px;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 8px;
-      color: #ffe000;
-      text-align: center;
-      border-bottom: 2px solid #ffe000;
-      flex-shrink: 0;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, #2d1400, #1a0a00);
+      border-bottom: 2px solid var(--gold);
+      font-family: 'Playfair Display', serif;
+      font-size: 15px; color: var(--gold);
+      text-align: center; flex-shrink: 0;
+      letter-spacing: 1px;
     }
-    .lb-body { overflow-y: auto; flex: 1; }
-    .lb-body::-webkit-scrollbar { width: 3px; }
-    .lb-body::-webkit-scrollbar-thumb { background: #cc0000; }
+    .lb-scroll { flex: 1; overflow-y: auto; }
+    .lb-scroll::-webkit-scrollbar { width: 3px; }
+    .lb-scroll::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 2px; }
 
     .lb-row {
       display: flex; align-items: center; gap: 8px;
       padding: 7px 10px;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(212,160,23,0.1);
+      transition: background 0.3s;
     }
-    .lb-num { font-family: 'Press Start 2P', monospace; font-size: 8px; width: 18px; text-align: center; flex-shrink: 0; }
-    .lb-num.n1 { color: #ffd700; } .lb-num.n2 { color: #c0c0c0; } .lb-num.n3 { color: #cd7f32; } .lb-num.nx { color: #555; }
-    .lb-av { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 2px solid rgba(255,255,255,0.1); }
-    .lb-av-fb { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900; color: #fff; border: 2px solid rgba(255,255,255,0.1); }
+    .lb-row:hover { background: rgba(212,160,23,0.06); }
+    .lb-pos {
+      font-family: 'Playfair Display', serif;
+      font-size: 14px; font-weight: 700;
+      width: 20px; text-align: center; flex-shrink: 0;
+    }
+    .lb-pos.p1 { color: #ffd700; }
+    .lb-pos.p2 { color: #c0c0c0; }
+    .lb-pos.p3 { color: #cd7f32; }
+    .lb-pos.px { color: #555; font-size: 11px; }
+    .lb-swatch { width: 10px; height: 32px; border-radius: 3px; flex-shrink: 0; }
+    .lb-av {
+      width: 32px; height: 32px; border-radius: 50%;
+      object-fit: cover; flex-shrink: 0;
+      border: 2px solid rgba(212,160,23,0.3);
+    }
+    .lb-av-fb {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 900; color: #fff;
+      border: 2px solid rgba(212,160,23,0.3);
+      flex-shrink: 0;
+    }
     .lb-info { flex: 1; min-width: 0; }
     .lb-name { font-size: 12px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .lb-m { font-size: 10px; color: #ffe000; font-weight: 700; }
-    .lb-delta { font-size: 9px; font-weight: 900; padding: 1px 4px; border-radius: 2px; flex-shrink: 0; }
-    .lb-delta.up { background: #0d3d0d; color: #52c41a; }
-    .lb-delta.dn { background: #3d0d0d; color: #ff4444; }
+    .lb-metres { font-size: 11px; color: var(--gold); font-weight: 600; }
+    .lb-delta { font-size: 9px; font-weight: 900; padding: 2px 4px; border-radius: 2px; flex-shrink: 0; }
+    .lb-delta.up { background: #0d3a0d; color: #4caf50; }
+    .lb-delta.dn { background: #3a0d0d; color: #f44336; }
 
+    /* ── SPINNER ── */
     .spinner-overlay {
-      position: fixed; inset: 0; background: rgba(10,10,30,0.95);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 20px; z-index: 100;
+      position: fixed; inset: 0;
+      background: rgba(10,5,0,0.95);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
+      z-index: 100;
     }
-    .spinner-kart { font-size: 56px; animation: kbounce 0.5s ease-in-out infinite alternate; }
-    @keyframes kbounce { to { transform: translateY(-12px) rotate(5deg); } }
-    .spinner-txt { font-family: 'Press Start 2P', monospace; font-size: 14px; color: #ffe000; animation: blink 0.7s step-end infinite; }
-    @keyframes blink { 50% { opacity: 0; } }
+    .spinner-icon { font-size: 52px; animation: gallop 0.4s ease-in-out infinite alternate; }
+    @keyframes gallop { to { transform: translateY(-10px) scaleX(1.05); } }
+    .spinner-txt {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px; color: var(--gold);
+      animation: fade 0.8s ease-in-out infinite alternate;
+    }
+    @keyframes fade { to { opacity: 0.3; } }
   </style>
 </head>
 <body>
 
 <div class="header">
-  <img src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/JHB%20Logo.png" alt="JHB">
+  <img class="header-logo" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/JHB%20Logo.png" alt="JHB">
   <div>
-    <div class="header-title">🏁 JHB GRAND PRIX</div>
-    <div class="header-sub" id="period-label">This Month — Unpaid Metres</div>
+    <div class="header-title">🏇 Bonus Metres — Current Leaderboard</div>
+    <div class="header-sub">Heading for the finish line</div>
   </div>
   <div class="header-right">
-    <div class="fy-badge" id="month-badge">Loading…</div>
-    <div class="update-time" id="update-time"></div>
+    <div class="month-pill" id="month-badge">Loading…</div>
+    <div class="update-lbl" id="update-lbl"></div>
   </div>
 </div>
 
-<div class="race-wrap">
+<div class="race-layout">
   <canvas id="raceCanvas"></canvas>
-  <div class="leaderboard">
-    <div class="lb-head">🏆 STANDINGS</div>
-    <div class="lb-body" id="lb-body"></div>
+  <div class="lb-panel">
+    <div class="lb-head">🏆 Standings</div>
+    <div class="lb-scroll" id="lb-scroll"></div>
   </div>
 </div>
 
 <div class="spinner-overlay" id="spinner">
-  <div class="spinner-kart">🏎️</div>
-  <div class="spinner-txt">ENGINES STARTING…</div>
+  <div class="spinner-icon">🐎</div>
+  <div class="spinner-txt">And they're off…</div>
 </div>
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -121,359 +175,448 @@ const SUPABASE_KEY = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
 const STORAGE_URL  = `${SUPABASE_URL}/storage/v1/object/public/images/`;
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const COLOURS = ['#e60026','#1a6be6','#00b050','#e67300','#8800cc','#cc0077','#00aacc','#cc5500','#557700','#004488'];
+// ── Jockey silks colours ──────────────────────────────────────────
+const SILKS = [
+  { body: '#cc0000', cap: '#ffffff' },
+  { body: '#1155cc', cap: '#ffcc00' },
+  { body: '#00993d', cap: '#ffffff' },
+  { body: '#cc7700', cap: '#000000' },
+  { body: '#7700cc', cap: '#ffcc00' },
+  { body: '#cc0077', cap: '#ffffff' },
+  { body: '#00aacc', cap: '#000033' },
+  { body: '#884400', cap: '#ffffcc' },
+  { body: '#336600', cap: '#ffff00' },
+  { body: '#003366', cap: '#ff9900' },
+  { body: '#cc3300', cap: '#003366' },
+  { body: '#006633', cap: '#ffcc00' },
+];
 
-// ── Canvas setup ───────────────────────────────────────────────────
+// ── Canvas ────────────────────────────────────────────────────────
 const canvas = document.getElementById('raceCanvas');
 const ctx    = canvas.getContext('2d');
 let W = 0, H = 0;
 
 function resize() {
-  const wrap = canvas.parentElement;
-  W = wrap.offsetWidth - 240;
-  H = wrap.offsetHeight;
+  W = canvas.parentElement.offsetWidth - 230;
+  H = canvas.parentElement.offsetHeight;
   canvas.width  = W;
   canvas.height = H;
-  buildTrack();
-  render();
 }
 
-// ── Track: closed loop entirely on the ground ─────────────────────
-// Horizon is at Y=0.28. Track spans Y=0.42 to Y=0.96
-let RAW = [];
-function buildTrack() {
-  RAW = [
-    // Start/finish — top straight (well below horizon)
-    [0.50, 0.48],
-    [0.66, 0.48],
-    [0.78, 0.50],
-    // Right curve sweeping down
-    [0.88, 0.57],
-    [0.90, 0.66],
-    // Right chicane
-    [0.87, 0.74],
-    [0.76, 0.76],
-    [0.78, 0.83],
-    // Bottom right
-    [0.80, 0.90],
-    [0.70, 0.95],
-    // Bottom straight
-    [0.54, 0.97],
-    [0.38, 0.97],
-    // Bottom left hairpin
-    [0.22, 0.97],
-    [0.14, 0.90],
-    [0.16, 0.82],
-    // Left chicane
-    [0.24, 0.74],
-    [0.13, 0.65],
-    [0.11, 0.57],
-    // Top left curve back
-    [0.13, 0.50],
-    [0.22, 0.46],
-    [0.36, 0.46],
-    [0.50, 0.48], // close
-  ];
+// ── Race state ────────────────────────────────────────────────────
+let racers     = [];
+let photos     = {};
+let currentX   = {};   // animated X position (0=start, 1=finish)
+let targetX    = {};
+let prevRanks  = {};
+let maxMetres  = 1;
+
+// ── Layout constants ──────────────────────────────────────────────
+const RAIL_TOP_F   = 0.08;   // top rail as fraction of H
+const RAIL_BOT_F   = 0.82;   // bottom rail
+const FINISH_F     = 0.88;   // finish line X fraction
+const START_F      = 0.06;   // start boxes X fraction
+const LANE_H       = 28;     // pixels per lane (horse+jockey height)
+const HORSE_W      = 56;
+const HORSE_H      = 22;
+
+function laneY(i, total) {
+  const trackH = (RAIL_BOT_F - RAIL_TOP_F) * H;
+  const laneH  = Math.min(LANE_H + 4, trackH / total);
+  const totalH = laneH * total;
+  const startY = RAIL_TOP_F * H + (trackH - totalH) / 2;
+  return startY + i * laneH + laneH / 2;
 }
 
-function pt(t) {
-  const pts = RAW;
-  const n   = pts.length - 1;
-  const ft  = t * n;
-  const i   = Math.min(Math.floor(ft), n - 1);
-  const u   = ft - i;
-  const p0  = pts[Math.max(0, i - 1)];
-  const p1  = pts[i];
-  const p2  = pts[Math.min(n, i + 1)];
-  const p3  = pts[Math.min(n, i + 2)];
-  const x   = 0.5*((2*p1[0])+(-p0[0]+p2[0])*u+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*u*u+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*u*u*u);
-  const y   = 0.5*((2*p1[1])+(-p0[1]+p2[1])*u+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*u*u+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*u*u*u);
-  return [x * W, y * H];
+// ── Drawing ───────────────────────────────────────────────────────
+
+function drawScene() {
+  if (!W || !H) return;
+  ctx.clearRect(0, 0, W, H);
+
+  drawBackground();
+  drawTurf();
+  drawRails();
+  drawLaneStripes();
+  drawStartBoxes();
+  drawFinishLine();
+  drawHorses();
+  drawDistanceMarkers();
 }
 
-function angle(t) {
-  const dt = 0.003;
-  const a  = pt(Math.max(0, t - dt));
-  const b  = pt(Math.min(1, t + dt));
-  return Math.atan2(b[1]-a[1], b[0]-a[0]);
-}
-
-// ── Draw track ─────────────────────────────────────────────────────
-function drawTrack() {
-  const STEPS = 300;
-
-  // Sky — just a thin band at top
-  const sky = ctx.createLinearGradient(0, 0, 0, H * 0.28);
-  sky.addColorStop(0, '#2255cc');
-  sky.addColorStop(1, '#66aaff');
+function drawBackground() {
+  // Sky
+  const sky = ctx.createLinearGradient(0, 0, 0, H * 0.18);
+  sky.addColorStop(0, '#4a90d9');
+  sky.addColorStop(1, '#87ceeb');
   ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillRect(0, 0, W, H * 0.20);
 
-  // Distant mountains — sit just below horizon
+  // Crowd stands suggestion (top)
+  ctx.fillStyle = '#b8860b';
+  ctx.fillRect(0, H * 0.02, W, H * 0.06);
+  // Crowd dots
+  for (let x = 20; x < W; x += 18) {
+    const colours = ['#cc0000','#1155cc','#228b22','#ff8800','#8800cc','#fff'];
+    ctx.fillStyle = colours[Math.floor(Math.random() * colours.length)];
+    ctx.beginPath();
+    ctx.arc(x + (Math.sin(x) * 4), H * 0.05, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Grandstand roof
+  ctx.fillStyle = '#8B4513';
+  ctx.fillRect(0, H * 0.01, W, H * 0.015);
+}
+
+function drawTurf() {
+  const total = racers.length || 8;
+  // Alternate turf stripes between lanes
+  for (let i = 0; i < total; i++) {
+    const y1 = laneY(i, total) - (H * (RAIL_BOT_F - RAIL_TOP_F) / total / 2);
+    const y2 = laneY(i, total) + (H * (RAIL_BOT_F - RAIL_TOP_F) / total / 2);
+    ctx.fillStyle = i % 2 === 0 ? '#2d7a2d' : '#267326';
+    ctx.fillRect(0, y1, W, y2 - y1);
+  }
+
+  // Bottom area (below rails)
   ctx.fillStyle = '#1a5c1a';
-  ctx.beginPath();
-  ctx.moveTo(0, H * 0.28);
-  for (let x = 0; x <= W; x += 30) {
-    const y = H * 0.18 + Math.sin(x * 0.007) * H * 0.08 + Math.sin(x * 0.019 + 1) * H * 0.03;
-    ctx.lineTo(x, y);
+  ctx.fillRect(0, RAIL_BOT_F * H, W, H * (1 - RAIL_BOT_F));
+}
+
+function drawRails() {
+  // Top rail
+  ctx.fillStyle = '#8B4513';
+  ctx.fillRect(0, RAIL_TOP_F * H - 5, W, 8);
+  ctx.fillStyle = '#a0522d';
+  ctx.fillRect(0, RAIL_TOP_F * H - 4, W, 3);
+
+  // Bottom rail
+  ctx.fillStyle = '#8B4513';
+  ctx.fillRect(0, RAIL_BOT_F * H - 2, W, 8);
+  ctx.fillStyle = '#a0522d';
+  ctx.fillRect(0, RAIL_BOT_F * H - 1, W, 3);
+
+  // Rail posts
+  for (let x = 30; x < W; x += 60) {
+    ctx.fillStyle = '#6b3410';
+    ctx.fillRect(x - 3, RAIL_TOP_F * H - 8, 6, 18);
+    ctx.fillRect(x - 3, RAIL_BOT_F * H - 6, 6, 18);
   }
-  ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.fill();
+}
 
-  // Ground — fills from 0.24 down, covers entire lower 75%
-  const ground = ctx.createLinearGradient(0, H * 0.24, 0, H);
-  ground.addColorStop(0, '#33aa33');
-  ground.addColorStop(1, '#1a6b1a');
-  ctx.fillStyle = ground;
-  ctx.fillRect(0, H * 0.24, W, H * 0.76);
-
-  // Clouds
-  drawClouds();
-
-  // Track shadow
-  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-  ctx.lineWidth   = 52; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  tracePath(STEPS); ctx.stroke();
-
-  // Outer kerb (alternating red/white)
-  for (let i = 0; i < STEPS; i++) {
-    const t   = i / STEPS;
-    const [x, y] = pt(t);
-    const ang = angle(t);
-    const perp = ang + Math.PI / 2;
-    const d   = 26;
-    const col = Math.floor(i * 8 / STEPS) % 2 === 0 ? '#dd2222' : '#ffffff';
-    ctx.fillStyle = col;
-    ctx.beginPath();
-    ctx.arc(x + Math.cos(perp)*d, y + Math.sin(perp)*d, 4.5, 0, Math.PI*2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x - Math.cos(perp)*d, y - Math.sin(perp)*d, 4.5, 0, Math.PI*2);
-    ctx.fill();
-  }
-
-  // Track surface
-  ctx.strokeStyle = '#5a5a5a'; ctx.lineWidth = 44;
-  tracePath(STEPS); ctx.stroke();
-
-  // Track texture lines
-  ctx.strokeStyle = '#636363'; ctx.lineWidth = 1;
-  for (let j = 0; j < 3; j++) {
-    ctx.setLineDash([8, 16]);
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
-    tracePath(STEPS); ctx.stroke();
+function drawLaneStripes() {
+  const total = racers.length || 8;
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([12, 16]);
+  for (let i = 1; i < total; i++) {
+    const y = laneY(i, total) - (H * (RAIL_BOT_F - RAIL_TOP_F) / total / 2);
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
   }
   ctx.setLineDash([]);
-
-  // Centre dashes
-  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-  ctx.lineWidth = 2; ctx.setLineDash([14, 14]);
-  tracePath(STEPS); ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Start/finish line
-  const [sx, sy] = pt(0.01);
-  const sa       = angle(0.01);
-  drawStartLine(sx, sy, sa);
 }
 
-function tracePath(steps) {
-  ctx.beginPath();
-  const [x0, y0] = pt(0);
-  ctx.moveTo(x0, y0);
-  for (let i = 1; i <= steps; i++) ctx.lineTo(...pt(i / steps));
-  ctx.closePath();
-}
+function drawStartBoxes() {
+  const total = racers.length || 1;
+  const sx    = START_F * W;
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillRect(sx - 24, RAIL_TOP_F * H, 28, (RAIL_BOT_F - RAIL_TOP_F) * H);
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(sx, RAIL_TOP_F * H); ctx.lineTo(sx, RAIL_BOT_F * H); ctx.stroke();
 
-function drawClouds() {
-  const clouds = [[0.1,0.08,120],[0.35,0.05,90],[0.6,0.10,110],[0.82,0.06,80]];
-  clouds.forEach(([fx, fy, w]) => {
-    const x = fx * W, y = fy * H, h = w * 0.38;
-    ctx.fillStyle = 'rgba(255,255,255,0.88)';
-    ctx.beginPath();
-    ctx.ellipse(x, y, w/2, h/2, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(x - w*0.22, y + h*0.08, w*0.3, h*0.45, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(x + w*0.25, y + h*0.05, w*0.28, h*0.42, 0, 0, Math.PI*2); ctx.fill();
-  });
-}
-
-function drawStartLine(x, y, ang) {
+  // "START" label
   ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(ang + Math.PI/2);
-  const sqW = 7, sqH = 6, rows = 6, cols = 3;
+  ctx.translate(sx - 10, H * (RAIL_TOP_F + RAIL_BOT_F) / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = 'bold 11px Barlow Condensed';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('START', 0, 0);
+  ctx.restore();
+}
+
+function drawFinishLine() {
+  const fx = FINISH_F * W;
+
+  // Chequered finish line
+  const sqH = 10, sqW = 8;
+  const lineH = (RAIL_BOT_F - RAIL_TOP_F) * H;
+  const rows  = Math.ceil(lineH / sqH);
   for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      ctx.fillStyle = (r+c)%2===0 ? '#fff' : '#000';
-      ctx.fillRect(c*sqW - cols*sqW/2, r*sqH - rows*sqH/2, sqW, sqH);
+    for (let c = 0; c < 3; c++) {
+      ctx.fillStyle = (r + c) % 2 === 0 ? '#fff' : '#000';
+      ctx.fillRect(fx + c * sqW - sqW, RAIL_TOP_F * H + r * sqH, sqW, sqH);
     }
   }
-  ctx.fillStyle = '#fff'; ctx.fillRect(-1, -rows*sqH/2-22, 2, 22);
+
+  // Finish post
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(fx + sqW, RAIL_TOP_F * H - 30, 5, 30);
+  ctx.fillRect(fx + sqW, RAIL_BOT_F * H, 5, 30);
+
+  // "FINISH" label
+  ctx.save();
+  ctx.translate(fx + 18, H * (RAIL_TOP_F + RAIL_BOT_F) / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 13px Barlow Condensed';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
+  ctx.strokeText('FINISH', 0, 0);
+  ctx.fillText('FINISH', 0, 0);
   ctx.restore();
 }
 
-// ── Kart drawing ───────────────────────────────────────────────────
-const KART_W = 36, KART_H = 20;
+function drawDistanceMarkers() {
+  // Distance % markers along the track
+  const total = racers.length || 1;
+  const trackW = (FINISH_F - START_F) * W;
+  const yTop   = RAIL_TOP_F * H - 2;
 
-function drawKart(x, y, ang, col, photoImg, initials, rank) {
+  [0.25, 0.5, 0.75].forEach(frac => {
+    const x = START_F * W + frac * trackW;
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillRect(x, yTop, 1.5, (RAIL_BOT_F - RAIL_TOP_F) * H);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '10px Barlow Condensed';
+    ctx.textAlign = 'center';
+    ctx.fillText(Math.round(frac * 100) + '%', x, yTop - 4);
+  });
+}
+
+function drawHorses() {
+  const total = racers.length;
+  if (!total) return;
+
+  racers.forEach((r, i) => {
+    const progress = currentX[r.id] ?? 0;
+    const x = START_F * W + progress * (FINISH_F - START_F) * W;
+    const y = laneY(i, total);
+    const silk = SILKS[i % SILKS.length];
+
+    drawHorseAndRider(x, y, silk, r, i, total);
+  });
+}
+
+function drawHorseAndRider(cx, cy, silk, racer, idx, total) {
+  const laneH = Math.min(LANE_H + 4, ((RAIL_BOT_F - RAIL_TOP_F) * H) / total);
+  const scale = Math.min(1.0, laneH / 32);
+  const hw    = HORSE_W * scale;
+  const hh    = HORSE_H * scale;
+
   ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(ang);
+  ctx.translate(cx, cy);
 
-  // Drop shadow
-  ctx.save();
-  ctx.translate(4, 5);
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath(); ctx.ellipse(0, 0, KART_W*0.6, KART_H*0.35, 0, 0, Math.PI*2); ctx.fill();
-  ctx.restore();
+  // ── HORSE (side-on silhouette) ──
+  const gallop = Math.sin(Date.now() * 0.012 + idx * 1.3) * 1.5 * scale;
 
-  // Rear wing
-  ctx.fillStyle = '#111';
-  ctx.fillRect(-KART_W*0.52, -KART_H*0.65, 5, KART_H*1.3);
-  ctx.fillStyle = '#333';
-  ctx.fillRect(-KART_W*0.55, -KART_H*0.65, 11, 3);
-  ctx.fillRect(-KART_W*0.55,  KART_H*0.62, 11, 3);
+  // Horse body
+  ctx.fillStyle = ['#8B6914','#5c3d11','#2c1810','#8B8B6B','#6B5B3E'][idx % 5];
+  ctx.beginPath();
+  ctx.ellipse(0, gallop, hw * 0.42, hh * 0.36, -0.08, 0, Math.PI * 2);
+  ctx.fill();
 
-  // Wheels
-  const tyreCol = '#1a1a1a', rimCol = '#888';
-  [[-0.35, -0.62],[-0.35, 0.62],[0.38, -0.62],[0.38, 0.62]].forEach(([wx, wy]) => {
-    ctx.save();
-    ctx.translate(wx*KART_W*1.1, wy*KART_H*1.05);
-    // Tyre
-    ctx.fillStyle = tyreCol;
-    ctx.beginPath(); ctx.ellipse(0, 0, 8, 6, 0, 0, Math.PI*2); ctx.fill();
-    // Rim
-    ctx.fillStyle = rimCol;
-    ctx.beginPath(); ctx.ellipse(0, 0, 5, 4, 0, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
+  // Horse neck & head
+  ctx.beginPath();
+  ctx.ellipse(hw * 0.28, gallop - hh * 0.28, hw * 0.12, hh * 0.22, 0.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(hw * 0.40, gallop - hh * 0.38, hw * 0.10, hh * 0.14, 0.6, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Eye
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(hw * 0.44, gallop - hh * 0.40, 2 * scale, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Nostril
+  ctx.fillStyle = '#5c1a00';
+  ctx.beginPath();
+  ctx.arc(hw * 0.47, gallop - hh * 0.35, 1.5 * scale, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Legs (4, animated)
+  const legColour = ctx.fillStyle;
+  ctx.fillStyle = ['#8B6914','#5c3d11','#2c1810','#8B8B6B','#6B5B3E'][idx % 5];
+  const legPhase = Date.now() * 0.014 + idx * 1.3;
+  const legPairs = [
+    [ hw * 0.22, Math.sin(legPhase) * 8 * scale,     Math.cos(legPhase) * 8 * scale ],
+    [ hw * 0.10, Math.sin(legPhase + 1) * 8 * scale, Math.cos(legPhase + 1) * 8 * scale ],
+    [-hw * 0.10, Math.sin(legPhase + 2) * 8 * scale, Math.cos(legPhase + 2) * 8 * scale ],
+    [-hw * 0.22, Math.sin(legPhase + 3) * 8 * scale, Math.cos(legPhase + 3) * 8 * scale ],
+  ];
+  legPairs.forEach(([lx, dy1, dy2]) => {
+    ctx.beginPath();
+    ctx.lineWidth = 2.5 * scale;
+    ctx.strokeStyle = ctx.fillStyle;
+    ctx.moveTo(lx, gallop + hh * 0.28);
+    ctx.lineTo(lx + dy1 * 0.3, gallop + hh * 0.28 + hh * 0.35 + dy1 * 0.5);
+    ctx.lineTo(lx + dy2 * 0.4, gallop + hh * 0.28 + hh * 0.62 + dy2 * 0.5);
+    ctx.stroke();
   });
 
-  // Body
-  ctx.fillStyle = col;
+  // Tail
+  ctx.strokeStyle = ctx.fillStyle;
+  ctx.lineWidth = 3 * scale;
+  const tailWag = Math.sin(Date.now() * 0.010 + idx) * 6 * scale;
   ctx.beginPath();
-  ctx.roundRect(-KART_W*0.5, -KART_H*0.45, KART_W, KART_H*0.9, 6);
+  ctx.moveTo(-hw * 0.40, gallop - hh * 0.05);
+  ctx.quadraticCurveTo(-hw * 0.55, gallop + tailWag, -hw * 0.52, gallop + hh * 0.30 + tailWag);
+  ctx.stroke();
+
+  // Mane
+  ctx.strokeStyle = '#2c1810';
+  ctx.lineWidth = 2 * scale;
+  for (let m = 0; m < 4; m++) {
+    const mx = hw * (0.18 + m * 0.05);
+    ctx.beginPath();
+    ctx.moveTo(mx, gallop - hh * 0.18);
+    ctx.lineTo(mx - 4 * scale, gallop - hh * 0.04);
+    ctx.stroke();
+  }
+
+  // ── JOCKEY ──
+  const jy = gallop - hh * 0.52;
+
+  // Silk shirt (body)
+  ctx.fillStyle = silk.body;
+  ctx.beginPath();
+  ctx.ellipse(hw * 0.05, jy, hw * 0.12 * scale * 1.1, hh * 0.20 * scale * 1.1, -0.2, 0, Math.PI * 2);
   ctx.fill();
 
-  // Highlight stripe
-  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  // Silk stripes
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
   ctx.beginPath();
-  ctx.roundRect(-KART_W*0.45, -KART_H*0.42, KART_W*0.9, KART_H*0.3, 3);
+  ctx.ellipse(hw * 0.05, jy, hw * 0.06 * scale, hh * 0.12 * scale, -0.2, 0, Math.PI * 2);
   ctx.fill();
 
-  // Nose
-  ctx.fillStyle = col;
+  // Helmet
+  ctx.fillStyle = silk.cap;
   ctx.beginPath();
-  ctx.moveTo(KART_W*0.5, -KART_H*0.22);
-  ctx.lineTo(KART_W*0.78, 0);
-  ctx.lineTo(KART_W*0.5, KART_H*0.22);
+  ctx.arc(hw * 0.10, jy - hh * 0.20, hh * 0.14 * scale * 1.1, Math.PI, Math.PI * 2);
+  ctx.fill();
+
+  // Helmet peak
+  ctx.fillStyle = silk.cap;
+  ctx.beginPath();
+  ctx.moveTo(hw * 0.22, jy - hh * 0.20);
+  ctx.lineTo(hw * 0.28, jy - hh * 0.14);
+  ctx.lineTo(hw * 0.16, jy - hh * 0.14);
   ctx.closePath(); ctx.fill();
 
-  // Windshield
-  ctx.fillStyle = 'rgba(140,210,255,0.85)';
+  // Goggles
+  ctx.fillStyle = 'rgba(255,220,100,0.8)';
   ctx.beginPath();
-  ctx.roundRect(KART_W*0.0, -KART_H*0.35, KART_W*0.28, KART_H*0.7, 3);
+  ctx.ellipse(hw * 0.17, jy - hh * 0.18, 4 * scale, 3 * scale, 0.4, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.fillRect(KART_W*0.02, -KART_H*0.3, 3, KART_H*0.25);
 
-  // Driver cockpit circle
-  const dr = KART_H * 0.42;
+  // Whip
+  ctx.strokeStyle = '#8B4513';
+  ctx.lineWidth = 1.5 * scale;
+  const whipAngle = Math.sin(Date.now() * 0.015 + idx) * 0.3;
+  ctx.beginPath();
+  ctx.moveTo(hw * 0.05, jy + hh * 0.10);
+  ctx.lineTo(hw * 0.05 - 14 * scale * Math.cos(whipAngle), jy + hh * 0.10 + 14 * scale * Math.sin(whipAngle + 0.5));
+  ctx.stroke();
+
+  // Photo circle (above horse, floating)
+  const photoR = Math.min(16, laneH * 0.38);
+  const photoX = 0;
+  const photoY = -hh - photoR - 4;
+
   ctx.save();
   ctx.beginPath();
-  ctx.arc(-KART_W*0.05, 0, dr, 0, Math.PI*2);
+  ctx.arc(photoX, photoY, photoR, 0, Math.PI * 2);
   ctx.clip();
-  if (photoImg && photoImg.complete && photoImg.naturalWidth > 0) {
-    ctx.drawImage(photoImg, -KART_W*0.05-dr, -dr, dr*2, dr*2);
+  const photo = photos[racer.id];
+  if (photo && photo.complete && photo.naturalWidth > 0) {
+    ctx.drawImage(photo, photoX - photoR, photoY - photoR, photoR * 2, photoR * 2);
   } else {
-    ctx.fillStyle = '#ddd';
-    ctx.fillRect(-KART_W*0.05-dr, -dr, dr*2, dr*2);
-    ctx.fillStyle = col;
-    ctx.font = `bold ${Math.round(dr*0.85)}px Barlow Condensed`;
+    ctx.fillStyle = silk.body;
+    ctx.fillRect(photoX - photoR, photoY - photoR, photoR * 2, photoR * 2);
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${Math.round(photoR * 0.8)}px Barlow Condensed`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(initials, -KART_W*0.05, 1);
+    ctx.fillText(racer.initials.slice(0, 2), photoX, photoY);
   }
   ctx.restore();
 
-  // Cockpit ring
-  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(-KART_W*0.05, 0, dr, 0, Math.PI*2); ctx.stroke();
+  // Photo ring
+  ctx.strokeStyle = silk.body;
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(photoX, photoY, photoR, 0, Math.PI * 2); ctx.stroke();
 
-  // Rank badge
-  const bx = -KART_W*0.5, by = -KART_H*0.85, br = 10;
-  ctx.fillStyle = rank===1?'#ffd700':rank===2?'#c0c0c0':rank===3?'#cd7f32':'#222';
-  ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI*2); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI*2); ctx.stroke();
-  ctx.fillStyle = rank<=3?'#000':'#fff';
-  ctx.font = `bold ${br*1.0}px Barlow Condensed`;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(String(rank), bx, by+1);
+  // Name label
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${Math.max(9, Math.round(laneH * 0.32))}px Barlow Condensed`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 2.5;
+  const label = racer.name.split(' ')[0] + ' ' + (racer.name.split(' ')[1]?.[0] || '') + '.';
+  ctx.strokeText(label, hw * 0.52, gallop);
+  ctx.fillStyle = '#fff';
+  ctx.fillText(label, hw * 0.52, gallop);
 
-  // Name tag below
-  const firstName = initials.length > 3 ? initials : null; // handled outside
+  // Metres
+  ctx.fillStyle = '#ffe082';
+  ctx.font = `${Math.max(8, Math.round(laneH * 0.26))}px Barlow Condensed`;
+  ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 2;
+  const mLabel = racer.metres > 0 ? Math.round(racer.metres).toLocaleString() + 'm' : 'On grid';
+  ctx.strokeText(mLabel, hw * 0.52, gallop + Math.max(9, laneH * 0.30));
+  ctx.fillText(mLabel, hw * 0.52, gallop + Math.max(9, laneH * 0.30));
+
   ctx.restore();
-
-  // Name label (drawn after restore so not rotated wrongly)
-  // We'll draw name separately in render()
 }
 
-// ── State ──────────────────────────────────────────────────────────
-let racers      = [];
-let photos      = {};
-let currentT    = {};
-let targetT     = {};
-let prevRanks   = {};
-let animating   = false;
-
-function easeToTarget() {
-  let moved = false;
+// ── Animation ─────────────────────────────────────────────────────
+function easeFrame() {
   racers.forEach(r => {
-    const cur = currentT[r.id] ?? r.t;
-    const tgt = targetT[r.id]  ?? r.t;
+    const cur = currentX[r.id] ?? 0;
+    const tgt = targetX[r.id]  ?? 0;
     const d   = tgt - cur;
-    if (Math.abs(d) > 0.0003) {
-      currentT[r.id] = cur + d * 0.05;
-      moved = true;
-    } else {
-      currentT[r.id] = tgt;
-    }
-    r._drawT = currentT[r.id];
-  });
-  return moved;
-}
-
-function render() {
-  drawTrack();
-  // Draw karts in reverse rank order (leader on top)
-  const sorted = [...racers].sort((a, b) => b.rank - a.rank);
-  sorted.forEach(r => {
-    const t      = r._drawT ?? r.t;
-    const [x, y] = pt(t);
-    const ang    = angle(t);
-    drawKart(x, y, ang, r.col, photos[r.id], r.initials, r.rank);
-
-    // Name label (unrotated)
-    const firstName = r.name.split(' ')[0];
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.font = 'bold 11px Barlow Condensed';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
-    ctx.strokeText(firstName, 0, KART_H*0.7);
-    ctx.fillStyle = '#fff';
-    ctx.fillText(firstName, 0, KART_H*0.7);
-    ctx.restore();
+    currentX[r.id] = Math.abs(d) > 0.0002 ? cur + d * 0.04 : tgt;
   });
 }
 
 function loop() {
-  const moved = easeToTarget();
-  render();
+  easeFrame();
+  drawScene();
   requestAnimationFrame(loop);
 }
 
-// ── Data loading ───────────────────────────────────────────────────
+// ── Leaderboard ────────────────────────────────────────────────────
+function renderLeaderboard(newRacers) {
+  const scroll = document.getElementById('lb-scroll');
+  scroll.innerHTML = newRacers.map((r, i) => {
+    const pc   = i===0?'p1':i===1?'p2':i===2?'p3':'px';
+    const silk = SILKS[i % SILKS.length];
+    const prev = prevRanks[r.id];
+    let delta  = '';
+    if (prev !== undefined && prev !== i) {
+      delta = prev > i
+        ? `<div class="lb-delta up">▲${prev - i}</div>`
+        : `<div class="lb-delta dn">▼${i - prev}</div>`;
+    }
+    return `<div class="lb-row">
+      <div class="lb-pos ${pc}">${i+1}</div>
+      <div class="lb-swatch" style="background:${silk.body}"></div>
+      <img class="lb-av" src="${r.img}"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+        alt="${r.initials}">
+      <div class="lb-av-fb" style="background:${silk.body};display:none">${r.initials}</div>
+      <div class="lb-info">
+        <div class="lb-name">${r.name}</div>
+        <div class="lb-metres">${r.metres > 0 ? Math.round(r.metres).toLocaleString() + 'm' : 'On grid'}</div>
+      </div>
+      ${delta}
+    </div>`;
+  }).join('');
+}
+
+// ── Data ───────────────────────────────────────────────────────────
 async function loadData() {
   const now  = new Date();
   const y    = now.getFullYear();
@@ -482,10 +625,9 @@ async function loadData() {
   const to   = new Date(y, m+1, 0).toISOString().split('T')[0];
 
   document.getElementById('month-badge').textContent =
-    now.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }).toUpperCase();
-  document.getElementById('period-label').textContent = 'This Month — Pending Bonus';
+    now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 
-  // Unpaid transactions this month — individual metres contribution
+  // Unpaid transactions this month — individual metres (bonus_metres / crew)
   const { data: ops } = await sb
     .from('transaction_operatives')
     .select(`employee_id,
@@ -500,44 +642,43 @@ async function loadData() {
 
   const empMap = {};
   (ops || []).forEach(o => {
-    const emp = o.employees;
+    const emp  = o.employees;
     if (!emp) return;
-    const id      = o.employee_id;
-    const tx      = o.transactions;
-    const crew    = (tx.transaction_operatives || []).length || 1;
-    const myMetres = parseFloat(tx.bonus_metres || 0) / crew;
-    if (!empMap[id]) empMap[id] = { id, name: emp.full_name, initials: emp.initials, value: 0 };
-    empMap[id].value += myMetres;
+    const id   = o.employee_id;
+    const crew = (o.transactions?.transaction_operatives || []).length || 1;
+    const myM  = parseFloat(o.transactions?.bonus_metres || 0) / crew;
+    if (!empMap[id]) empMap[id] = { id, name: emp.full_name, initials: emp.initials, metres: 0 };
+    empMap[id].metres += myM;
   });
 
-  // If no pending this month, show all active on the grid
+  // If nobody has pending metres, show all active on the grid
   if (!Object.keys(empMap).length) {
     const { data: emps } = await sb.from('employees')
       .select('id, full_name, initials')
       .in('status', ['active','probation'])
       .order('full_name');
-    (emps || []).forEach(e => { empMap[e.id] = { id: e.id, name: e.full_name, initials: e.initials, value: 0 }; });
+    (emps || []).forEach(e => {
+      empMap[e.id] = { id: e.id, name: e.full_name, initials: e.initials, metres: 0 };
+    });
   }
 
-  const sorted = Object.values(empMap).sort((a,b) => b.value - a.value);
-  const total  = sorted.length;
+  const sorted  = Object.values(empMap).sort((a,b) => b.metres - a.metres);
+  const topM    = sorted[0]?.metres || 1;
 
   return sorted.map((e, i) => ({
     ...e,
-    metres: e.value, // alias for display
     rank: i + 1,
-    col:  COLOURS[i % COLOURS.length],
-    t: total === 1 ? 0.97 : 0.97 - (i / (total - 1)) * 0.39,
+    progress: e.metres / topM,  // 0-1 relative to leader
     img: `${STORAGE_URL}${encodeURIComponent(e.name)}_cvface1.jpg`,
   }));
 }
 
-function preloadPhotos(newRacers) {
-  newRacers.forEach(r => {
+function preloadPhotos(racerList) {
+  racerList.forEach(r => {
     if (!photos[r.id]) {
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      img.onload = () => { photos[r.id] = img; };
+      img.onload  = () => { photos[r.id] = img; };
       img.onerror = () => { photos[r.id] = null; };
       img.src = r.img;
       photos[r.id] = img;
@@ -545,68 +686,37 @@ function preloadPhotos(newRacers) {
   });
 }
 
-function renderLeaderboard(newRacers) {
-  const body = document.getElementById('lb-body');
-  body.innerHTML = newRacers.map((r, i) => {
-    const nc  = i===0?'n1':i===1?'n2':i===2?'n3':'nx';
-    const col = r.col;
-    const prev = prevRanks[r.id];
-    let delta = '';
-    if (prev !== undefined && prev !== i) {
-      delta = prev > i
-        ? `<div class="lb-delta up">▲${prev-i}</div>`
-        : `<div class="lb-delta dn">▼${i-prev}</div>`;
-    }
-    return `<div class="lb-row">
-      <div class="lb-num ${nc}">${i+1}</div>
-      <img class="lb-av" src="${r.img}"
-        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
-        alt="${r.initials}">
-      <div class="lb-av-fb" style="background:${col};display:none">${r.initials}</div>
-      <div class="lb-info">
-        <div class="lb-name">${r.name}</div>
-        <div class="lb-m">${r.value>0?Math.round(r.value).toLocaleString()+'m':'On grid'}</div>
-      </div>
-      ${delta}
-    </div>`;
-  }).join('');
-}
-
 async function refresh() {
   const newRacers = await loadData();
-  prevRanks = Object.fromEntries(racers.map((r,i) => [r.id, i]));
-
-  // Update targets
-  newRacers.forEach(r => {
-    targetT[r.id] = r.t;
-    r.col = r.col || COLOURS[r.rank - 1];
-  });
-
-  preloadPhotos(newRacers);
+  prevRanks = Object.fromEntries(racers.map((r, i) => [r.id, i]));
   racers = newRacers;
+
+  racers.forEach(r => { targetX[r.id] = r.progress; });
+  preloadPhotos(racers);
   renderLeaderboard(racers);
 
-  document.getElementById('update-time').textContent =
-    'Updated ' + new Date().toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+  document.getElementById('update-lbl').textContent =
+    'Updated ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
 }
 
 async function init() {
-  window.addEventListener('resize', resize);
   resize();
-  buildTrack();
+  window.addEventListener('resize', () => { resize(); });
 
   const newRacers = await loadData();
   racers = newRacers;
   preloadPhotos(racers);
 
-  // Set initial positions
-  racers.forEach(r => { currentT[r.id] = r.t; targetT[r.id] = r.t; r._drawT = r.t; });
-  prevRanks = Object.fromEntries(racers.map((r,i) => [r.id,i]));
+  racers.forEach(r => {
+    currentX[r.id] = r.progress;
+    targetX[r.id]  = r.progress;
+  });
+  prevRanks = Object.fromEntries(racers.map((r,i) => [r.id, i]));
 
   renderLeaderboard(racers);
   document.getElementById('spinner').style.display = 'none';
-  document.getElementById('update-time').textContent =
-    'Updated ' + new Date().toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+  document.getElementById('update-lbl').textContent =
+    'Updated ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
 
   loop();
   setInterval(refresh, 60000);
