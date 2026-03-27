@@ -138,43 +138,41 @@ function resize() {
   render();
 }
 
-// ── Track: closed oval with two chicanes ───────────────────────────
-// All coords normalised 0-1, scaled on draw
+// ── Track: closed loop sitting ON the ground ──────────────────────
+// Y coords: ground starts at 0.60, track spans 0.30 to 0.92
 let RAW = [];
 function buildTrack() {
-  // A proper closed oval race track sitting on the ground
-  const pad = 0.08;
   RAW = [
-    // Start/finish straight — top
-    [0.50, 0.18],
-    [0.70, 0.18],
-    [0.82, 0.20],
-    // Right sweeping curve down
-    [0.90, 0.28],
-    [0.92, 0.40],
+    // Start/finish — top straight
+    [0.50, 0.32],
+    [0.68, 0.32],
+    [0.80, 0.34],
+    // Right curve sweeping down
+    [0.89, 0.42],
+    [0.91, 0.54],
     // Right chicane
-    [0.90, 0.52],
-    [0.78, 0.54],
-    [0.80, 0.64],
-    // Bottom right sweep
-    [0.85, 0.74],
-    [0.80, 0.82],
+    [0.88, 0.64],
+    [0.76, 0.66],
+    [0.78, 0.76],
+    // Bottom right
+    [0.82, 0.86],
+    [0.72, 0.92],
     // Bottom straight
-    [0.60, 0.86],
-    [0.40, 0.86],
+    [0.55, 0.94],
+    [0.38, 0.94],
     // Bottom left hairpin
-    [0.20, 0.86],
-    [0.14, 0.78],
-    [0.16, 0.68],
+    [0.22, 0.94],
+    [0.14, 0.87],
+    [0.16, 0.76],
     // Left chicane
-    [0.22, 0.58],
-    [0.12, 0.50],
-    [0.10, 0.40],
-    // Top left curve
-    [0.12, 0.28],
-    [0.18, 0.20],
-    [0.30, 0.18],
-    [0.50, 0.18], // close loop
+    [0.24, 0.66],
+    [0.13, 0.56],
+    [0.11, 0.44],
+    // Top left curve back
+    [0.13, 0.34],
+    [0.22, 0.30],
+    [0.36, 0.30],
+    [0.50, 0.32], // close
   ];
 }
 
@@ -205,7 +203,7 @@ function drawTrack() {
   const STEPS = 300;
 
   // Sky
-  const sky = ctx.createLinearGradient(0, 0, 0, H * 0.6);
+  const sky = ctx.createLinearGradient(0, 0, 0, H * 0.42);
   sky.addColorStop(0, '#2255cc');
   sky.addColorStop(1, '#66aaff');
   ctx.fillStyle = sky;
@@ -214,18 +212,18 @@ function drawTrack() {
   // Distant mountains
   ctx.fillStyle = '#1a5c1a';
   ctx.beginPath();
-  ctx.moveTo(0, H * 0.55);
+  ctx.moveTo(0, H * 0.42);
   for (let x = 0; x <= W; x += 30) {
-    const y = H * 0.38 + Math.sin(x * 0.007) * H * 0.10 + Math.sin(x * 0.019 + 1) * H * 0.04;
+    const y = H * 0.30 + Math.sin(x * 0.007) * H * 0.08 + Math.sin(x * 0.019 + 1) * H * 0.03;
     ctx.lineTo(x, y);
   }
   ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.fill();
 
   // Ground
-  const ground = ctx.createLinearGradient(0, H * 0.52, 0, H);
+  const ground = ctx.createLinearGradient(0, H * 0.38, 0, H);
   ground.addColorStop(0, '#33aa33');
   ground.addColorStop(1, '#1a6b1a');
-  ctx.fillStyle = ground; ctx.fillRect(0, H * 0.52, W, H * 0.48);
+  ctx.fillStyle = ground; ctx.fillRect(0, H * 0.38, W, H * 0.62);
 
   // Clouds
   drawClouds();
@@ -476,24 +474,19 @@ function loop() {
 
 // ── Data loading ───────────────────────────────────────────────────
 async function loadData() {
-  const now  = new Date();
-  const y    = now.getFullYear();
-  const m    = now.getMonth();
-  const from = new Date(y, m, 1).toISOString().split('T')[0];
-  const to   = new Date(y, m+1, 0).toISOString().split('T')[0];
+  const from = '2026-04-01';
+  const to   = '2027-03-31';
 
-  document.getElementById('month-badge').textContent =
-    now.toLocaleDateString('en-GB', { month:'short', year:'numeric' }).toUpperCase();
-  document.getElementById('period-label').textContent = 'This Month — Unpaid Metres';
+  document.getElementById('month-badge').textContent = 'APR 26 – MAR 27';
+  document.getElementById('period-label').textContent = 'Financial Year Championship';
 
   const { data: ops } = await sb
     .from('transaction_operatives')
     .select(`employee_id, share_value,
-             transactions!inner(date, bonus_metres, date_paid),
+             transactions!inner(date, bonus_metres),
              employees!inner(full_name, initials, status)`)
     .gte('transactions.date', from)
     .lte('transactions.date', to)
-    .is('transactions.date_paid', null)
     .not('employees.status', 'eq', 'inactive')
     .not('employees.status', 'eq', 'token');
 
@@ -503,10 +496,13 @@ async function loadData() {
     if (!emp) return;
     const id = o.employee_id;
     if (!empMap[id]) empMap[id] = { id, name: emp.full_name, initials: emp.initials, metres: 0 };
-    empMap[id].metres += parseFloat(o.transactions?.bonus_metres || 0);
+    // Use share_value-derived metres: share_value / rate ≈ their personal contribution
+    // Actually use bonus_metres / crew count = their share of metres
+    const crewMetres = parseFloat(o.transactions?.bonus_metres || 0);
+    empMap[id].metres += parseFloat(o.share_value || 0);
   });
 
-  // If no unpaid this month, load all active employees on grid
+  // If no data yet, load all active employees on grid
   if (!Object.keys(empMap).length) {
     const { data: emps } = await sb.from('employees')
       .select('id, full_name, initials, status')
@@ -522,7 +518,6 @@ async function loadData() {
     ...e,
     rank: i + 1,
     col:  COLOURS[i % COLOURS.length],
-    // Leader at 0.97, last at ~0.58 — spread proportionally by metres
     t: total === 1 ? 0.97 : 0.97 - (i / (total - 1)) * 0.39,
     img: `${STORAGE_URL}${encodeURIComponent(e.name)}_cvface1.jpg`,
   }));
@@ -561,7 +556,7 @@ function renderLeaderboard(newRacers) {
       <div class="lb-av-fb" style="background:${col};display:none">${r.initials}</div>
       <div class="lb-info">
         <div class="lb-name">${r.name}</div>
-        <div class="lb-m">${r.metres>0?Math.round(r.metres).toLocaleString()+'m':'On grid'}</div>
+        <div class="lb-m">${r.metres>0?'£'+r.metres.toFixed(2):'On grid'}</div>
       </div>
       ${delta}
     </div>`;
