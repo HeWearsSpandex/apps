@@ -138,41 +138,41 @@ function resize() {
   render();
 }
 
-// ── Track: closed loop sitting ON the ground ──────────────────────
-// Y coords: ground starts at 0.60, track spans 0.30 to 0.92
+// ── Track: closed loop entirely on the ground ─────────────────────
+// Horizon is at Y=0.28. Track spans Y=0.42 to Y=0.96
 let RAW = [];
 function buildTrack() {
   RAW = [
-    // Start/finish — top straight
-    [0.50, 0.32],
-    [0.68, 0.32],
-    [0.80, 0.34],
+    // Start/finish — top straight (well below horizon)
+    [0.50, 0.48],
+    [0.66, 0.48],
+    [0.78, 0.50],
     // Right curve sweeping down
-    [0.89, 0.42],
-    [0.91, 0.54],
+    [0.88, 0.57],
+    [0.90, 0.66],
     // Right chicane
-    [0.88, 0.64],
-    [0.76, 0.66],
-    [0.78, 0.76],
+    [0.87, 0.74],
+    [0.76, 0.76],
+    [0.78, 0.83],
     // Bottom right
-    [0.82, 0.86],
-    [0.72, 0.92],
+    [0.80, 0.90],
+    [0.70, 0.95],
     // Bottom straight
-    [0.55, 0.94],
-    [0.38, 0.94],
+    [0.54, 0.97],
+    [0.38, 0.97],
     // Bottom left hairpin
-    [0.22, 0.94],
-    [0.14, 0.87],
-    [0.16, 0.76],
+    [0.22, 0.97],
+    [0.14, 0.90],
+    [0.16, 0.82],
     // Left chicane
-    [0.24, 0.66],
-    [0.13, 0.56],
-    [0.11, 0.44],
+    [0.24, 0.74],
+    [0.13, 0.65],
+    [0.11, 0.57],
     // Top left curve back
-    [0.13, 0.34],
-    [0.22, 0.30],
-    [0.36, 0.30],
-    [0.50, 0.32], // close
+    [0.13, 0.50],
+    [0.22, 0.46],
+    [0.36, 0.46],
+    [0.50, 0.48], // close
   ];
 }
 
@@ -202,28 +202,29 @@ function angle(t) {
 function drawTrack() {
   const STEPS = 300;
 
-  // Sky
-  const sky = ctx.createLinearGradient(0, 0, 0, H * 0.42);
+  // Sky — just a thin band at top
+  const sky = ctx.createLinearGradient(0, 0, 0, H * 0.28);
   sky.addColorStop(0, '#2255cc');
   sky.addColorStop(1, '#66aaff');
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, W, H);
 
-  // Distant mountains
+  // Distant mountains — sit just below horizon
   ctx.fillStyle = '#1a5c1a';
   ctx.beginPath();
-  ctx.moveTo(0, H * 0.42);
+  ctx.moveTo(0, H * 0.28);
   for (let x = 0; x <= W; x += 30) {
-    const y = H * 0.30 + Math.sin(x * 0.007) * H * 0.08 + Math.sin(x * 0.019 + 1) * H * 0.03;
+    const y = H * 0.18 + Math.sin(x * 0.007) * H * 0.08 + Math.sin(x * 0.019 + 1) * H * 0.03;
     ctx.lineTo(x, y);
   }
   ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.fill();
 
-  // Ground
-  const ground = ctx.createLinearGradient(0, H * 0.38, 0, H);
+  // Ground — fills from 0.24 down, covers entire lower 75%
+  const ground = ctx.createLinearGradient(0, H * 0.24, 0, H);
   ground.addColorStop(0, '#33aa33');
   ground.addColorStop(1, '#1a6b1a');
-  ctx.fillStyle = ground; ctx.fillRect(0, H * 0.38, W, H * 0.62);
+  ctx.fillStyle = ground;
+  ctx.fillRect(0, H * 0.24, W, H * 0.76);
 
   // Clouds
   drawClouds();
@@ -474,19 +475,26 @@ function loop() {
 
 // ── Data loading ───────────────────────────────────────────────────
 async function loadData() {
-  const from = '2026-04-01';
-  const to   = '2027-03-31';
+  const now  = new Date();
+  const y    = now.getFullYear();
+  const m    = now.getMonth();
+  const from = new Date(y, m, 1).toISOString().split('T')[0];
+  const to   = new Date(y, m+1, 0).toISOString().split('T')[0];
 
-  document.getElementById('month-badge').textContent = 'APR 26 – MAR 27';
-  document.getElementById('period-label').textContent = 'Financial Year Championship';
+  document.getElementById('month-badge').textContent =
+    now.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }).toUpperCase();
+  document.getElementById('period-label').textContent = 'This Month — Pending Bonus';
 
+  // Unpaid transactions this month — individual metres contribution
   const { data: ops } = await sb
     .from('transaction_operatives')
-    .select(`employee_id, share_value,
-             transactions!inner(date, bonus_metres),
+    .select(`employee_id,
+             transactions!inner(id, date, date_paid, bonus_metres,
+               transaction_operatives(employee_id)),
              employees!inner(full_name, initials, status)`)
     .gte('transactions.date', from)
     .lte('transactions.date', to)
+    .is('transactions.date_paid', null)
     .not('employees.status', 'eq', 'inactive')
     .not('employees.status', 'eq', 'token');
 
@@ -494,28 +502,29 @@ async function loadData() {
   (ops || []).forEach(o => {
     const emp = o.employees;
     if (!emp) return;
-    const id = o.employee_id;
-    if (!empMap[id]) empMap[id] = { id, name: emp.full_name, initials: emp.initials, metres: 0 };
-    // Use share_value-derived metres: share_value / rate ≈ their personal contribution
-    // Actually use bonus_metres / crew count = their share of metres
-    const crewMetres = parseFloat(o.transactions?.bonus_metres || 0);
-    empMap[id].metres += parseFloat(o.share_value || 0);
+    const id      = o.employee_id;
+    const tx      = o.transactions;
+    const crew    = (tx.transaction_operatives || []).length || 1;
+    const myMetres = parseFloat(tx.bonus_metres || 0) / crew;
+    if (!empMap[id]) empMap[id] = { id, name: emp.full_name, initials: emp.initials, value: 0 };
+    empMap[id].value += myMetres;
   });
 
-  // If no data yet, load all active employees on grid
+  // If no pending this month, show all active on the grid
   if (!Object.keys(empMap).length) {
     const { data: emps } = await sb.from('employees')
-      .select('id, full_name, initials, status')
+      .select('id, full_name, initials')
       .in('status', ['active','probation'])
       .order('full_name');
-    (emps || []).forEach(e => { empMap[e.id] = { id: e.id, name: e.full_name, initials: e.initials, metres: 0 }; });
+    (emps || []).forEach(e => { empMap[e.id] = { id: e.id, name: e.full_name, initials: e.initials, value: 0 }; });
   }
 
-  const sorted = Object.values(empMap).sort((a,b) => b.metres - a.metres);
+  const sorted = Object.values(empMap).sort((a,b) => b.value - a.value);
   const total  = sorted.length;
 
   return sorted.map((e, i) => ({
     ...e,
+    metres: e.value, // alias for display
     rank: i + 1,
     col:  COLOURS[i % COLOURS.length],
     t: total === 1 ? 0.97 : 0.97 - (i / (total - 1)) * 0.39,
@@ -556,7 +565,7 @@ function renderLeaderboard(newRacers) {
       <div class="lb-av-fb" style="background:${col};display:none">${r.initials}</div>
       <div class="lb-info">
         <div class="lb-name">${r.name}</div>
-        <div class="lb-m">${r.metres>0?'£'+r.metres.toFixed(2):'On grid'}</div>
+        <div class="lb-m">${r.value>0?Math.round(r.value).toLocaleString()+'m':'On grid'}</div>
       </div>
       ${delta}
     </div>`;
