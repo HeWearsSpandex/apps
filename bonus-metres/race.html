@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JHB Bonus Race — This Month</title>
+  <link href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Barlow+Condensed:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --red: #c00;
+      --yellow: #f5c518;
+      --dark: #0a0a0a;
+      --asphalt: #1a1a2e;
+      --track: #2d2d2d;
+      --grass: #1a5c1a;
+      --white: #fff;
+      --pit: #111;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      font-family: 'Barlow Condensed', sans-serif;
+      background: var(--asphalt);
+      color: var(--white);
+      overflow-x: hidden;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a0000 100%);
+      border-bottom: 3px solid var(--red);
+      position: relative; z-index: 10;
+    }
+    .header img { height: 44px; }
+    .header-title {
+      font-family: 'Racing Sans One', cursive;
+      font-size: 28px; color: var(--yellow);
+      text-shadow: 0 0 20px rgba(245,197,24,0.5);
+      letter-spacing: 1px;
+    }
+    .header-sub { font-size: 13px; color: #aaa; letter-spacing: 2px; text-transform: uppercase; text-align: right; }
+    .header-month { font-size: 15px; color: var(--yellow); font-weight: 700; }
+
+    /* ── TRACK CONTAINER ── */
+    .race-wrap {
+      position: relative;
+      width: 100%;
+      padding: 20px;
+    }
+
+    .track-svg-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* ── LEADERBOARD SIDEBAR ── */
+    .race-layout {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .leaderboard {
+      background: rgba(0,0,0,0.6);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+    .lb-header {
+      background: var(--red);
+      padding: 12px 16px;
+      font-family: 'Racing Sans One', cursive;
+      font-size: 18px;
+      letter-spacing: 1px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .lb-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      transition: background 0.3s;
+    }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-pos {
+      font-family: 'Racing Sans One', cursive;
+      font-size: 20px; width: 28px; text-align: center;
+      flex-shrink: 0;
+    }
+    .lb-pos.p1 { color: var(--yellow); }
+    .lb-pos.p2 { color: #c0c0c0; }
+    .lb-pos.p3 { color: #cd7f32; }
+    .lb-pos.rest { color: #555; font-size: 14px; }
+    .lb-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      object-fit: cover; border: 2px solid rgba(255,255,255,0.2);
+      flex-shrink: 0;
+    }
+    .lb-name { flex: 1; font-size: 14px; font-weight: 700; }
+    .lb-metres { font-size: 13px; color: var(--yellow); font-weight: 600; text-align: right; }
+    .lb-delta {
+      font-size: 10px; color: #2a9d2a; font-weight: 700;
+      margin-left: 4px; white-space: nowrap;
+    }
+
+    /* ── TRACK SVG ── */
+    .track-container {
+      position: relative;
+      background: radial-gradient(ellipse at center, #1a3a1a 0%, #0d1f0d 100%);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.05);
+    }
+
+    /* ── KART ── */
+    .kart-group {
+      transition: none; /* JS handles animation */
+      cursor: default;
+    }
+
+    /* ── CHECKERED FLAG ── */
+    .flag-stripe { opacity: 0.15; }
+
+    /* ── SPINNER ── */
+    .race-spinner {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 400px; gap: 16px;
+    }
+    .spinner-kart { font-size: 48px; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner-text {
+      font-family: 'Racing Sans One', cursive;
+      font-size: 20px; color: var(--yellow);
+      animation: pulse 1s ease-in-out infinite alternate;
+    }
+    @keyframes pulse { to { opacity: 0.4; } }
+
+    /* ── POSITION CHANGE FLASH ── */
+    @keyframes posFlash {
+      0%   { filter: drop-shadow(0 0 8px gold); }
+      100% { filter: none; }
+    }
+    .pos-changed { animation: posFlash 1s ease-out; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 800px) {
+      .race-layout { grid-template-columns: 1fr; }
+      .header-title { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <img src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/JHB%20Logo.png" alt="JHB">
+    <div>
+      <div class="header-title">🏁 BONUS RACE</div>
+      <div class="header-sub">Financial Year · Bonus Metres</div>
+    </div>
+    <div style="text-align:right">
+      <div class="header-month" id="month-label">Loading…</div>
+      <div class="header-sub" id="last-updated"></div>
+    </div>
+  </div>
+
+  <div class="race-layout">
+
+    <!-- Track -->
+    <div class="track-container" id="track-container">
+      <div class="race-spinner" id="spinner">
+        <div class="spinner-kart">🏎️</div>
+        <div class="spinner-text">ENGINES REVVING…</div>
+      </div>
+      <svg id="race-svg" width="100%" viewBox="0 0 800 500" style="display:none"></svg>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="leaderboard">
+      <div class="lb-header">🏆 Standings</div>
+      <div id="lb-list"></div>
+    </div>
+
+  </div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://oxgehlmalbvppjmdaswn.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
+    const STORAGE_URL  = `${SUPABASE_URL}/storage/v1/object/public/images/`;
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ── Track path: oval racetrack as a series of points (t=0..1) ──
+    // We define an oval path with two straights and two curves
+    const W = 800, H = 500;
+    const CX = W / 2, CY = H / 2;
+    const RX = 280, RY = 175;  // outer oval radii
+    const rx = 200, ry = 110;  // inner oval radii
+    const PAD = 30; // track width
+
+    // Path function: returns {x, y} for t in [0, 1] going clockwise
+    function trackPos(t) {
+      const angle = t * 2 * Math.PI - Math.PI / 2; // start at top
+      const x = CX + RX * Math.cos(angle);
+      const y = CY + RY * Math.sin(angle);
+      return { x, y };
+    }
+
+    // Tangent angle at t
+    function trackAngle(t) {
+      const angle = t * 2 * Math.PI - Math.PI / 2;
+      // tangent is perpendicular to radius for ellipse
+      const dx = -RX * Math.sin(angle);
+      const dy =  RY * Math.cos(angle);
+      return Math.atan2(dy, dx);
+    }
+
+    // ── Draw the track ──
+    function drawTrack(svg) {
+      const ns = 'http://www.w3.org/2000/svg';
+
+      // Grass background
+      const bg = document.createElementNS(ns, 'rect');
+      bg.setAttribute('width', W); bg.setAttribute('height', H);
+      bg.setAttribute('fill', '#1a5c1a');
+      svg.appendChild(bg);
+
+      // Outer track oval
+      const outerOval = document.createElementNS(ns, 'ellipse');
+      outerOval.setAttribute('cx', CX); outerOval.setAttribute('cy', CY);
+      outerOval.setAttribute('rx', RX + 28); outerOval.setAttribute('ry', RY + 28);
+      outerOval.setAttribute('fill', '#222');
+      svg.appendChild(outerOval);
+
+      // Track surface (asphalt)
+      const track = document.createElementNS(ns, 'ellipse');
+      track.setAttribute('cx', CX); track.setAttribute('cy', CY);
+      track.setAttribute('rx', RX + 20); track.setAttribute('ry', RY + 20);
+      track.setAttribute('fill', '#2d2d2d');
+      svg.appendChild(track);
+
+      // White kerbs (outer)
+      const outerKerb = document.createElementNS(ns, 'ellipse');
+      outerKerb.setAttribute('cx', CX); outerKerb.setAttribute('cy', CY);
+      outerKerb.setAttribute('rx', RX + 22); outerKerb.setAttribute('ry', RY + 22);
+      outerKerb.setAttribute('fill', 'none');
+      outerKerb.setAttribute('stroke', '#fff'); outerKerb.setAttribute('stroke-width', '3');
+      outerKerb.setAttribute('stroke-dasharray', '20 10');
+      svg.appendChild(outerKerb);
+
+      // Inner grass
+      const innerGrass = document.createElementNS(ns, 'ellipse');
+      innerGrass.setAttribute('cx', CX); innerGrass.setAttribute('cy', CY);
+      innerGrass.setAttribute('rx', RX - 28); innerGrass.setAttribute('ry', RY - 28);
+      innerGrass.setAttribute('fill', '#1a5c1a');
+      svg.appendChild(innerGrass);
+
+      // Inner kerb
+      const innerKerb = document.createElementNS(ns, 'ellipse');
+      innerKerb.setAttribute('cx', CX); innerKerb.setAttribute('cy', CY);
+      innerKerb.setAttribute('rx', RX - 26); innerKerb.setAttribute('ry', RY - 26);
+      innerKerb.setAttribute('fill', 'none');
+      innerKerb.setAttribute('stroke', '#fff'); innerKerb.setAttribute('stroke-width', '3');
+      innerKerb.setAttribute('stroke-dasharray', '20 10');
+      svg.appendChild(innerKerb);
+
+      // Centre line dashes
+      const centreLine = document.createElementNS(ns, 'ellipse');
+      centreLine.setAttribute('cx', CX); centreLine.setAttribute('cy', CY);
+      centreLine.setAttribute('rx', RX); centreLine.setAttribute('ry', RY);
+      centreLine.setAttribute('fill', 'none');
+      centreLine.setAttribute('stroke', 'rgba(255,255,255,0.2)');
+      centreLine.setAttribute('stroke-width', '2');
+      centreLine.setAttribute('stroke-dasharray', '12 12');
+      svg.appendChild(centreLine);
+
+      // Start/finish line
+      const sfLine = document.createElementNS(ns, 'line');
+      sfLine.setAttribute('x1', CX - 5); sfLine.setAttribute('y1', CY - RY - 30);
+      sfLine.setAttribute('x2', CX - 5); sfLine.setAttribute('y2', CY - RY + 20);
+      sfLine.setAttribute('stroke', '#fff'); sfLine.setAttribute('stroke-width', '4');
+      svg.appendChild(sfLine);
+
+      // Chequered pattern at start line
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 2; j++) {
+          const sq = document.createElementNS(ns, 'rect');
+          sq.setAttribute('x', CX - 8 + j * 6);
+          sq.setAttribute('y', CY - RY - 28 + i * 10);
+          sq.setAttribute('width', 6); sq.setAttribute('height', 10);
+          sq.setAttribute('fill', (i + j) % 2 === 0 ? '#fff' : '#000');
+          sq.setAttribute('opacity', '0.8');
+          svg.appendChild(sq);
+        }
+      }
+
+      // JHB logo in infield
+      const infield = document.createElementNS(ns, 'text');
+      infield.setAttribute('x', CX); infield.setAttribute('y', CY + 8);
+      infield.setAttribute('text-anchor', 'middle');
+      infield.setAttribute('font-family', 'Barlow Condensed, sans-serif');
+      infield.setAttribute('font-size', '28'); infield.setAttribute('font-weight', '900');
+      infield.setAttribute('fill', 'rgba(255,255,255,0.12)');
+      infield.setAttribute('letter-spacing', '4');
+      infield.textContent = 'JHB BONUS RACE';
+      svg.appendChild(infield);
+
+      // Lap number indicators around track
+      for (let i = 0; i < 4; i++) {
+        const t = i / 4;
+        const pos = trackPos(t);
+        const dot = document.createElementNS(ns, 'circle');
+        dot.setAttribute('cx', pos.x); dot.setAttribute('cy', pos.y);
+        dot.setAttribute('r', 4); dot.setAttribute('fill', 'rgba(255,255,0,0.3)');
+        svg.appendChild(dot);
+      }
+    }
+
+    // ── State ──
+    let racers = [];
+    let prevPositions = {};
+    let kartElements = {};
+    let animating = false;
+    let imgCache = {};
+
+    // ── Load data ──
+    async function loadRace() {
+      const now    = new Date();
+      const fyYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+      const from   = `${fyYear}-04-01`;
+      const to     = `${fyYear + 1}-03-31`;
+
+      document.getElementById('month-label').textContent =
+        `APR ${fyYear} – MAR ${fyYear + 1}`;
+
+      const { data: ops } = await sb
+        .from('transaction_operatives')
+        .select(`share_value, employee_id,
+                 transactions!inner(date, bonus_metres),
+                 employees!inner(full_name, initials, status)`)
+        .gte('transactions.date', from)
+        .lte('transactions.date', to)
+        .not('employees.status', 'eq', 'inactive')
+        .not('employees.status', 'eq', 'token');
+
+      // Aggregate metres per employee
+      const empMap = {};
+      (ops || []).forEach(o => {
+        const emp = o.employees;
+        if (!emp) return;
+        const id = o.employee_id;
+        if (!empMap[id]) empMap[id] = { id, name: emp.full_name, initials: emp.initials, metres: 0 };
+        empMap[id].metres += parseFloat(o.transactions.bonus_metres || 0);
+      });
+
+      const sorted = Object.values(empMap)
+        .filter(e => e.metres > 0)
+        .sort((a, b) => b.metres - a.metres);
+
+      // Assign track positions: leader at t=0.95, others spaced behind
+      const newRacers = sorted.map((e, i) => ({
+        ...e,
+        rank: i + 1,
+        t: Math.max(0.05, 0.95 - (i / Math.max(sorted.length - 1, 1)) * 0.85),
+        img: `${STORAGE_URL}${encodeURIComponent(e.name)}_cvface1.jpg`,
+      }));
+
+      return newRacers;
+    }
+
+    // ── Render SVG karts ──
+    function renderKarts(svg, racers) {
+      const ns = 'http://www.w3.org/2000/svg';
+      const colours = ['#c00','#1a73e8','#f5c518','#2a9d2a','#9c27b0','#ff6b00','#00bcd4','#e91e63','#607d8b','#795548'];
+
+      racers.forEach((r, i) => {
+        if (kartElements[r.id]) return; // already exists
+
+        const g = document.createElementNS(ns, 'g');
+        g.id = `kart-${r.id}`;
+        g.setAttribute('class', 'kart-group');
+        g.style.transition = 'none';
+
+        const col = colours[i % colours.length];
+
+        // Shadow
+        const shadow = document.createElementNS(ns, 'ellipse');
+        shadow.setAttribute('rx', '16'); shadow.setAttribute('ry', '5');
+        shadow.setAttribute('fill', 'rgba(0,0,0,0.4)');
+        shadow.setAttribute('transform', 'translate(0, 10)');
+        g.appendChild(shadow);
+
+        // Kart body
+        const body = document.createElementNS(ns, 'rect');
+        body.setAttribute('x', '-14'); body.setAttribute('y', '-8');
+        body.setAttribute('width', '28'); body.setAttribute('height', '16');
+        body.setAttribute('rx', '5'); body.setAttribute('ry', '5');
+        body.setAttribute('fill', col);
+        g.appendChild(body);
+
+        // Kart nose
+        const nose = document.createElementNS(ns, 'polygon');
+        nose.setAttribute('points', '14,-5 22,0 14,5');
+        nose.setAttribute('fill', col);
+        g.appendChild(nose);
+
+        // Front wheels
+        [-7, 7].forEach(y => {
+          const wheel = document.createElementNS(ns, 'ellipse');
+          wheel.setAttribute('cx', '12'); wheel.setAttribute('cy', String(y + (y < 0 ? -2 : 2)));
+          wheel.setAttribute('rx', '5'); wheel.setAttribute('ry', '3');
+          wheel.setAttribute('fill', '#111');
+          g.appendChild(wheel);
+        });
+
+        // Rear wheels
+        [-7, 7].forEach(y => {
+          const wheel = document.createElementNS(ns, 'ellipse');
+          wheel.setAttribute('cx', '-10'); wheel.setAttribute('cy', String(y + (y < 0 ? -2 : 2)));
+          wheel.setAttribute('rx', '5'); wheel.setAttribute('ry', '3');
+          wheel.setAttribute('fill', '#111');
+          g.appendChild(wheel);
+        });
+
+        // Driver circle (photo + initials)
+        const clip = document.createElementNS(ns, 'clipPath');
+        clip.id = `clip-${r.id}`;
+        const clipCircle = document.createElementNS(ns, 'circle');
+        clipCircle.setAttribute('cx', '0'); clipCircle.setAttribute('cy', '0');
+        clipCircle.setAttribute('r', '9');
+        clip.appendChild(clipCircle);
+        svg.appendChild(clip);
+
+        // Photo background circle
+        const photoBg = document.createElementNS(ns, 'circle');
+        photoBg.setAttribute('cx', '0'); photoBg.setAttribute('cy', '0');
+        photoBg.setAttribute('r', '9'); photoBg.setAttribute('fill', '#fff');
+        g.appendChild(photoBg);
+
+        // Photo image
+        const img = document.createElementNS(ns, 'image');
+        img.setAttribute('x', '-9'); img.setAttribute('y', '-9');
+        img.setAttribute('width', '18'); img.setAttribute('height', '18');
+        img.setAttribute('clip-path', `url(#clip-${r.id})`);
+        img.setAttribute('href', r.img);
+        img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+
+        // Initials fallback shown always as overlay (semi-transparent)
+        const initialsCircle = document.createElementNS(ns, 'circle');
+        initialsCircle.setAttribute('cx', '0'); initialsCircle.setAttribute('cy', '0');
+        initialsCircle.setAttribute('r', '9');
+        initialsCircle.setAttribute('fill', col);
+        initialsCircle.setAttribute('opacity', '0');
+        initialsCircle.id = `ibg-${r.id}`;
+
+        const initialsText = document.createElementNS(ns, 'text');
+        initialsText.setAttribute('x', '0'); initialsText.setAttribute('y', '3');
+        initialsText.setAttribute('text-anchor', 'middle');
+        initialsText.setAttribute('font-size', '6'); initialsText.setAttribute('font-weight', '900');
+        initialsText.setAttribute('fill', '#fff');
+        initialsText.setAttribute('font-family', 'Barlow Condensed, sans-serif');
+        initialsText.setAttribute('opacity', '0');
+        initialsText.id = `itxt-${r.id}`;
+        initialsText.textContent = r.initials;
+
+        img.addEventListener('error', () => {
+          img.style.display = 'none';
+          photoBg.setAttribute('fill', col);
+          document.getElementById(`ibg-${r.id}`)?.setAttribute('opacity', '1');
+          document.getElementById(`itxt-${r.id}`)?.setAttribute('opacity', '1');
+        });
+
+        g.appendChild(img);
+        g.appendChild(initialsCircle);
+        g.appendChild(initialsText);
+
+        // Rank badge
+        const badge = document.createElementNS(ns, 'circle');
+        badge.setAttribute('cx', '-16'); badge.setAttribute('cy', '-12');
+        badge.setAttribute('r', '7');
+        badge.setAttribute('fill', i < 3 ? ['#f5c518','#c0c0c0','#cd7f32'][i] : '#333');
+        g.appendChild(badge);
+
+        const rankText = document.createElementNS(ns, 'text');
+        rankText.setAttribute('x', '-16'); rankText.setAttribute('y', '-9');
+        rankText.setAttribute('text-anchor', 'middle');
+        rankText.setAttribute('font-size', '7'); rankText.setAttribute('font-weight', '900');
+        rankText.setAttribute('fill', i < 3 ? '#000' : '#fff');
+        rankText.setAttribute('font-family', 'Barlow Condensed, sans-serif');
+        rankText.textContent = String(i + 1);
+        g.appendChild(rankText);
+
+        // Name label below kart
+        const nameLabel = document.createElementNS(ns, 'text');
+        nameLabel.setAttribute('x', '0'); nameLabel.setAttribute('y', '22');
+        nameLabel.setAttribute('text-anchor', 'middle');
+        nameLabel.setAttribute('font-size', '8'); nameLabel.setAttribute('font-weight', '700');
+        nameLabel.setAttribute('fill', '#fff');
+        nameLabel.setAttribute('font-family', 'Barlow Condensed, sans-serif');
+        nameLabel.setAttribute('paint-order', 'stroke');
+        nameLabel.setAttribute('stroke', '#000'); nameLabel.setAttribute('stroke-width', '2');
+        nameLabel.textContent = r.name.split(' ')[0];
+        g.appendChild(nameLabel);
+
+        svg.appendChild(g);
+        kartElements[r.id] = g;
+      });
+    }
+
+    // ── Animate karts to positions ──
+    function positionKarts(racers, animate) {
+      racers.forEach(r => {
+        const g = kartElements[r.id];
+        if (!g) return;
+
+        const pos   = trackPos(r.t);
+        const angle = trackAngle(r.t);
+        const deg   = angle * 180 / Math.PI;
+
+        if (animate) {
+          g.style.transition = 'transform 1.5s cubic-bezier(0.4,0,0.2,1)';
+        } else {
+          g.style.transition = 'none';
+        }
+
+        g.setAttribute('transform', `translate(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}) rotate(${deg.toFixed(1)})`);
+      });
+    }
+
+    // ── Render leaderboard ──
+    function renderLeaderboard(racers) {
+      const list = document.getElementById('lb-list');
+      list.innerHTML = racers.map((r, i) => {
+        const posClass = i === 0 ? 'p1' : i === 1 ? 'p2' : i === 2 ? 'p3' : 'rest';
+        const prev = prevPositions[r.id];
+        const delta = prev !== undefined && prev !== i ? (prev > i ? `▲${prev - i}` : '') : '';
+        return `<div class="lb-row" id="lb-${r.id}">
+          <div class="lb-pos ${posClass}">${i + 1}</div>
+          <img class="lb-avatar" src="${r.img}"
+               onerror="this.style.display='none'"
+               alt="${r.name}">
+          <div class="lb-name">${r.name}</div>
+          <div>
+            <div class="lb-metres">${Math.round(r.metres).toLocaleString()}m</div>
+            ${delta ? `<div class="lb-delta">${delta}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // ── Main init ──
+    async function init() {
+      const svg = document.getElementById('race-svg');
+      drawTrack(svg);
+
+      racers = await loadRace();
+
+      document.getElementById('spinner').style.display = 'none';
+      svg.style.display = 'block';
+
+      renderKarts(svg, racers);
+      positionKarts(racers, false);
+      renderLeaderboard(racers);
+
+      // Store initial positions
+      racers.forEach((r, i) => { prevPositions[r.id] = i; });
+
+      document.getElementById('last-updated').textContent =
+        'Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+      // Refresh every 60 seconds
+      setInterval(refresh, 60000);
+    }
+
+    async function refresh() {
+      const newRacers = await loadRace();
+
+      // Flash karts that changed position
+      newRacers.forEach((r, i) => {
+        const prev = prevPositions[r.id];
+        if (prev !== undefined && prev !== i) {
+          const g = kartElements[r.id];
+          if (g) {
+            g.classList.remove('pos-changed');
+            void g.offsetWidth; // reflow
+            g.classList.add('pos-changed');
+          }
+        }
+      });
+
+      // Add any new karts
+      renderKarts(document.getElementById('race-svg'), newRacers);
+
+      // Animate to new positions
+      racers = newRacers;
+      positionKarts(racers, true);
+      renderLeaderboard(racers);
+
+      // Update stored positions
+      racers.forEach((r, i) => { prevPositions[r.id] = i; });
+
+      document.getElementById('last-updated').textContent =
+        'Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    init();
+  </script>
+</body>
+</html>
