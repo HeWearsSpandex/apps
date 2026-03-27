@@ -432,7 +432,7 @@
         const netUnpaid       = Math.max(0, totalUnpaidJobs + totalUnpaidBon - totalUnpaidDed);
         const carryDebt       = Math.max(0, totalUnpaidDed - totalUnpaidJobs - totalUnpaidBon);
 
-        const totalEverPaid   = hist.reduce((s, h) => s + parseFloat(h.net_payable), 0);
+        const totalEverPaid   = paidJobs.reduce((s, o) => s + parseFloat(o.share_value), 0);
 
         container.innerHTML = `
           <!-- Scope toggle -->
@@ -592,7 +592,7 @@
                     </div>
                     <div class="hist-chevron" id="chev-${gi}">›</div>
                   </div>
-                  <div class="hist-detail" id="hist-detail-${gi}">
+                  <div class="hist-detail" id="hist-detail-${gi}" style="display:none">
                     ${run ? `
                       <div style="padding:10px 16px;background:#f9f9f9;border-bottom:1px solid #f0f0f0;display:flex;gap:16px;flex-wrap:wrap;font-size:12px">
                         <span>Job Bonuses: <strong>${fmt(run.gross_earned)}</strong></span>
@@ -623,8 +623,9 @@
     function toggleHistDetail(i) {
       const detail = document.getElementById(`hist-detail-${i}`);
       const chev   = document.getElementById(`chev-${i}`);
-      const open   = detail.classList.toggle('open');
-      chev.textContent = open ? '⌄' : '›';
+      const isOpen = detail.style.display !== 'none';
+      detail.style.display = isOpen ? 'none' : 'block';
+      chev.textContent = isOpen ? '›' : '⌄';
     }
 
     // ── Main build ────────────────────────────────────────────────────────────
