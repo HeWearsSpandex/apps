@@ -317,6 +317,7 @@
       const maxVal  = parseFloat(document.getElementById('f-max-val').value) || null;
 
       try {
+        // ── Job transactions ──
         let query = sb
           .from('transactions')
           .select(`id, date, job_ref, site_name, bonus_metres, rate, date_paid,
@@ -332,19 +333,45 @@
         if (status === 'unpaid') query = query.is('date_paid', null);
         if (status === 'paid')   query = query.not('date_paid', 'is', null);
 
-        const { data, error } = await query;
-        if (error) throw new Error(error.message);
+        const { data: txData, error: txErr } = await query;
+        if (txErr) throw new Error(txErr.message);
 
-        let results = data || [];
+        // ── Bonus entries (special bonus + deduction) ──
+        let entryQuery = sb
+          .from('bonus_entries')
+          .select(`id, date, type, amount, reason, job_ref, site_name, date_paid,
+                   employees(id, full_name, initials)`)
+          .order('date', { ascending: false })
+          .limit(500);
 
-        // Client-side filters
+        if (dateFrom) entryQuery = entryQuery.gte('date', dateFrom);
+        if (dateTo)   entryQuery = entryQuery.lte('date', dateTo);
+        if (status === 'unpaid') entryQuery = entryQuery.is('date_paid', null);
+        if (status === 'paid')   entryQuery = entryQuery.not('date_paid', 'is', null);
+        if (site)     entryQuery = entryQuery.ilike('site_name', `%${site}%`);
+        if (jobRef)   entryQuery = entryQuery.ilike('job_ref',   `%${jobRef}%`);
+        if (empId)    entryQuery = entryQuery.eq('employee_id', empId);
+
+        const { data: entryData, error: entryErr } = await entryQuery;
+        if (entryErr) throw new Error(entryErr.message);
+
+        // ── Merge and filter ──
+        let jobs = (txData || []).map(tx => ({ ...tx, _source: 'job' }));
+        let entries = (entryData || []).map(e => ({ ...e, _source: e.type }));
+
+        // Client-side filters for jobs
         if (empId) {
-          results = results.filter(tx =>
+          jobs = jobs.filter(tx =>
             (tx.transaction_operatives || []).some(o => o.employee_id === empId)
           );
         }
-        if (minVal !== null) results = results.filter(tx => parseFloat(tx.bonus_metres) * parseFloat(tx.rate || 0.03) >= minVal);
-        if (maxVal !== null) results = results.filter(tx => parseFloat(tx.bonus_metres) * parseFloat(tx.rate || 0.03) <= maxVal);
+        if (minVal !== null) jobs = jobs.filter(tx => parseFloat(tx.bonus_metres) * parseFloat(tx.rate || 0.03) >= minVal);
+        if (maxVal !== null) jobs = jobs.filter(tx => parseFloat(tx.bonus_metres) * parseFloat(tx.rate || 0.03) <= maxVal);
+        if (minVal !== null) entries = entries.filter(e => parseFloat(e.amount) >= minVal);
+        if (maxVal !== null) entries = entries.filter(e => parseFloat(e.amount) <= maxVal);
+
+        // Merge and sort by date
+        let results = [...jobs, ...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
 
         currentResults = results;
         renderResults(results);
@@ -378,7 +405,12 @@
         return;
       }
 
-      const totalVal = results.reduce((s, tx) => s + parseFloat(tx.bonus_metres) * parseFloat(tx.rate || 0.03), 0);
+      // Total across all types
+      const totalVal = results.reduce((s, r) => {
+        if (r._source === 'job') return s + parseFloat(r.bonus_metres) * parseFloat(r.rate || 0.03);
+        if (r._source === 'deduction') return s - parseFloat(r.amount);
+        return s + parseFloat(r.amount);
+      }, 0);
 
       document.getElementById('results-header').style.display = 'flex';
       document.getElementById('results-count').textContent =
@@ -392,9 +424,10 @@
           <thead>
             <tr>
               <th>Date</th>
-              <th>Job Ref</th>
-              <th>Site</th>
-              <th>Metres</th>
+              <th>Type</th>
+              <th>Job Ref / Reason</th>
+              <th>Site / Employee</th>
+              <th>Metres / Amount</th>
               <th>Operatives</th>
               <th>Value</th>
               <th>Status</th>
@@ -402,42 +435,58 @@
             </tr>
           </thead>
           <tbody>
-            ${results.map(tx => {
-              const date   = new Date(tx.date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
-              const ops    = (tx.transaction_operatives || []);
-              const paid   = tx.date_paid
-                ? new Date(tx.date_paid).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+            ${results.map(row => {
+              const date = new Date(row.date).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+              const paid = row.date_paid
+                ? new Date(row.date_paid).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
                 : null;
-              const chips  = ops.map(o =>
-                `<span class="op-chip">${o.employees?.initials || '?'}</span>`
-              ).join('');
-              const val    = parseFloat(tx.bonus_metres) * parseFloat(tx.rate || 0.03);
-              return `<tr>
-                <td style="white-space:nowrap">${date}</td>
-                <td style="font-family:monospace;font-size:12px">
-                  ${tx.job_ref
-                    ? `<a href="sites.html?job=${encodeURIComponent(tx.job_ref)}" title="View in Site Analysis" style="color:inherit;text-decoration:none">${tx.job_ref} <span style="color:var(--blue);font-size:11px">🏗️</span></a>`
-                    : '—'}
-                </td>
-                <td>
-                  ${tx.site_name
-                    ? `<a href="sites.html?site=${encodeURIComponent(tx.site_name)}" title="View in Site Analysis" style="color:inherit;text-decoration:none">${tx.site_name} <span style="color:var(--blue);font-size:11px">🏗️</span></a>`
-                    : '—'}
-                </td>
-                <td>${parseFloat(tx.bonus_metres).toLocaleString()}m</td>
-                <td><div class="ops-chips">${chips}</div></td>
-                <td style="font-weight:600;color:var(--green)">£${val.toFixed(2)}</td>
-                <td>
-                  ${paid
-                    ? `<span class="status-badge paid">Paid ${paid}</span>`
-                    : `<span class="status-badge unpaid">Unpaid</span>`}
-                </td>
-                <td>
-                  ${tx.date_paid
-                    ? `<span title="Paid transactions are locked. Use a deduction to correct errors." style="font-size:16px;cursor:default">🔒</span>`
-                    : `<button class="btn btn-ghost btn-sm" onclick="openEdit('${tx.id}')">✏️ Edit</button>`}
-                </td>
-              </tr>`;
+
+              if (row._source === 'job') {
+                const ops   = (row.transaction_operatives || []);
+                const chips = ops.map(o => `<span class="op-chip">${o.employees?.initials || '?'}</span>`).join('');
+                const val   = parseFloat(row.bonus_metres) * parseFloat(row.rate || 0.03);
+                return `<tr>
+                  <td style="white-space:nowrap">${date}</td>
+                  <td><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:var(--blue-lt);color:var(--blue)">Job</span></td>
+                  <td style="font-family:monospace;font-size:12px">
+                    ${row.job_ref
+                      ? `<a href="sites.html?job=${encodeURIComponent(row.job_ref)}" title="View in Site Analysis" style="color:inherit;text-decoration:none">${row.job_ref} <span style="color:var(--blue);font-size:11px">🏗️</span></a>`
+                      : '—'}
+                  </td>
+                  <td>
+                    ${row.site_name
+                      ? `<a href="sites.html?site=${encodeURIComponent(row.site_name)}" title="View in Site Analysis" style="color:inherit;text-decoration:none">${row.site_name} <span style="color:var(--blue);font-size:11px">🏗️</span></a>`
+                      : '—'}
+                  </td>
+                  <td>${parseFloat(row.bonus_metres).toLocaleString()}m</td>
+                  <td><div class="ops-chips">${chips}</div></td>
+                  <td style="font-weight:600;color:var(--green)">£${val.toFixed(2)}</td>
+                  <td>${paid ? `<span class="status-badge paid">Paid ${paid}</span>` : `<span class="status-badge unpaid">Unpaid</span>`}</td>
+                  <td>${row.date_paid
+                    ? `<span title="Locked" style="font-size:16px;cursor:default">🔒</span>`
+                    : `<button class="btn btn-ghost btn-sm" onclick="openEdit('${row.id}')">✏️ Edit</button>`}
+                  </td>
+                </tr>`;
+              } else {
+                // Special bonus or deduction
+                const isBonus = row._source === 'special_bonus';
+                const colour  = isBonus ? 'var(--green)' : 'var(--orange)';
+                const bg      = isBonus ? 'var(--green-lt)' : 'var(--orange-lt)';
+                const label   = isBonus ? 'Bonus' : 'Deduction';
+                const valStr  = (isBonus ? '+' : '-') + '£' + parseFloat(row.amount).toFixed(2);
+                const emp     = row.employees;
+                return `<tr>
+                  <td style="white-space:nowrap">${date}</td>
+                  <td><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:${bg};color:${colour}">${label}</span></td>
+                  <td>${row.reason || '—'}</td>
+                  <td>${emp ? emp.full_name : '—'}</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td style="font-weight:600;color:${colour}">${valStr}</td>
+                  <td>${paid ? `<span class="status-badge paid">Paid ${paid}</span>` : `<span class="status-badge unpaid">Unpaid</span>`}</td>
+                  <td><span title="Edit via Transactions page" style="font-size:16px;cursor:default;color:var(--muted)">—</span></td>
+                </tr>`;
+              }
             }).join('')}
           </tbody>
         </table>`;
@@ -446,13 +495,18 @@
     // ── Export CSV ────────────────────────────────────────────────────────────
     function exportCSV() {
       const rows = [
-        ['Date', 'Job Reference', 'Site Name', 'Metres', 'Rate', 'Total Value', 'Operatives', 'Status', 'Date Paid'],
-        ...currentResults.map(tx => {
-          const ops  = (tx.transaction_operatives || []).map(o => o.employees?.initials || '?').join(', ');
-          const val  = parseFloat(tx.bonus_metres) * parseFloat(tx.rate || 0.03);
-          const date = new Date(tx.date).toLocaleDateString('en-GB');
-          const paid = tx.date_paid ? new Date(tx.date_paid).toLocaleDateString('en-GB') : '';
-          return [date, tx.job_ref || '', tx.site_name || '', tx.bonus_metres, tx.rate, val.toFixed(2), ops, tx.date_paid ? 'Paid' : 'Unpaid', paid];
+        ['Date', 'Type', 'Job Reference', 'Reason', 'Site Name', 'Employee', 'Metres', 'Rate', 'Total Value', 'Operatives', 'Status', 'Date Paid'],
+        ...currentResults.map(row => {
+          const date = new Date(row.date).toLocaleDateString('en-GB');
+          const paid = row.date_paid ? new Date(row.date_paid).toLocaleDateString('en-GB') : '';
+          if (row._source === 'job') {
+            const ops = (row.transaction_operatives || []).map(o => o.employees?.initials || '?').join(', ');
+            const val = parseFloat(row.bonus_metres) * parseFloat(row.rate || 0.03);
+            return [date, 'Job', row.job_ref || '', '', row.site_name || '', '', row.bonus_metres, row.rate, val.toFixed(2), ops, row.date_paid ? 'Paid' : 'Unpaid', paid];
+          } else {
+            const label = row._source === 'special_bonus' ? 'Special Bonus' : 'Deduction';
+            return [date, label, row.job_ref || '', row.reason || '', row.site_name || '', row.employees?.full_name || '', '', '', parseFloat(row.amount).toFixed(2), '', row.date_paid ? 'Paid' : 'Unpaid', paid];
+          }
         })
       ];
       const csv  = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
