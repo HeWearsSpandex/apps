@@ -242,7 +242,7 @@
         <div class="form-group">
           <label>Operatives</label>
           <div class="op-editor">
-            <input class="op-search-input" type="text" placeholder="Search to add operative…" id="e-op-search" oninput="filterEditOps()" autocomplete="off">
+            <input class="op-search-input" type="text" placeholder="Search or type initials + comma…" id="e-op-search" oninput="handleEditOpSearch(this)" autocomplete="off">
             <div class="op-selected-wrap" id="e-op-selected"></div>
             <div class="op-dropdown" id="e-op-list"></div>
           </div>
@@ -261,7 +261,51 @@
     </div>
   </div>
 
-  <script>
+  <!-- Entry Edit Modal (bonus / deduction) -->
+  <div class="overlay" id="entryModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="entry-edit-title">Edit Entry</h2>
+        <button class="modal-close" onclick="closeEntryEdit()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="ee-date">
+          </div>
+          <div class="form-group">
+            <label>Amount (£)</label>
+            <input type="number" id="ee-amount" min="0.01" step="0.01" placeholder="0.00">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Reason</label>
+          <input type="text" id="ee-reason" placeholder="Reason…">
+        </div>
+        <div class="form-row" id="ee-job-row">
+          <div class="form-group">
+            <label>Job Reference</label>
+            <input type="text" id="ee-jobref" placeholder="R40209">
+          </div>
+          <div class="form-group">
+            <label>Site Name</label>
+            <input type="text" id="ee-site" placeholder="Tesco Bristol">
+          </div>
+        </div>
+        <div class="delete-warn" id="entry-delete-warn" style="display:none">
+          ⚠️ Deleting this entry is permanent and cannot be undone.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm" style="background:#fee;color:var(--red);border:1px solid #fcc" onclick="confirmEntryDelete()">🗑 Delete</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="closeEntryEdit()">Cancel</button>
+          <button class="btn btn-primary btn-sm" id="save-entry-edit-btn" onclick="saveEntryEdit()">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
     let allEmployees = [];
     let currentResults = [];
     let editingId = null;
@@ -484,7 +528,10 @@
                   <td>—</td>
                   <td style="font-weight:600;color:${colour}">${valStr}</td>
                   <td>${paid ? `<span class="status-badge paid">Paid ${paid}</span>` : `<span class="status-badge unpaid">Unpaid</span>`}</td>
-                  <td><span title="Edit via Transactions page" style="font-size:16px;cursor:default;color:var(--muted)">—</span></td>
+                  <td>${row.date_paid
+                    ? `<span title="Locked" style="font-size:16px;cursor:default">🔒</span>`
+                    : `<button class="btn btn-ghost btn-sm" onclick="openEntryEdit('${row.id}')">✏️ Edit</button>`}
+                  </td>
                 </tr>`;
               }
             }).join('')}
@@ -553,14 +600,14 @@
       document.getElementById('e-op-search').value = '';
     }
 
-    // Operative picker for edit modal
+    // Operative picker for edit modal — consistent with transaction page
     function renderEditOps() {
       const el = document.getElementById('e-op-selected');
       el.innerHTML = editSelectedOps.map(id => {
         const emp = allEmployees.find(e => e.id === id);
         if (!emp) return '';
-        return `<div class="op-selected-chip">
-          ${emp.initials}
+        return `<div class="op-chip">
+          ${emp.full_name}
           <button type="button" onclick="removeEditOp('${id}')">×</button>
         </div>`;
       }).join('');
@@ -570,16 +617,44 @@
       const q    = document.getElementById('e-op-search').value.toLowerCase();
       const list = document.getElementById('e-op-list');
       const filtered = allEmployees.filter(e =>
-        !q || e.full_name.toLowerCase().includes(q) || e.initials.toLowerCase().includes(q)
+        (e.status === 'active' || e.status === 'probation') &&
+        (!q || e.full_name.toLowerCase().includes(q) || e.initials.toLowerCase().includes(q))
       );
+      const imgBase = typeof STORAGE_URL !== 'undefined' ? STORAGE_URL : '';
       list.innerHTML = filtered.map(e => {
-        const sel = editSelectedOps.includes(e.id);
+        const sel      = editSelectedOps.includes(e.id);
+        const imgSrc   = `${imgBase}${encodeURIComponent(e.full_name)}_cvface1.jpg`;
+        const fallback = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'><circle cx='14' cy='14' r='14' fill='%23e8f0fe'/><text x='14' y='18' text-anchor='middle' font-size='10' font-weight='700' fill='%231a73e8' font-family='Arial'>${e.initials}</text></svg>`;
         return `<div class="op-option ${sel ? 'selected' : ''}" onclick="toggleEditOp('${e.id}')">
-          <span style="flex:1">${e.full_name}</span>
+          <img src="${imgSrc}" onerror="this.src='${fallback}'" width="28" height="28" style="border-radius:50%;object-fit:cover;border:1.5px solid #e0e0e0;flex-shrink:0">
+          <span style="flex:1;font-size:13px">${e.full_name}</span>
           <span class="op-init">${e.initials}</span>
-          ${sel ? '<span style="color:var(--blue)">✓</span>' : ''}
+          ${sel ? '<span style="color:var(--blue);font-weight:700">✓</span>' : ''}
         </div>`;
       }).join('') || '<div style="padding:10px;font-size:12px;color:var(--muted);text-align:center">No matches</div>';
+    }
+
+    function handleEditOpSearch(input) {
+      const val = input.value;
+      if (val.endsWith(',')) {
+        const query = val.slice(0, -1).trim().toUpperCase();
+        const match = allEmployees.find(e =>
+          e.initials.toUpperCase() === query &&
+          (e.status === 'active' || e.status === 'probation')
+        );
+        if (match && !editSelectedOps.includes(match.id)) {
+          editSelectedOps.push(match.id);
+          renderEditOps(); filterEditOps();
+          showToast(`✓ ${match.full_name} added`, 'success');
+        } else if (match) {
+          showToast(`${match.full_name} already added`, 'warning');
+        } else {
+          showToast(`No match for "${query}"`, 'error');
+        }
+        input.value = '';
+        return;
+      }
+      filterEditOps();
     }
 
     function toggleEditOp(id) {
@@ -588,14 +663,92 @@
       } else {
         editSelectedOps.push(id);
       }
-      renderEditOps();
-      filterEditOps();
+      renderEditOps(); filterEditOps();
     }
 
     function removeEditOp(id) {
       editSelectedOps = editSelectedOps.filter(x => x !== id);
-      renderEditOps();
-      filterEditOps();
+      renderEditOps(); filterEditOps();
+    }
+
+    // ── Entry edit (bonus / deduction) ────────────────────────────────────────
+    let editingEntryId = null;
+
+    function openEntryEdit(entryId) {
+      const entry = currentResults.find(r => r.id === entryId);
+      if (!entry || entry.date_paid) return;
+      editingEntryId = entryId;
+      document.getElementById('entry-edit-title').textContent =
+        `Edit ${entry._source === 'special_bonus' ? 'Special Bonus' : 'Deduction'}`;
+      document.getElementById('ee-date').value   = entry.date;
+      document.getElementById('ee-amount').value = entry.amount;
+      document.getElementById('ee-reason').value = entry.reason || '';
+      document.getElementById('ee-jobref').value = entry.job_ref || '';
+      document.getElementById('ee-site').value   = entry.site_name || '';
+      document.getElementById('ee-job-row').style.display = entry._source === 'deduction' ? '' : 'none';
+      document.getElementById('entry-delete-warn').style.display = 'none';
+      document.getElementById('entryModal').classList.add('open');
+    }
+
+    function closeEntryEdit() {
+      editingEntryId = null;
+      document.getElementById('entryModal').classList.remove('open');
+    }
+
+    async function saveEntryEdit() {
+      if (!editingEntryId) return;
+      const entry  = currentResults.find(r => r.id === editingEntryId);
+      const date   = document.getElementById('ee-date').value;
+      const amount = parseFloat(document.getElementById('ee-amount').value);
+      const reason = document.getElementById('ee-reason').value.trim() || null;
+      const jobRef = document.getElementById('ee-jobref').value.trim() || null;
+      const site   = document.getElementById('ee-site').value.trim() || null;
+      if (!date || !amount) { showToast('Date and amount required', 'error'); return; }
+      const btn = document.getElementById('save-entry-edit-btn');
+      btn.disabled = true; btn.textContent = 'Saving…';
+      try {
+        const { error } = await sb.from('bonus_entries')
+          .update({ date, amount, reason, job_ref: jobRef, site_name: site })
+          .eq('id', editingEntryId);
+        if (error) throw new Error(error.message);
+        await auditLog('transaction_edited', 'bonus_entry', editingEntryId,
+          `${entry._source} edit (${date})`, { amount, reason }
+        );
+        showToast('✓ Entry updated', 'success');
+        closeEntryEdit();
+        await runSearch();
+      } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Save Changes';
+      }
+    }
+
+    function confirmEntryDelete() {
+      const warn = document.getElementById('entry-delete-warn');
+      if (warn.style.display === 'none') {
+        warn.style.display = 'block';
+        warn.innerHTML = `⚠️ Are you sure? This is permanent.
+          <button class="btn btn-sm" style="background:#c00;color:#fff;margin-left:10px" onclick="doEntryDelete()">Yes, Delete</button>`;
+      }
+    }
+
+    async function doEntryDelete() {
+      if (!editingEntryId) return;
+      try {
+        const entry = currentResults.find(r => r.id === editingEntryId);
+        const { error } = await sb.from('bonus_entries').delete().eq('id', editingEntryId);
+        if (error) throw new Error(error.message);
+        showToast('Entry deleted', 'success');
+        await auditLog('transaction_deleted', 'bonus_entry', editingEntryId,
+          `${entry?._source} — ${entry?.reason || 'no reason'}`,
+          { amount: entry?.amount, date: entry?.date }
+        );
+        closeEntryEdit();
+        await runSearch();
+      } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+      }
     }
 
     // ── Save edit ─────────────────────────────────────────────────────────────
