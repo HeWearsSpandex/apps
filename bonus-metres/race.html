@@ -203,20 +203,19 @@
     /* Finish line */
     .finish-line {
       position: absolute;
-      top: 80px; /* below sky-strip */
-      bottom: 10px; /* above bottom-rail */
-      width: 24px;
-      background: repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 0 0 / 12px 12px;
-      opacity: 0.9;
+      top: 0; bottom: 0;
+      width: 26px;
+      background: repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 0 0 / 13px 13px;
+      opacity: 0.92;
       z-index: 4;
       pointer-events: none;
     }
     .finish-post {
       position: absolute;
-      top: -20px; bottom: -10px;
-      width: 6px;
-      background: linear-gradient(180deg, #fff, #ccc);
-      box-shadow: 2px 0 4px rgba(0,0,0,0.4);
+      top: -24px; bottom: -12px;
+      width: 7px;
+      background: linear-gradient(180deg, #fff 60%, #bbb);
+      box-shadow: 2px 0 5px rgba(0,0,0,0.5);
     }
 
     /* Distance markers */
@@ -315,11 +314,6 @@
       <!-- Lanes rendered by JS -->
     </div>
     <div class="bottom-rail"></div>
-    <!-- Finish line positioned absolutely within track-area -->
-    <div class="finish-line" id="finish-line">
-      <div class="finish-post" style="left:0"></div>
-      <div class="finish-post" style="right:-6px"></div>
-    </div>
   </div>
 
   <!-- Leaderboard -->
@@ -400,8 +394,17 @@ function renderRace(raceData) {
   const raceW    = finishX - startX;
   const HORSE_WIDTH = 120; // keep leader well clear of finish line
 
-  document.getElementById('finish-line').style.left = finishX + 'px';
-  document.getElementById('finish-line').style.right = 'auto';
+  document.getElementById('finish-line')?.remove();
+  const fl = document.createElement('div');
+  fl.className = 'finish-line';
+  fl.id = 'finish-line';
+  fl.style.left = finishX + 'px';
+  const fp1 = document.createElement('div');
+  fp1.className = 'finish-post'; fp1.style.left = '0';
+  const fp2 = document.createElement('div');
+  fp2.className = 'finish-post'; fp2.style.right = '-7px';
+  fl.appendChild(fp1); fl.appendChild(fp2);
+  lanesEl.appendChild(fl);
 
   // Distance markers
   lanesEl.querySelectorAll('.distance-marker').forEach(e => e.remove());
