@@ -203,22 +203,20 @@
     /* Finish line */
     .finish-line {
       position: absolute;
-      top: 0;
-      height: 100vh; /* tall enough to cover all lanes */
+      top: 80px; /* below sky-strip */
+      bottom: 10px; /* above bottom-rail */
       width: 24px;
       background: repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 0 0 / 12px 12px;
-      opacity: 0.85;
-      box-shadow: 0 0 0 2px rgba(0,0,0,0.3);
-      z-index: 1;
+      opacity: 0.9;
+      z-index: 4;
       pointer-events: none;
     }
     .finish-post {
       position: absolute;
-      top: -30px; bottom: -10px;
+      top: -20px; bottom: -10px;
       width: 6px;
       background: linear-gradient(180deg, #fff, #ccc);
       box-shadow: 2px 0 4px rgba(0,0,0,0.4);
-      z-index: 1;
     }
 
     /* Distance markers */
@@ -277,13 +275,19 @@
 
     /* ── SPINNER ── */
     .spinner-overlay {
-      position: fixed; inset: 0; background: rgba(10,5,0,0.95);
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 100;
+      position: fixed; inset: 0; background: rgba(10,5,0,0.96);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
     }
-    .spinner-icon { font-size: 56px; animation: gallop-spin 0.35s ease-in-out infinite alternate; }
-    @keyframes gallop-spin { to { transform: translateY(-12px) rotate(4deg) scaleX(1.08); } }
-    .spinner-txt { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--gold); animation: fade 0.8s ease-in-out infinite alternate; }
-    @keyframes fade { to { opacity: 0.2; } }
+    .spinner-icon { font-size: 64px; margin-bottom: 20px; }
+    .spinner-txt {
+      font-family: 'Playfair Display', serif; font-size: 26px; color: var(--gold);
+      text-align: center; max-width: 640px; line-height: 1.5;
+      text-shadow: 0 2px 12px rgba(212,160,23,0.35);
+    }
+    @keyframes fadeInUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeOut  { from { opacity:1; } to { opacity:0; } }
+    .intro-in  { animation: fadeInUp 0.7s ease-out forwards; }
+    .intro-out { animation: fadeOut  0.5s ease-in forwards; }
   </style>
 </head>
 <body>
@@ -307,17 +311,15 @@
       <div class="crowd" id="crowd"></div>
     </div>
     <div class="top-rail"></div>
-    <!-- Finish line lives outside lanes so clearing lanes doesn't remove it -->
-    <div style="position:relative;flex:0;height:0;overflow:visible;z-index:4">
-      <div class="finish-line" id="finish-line" style="position:absolute;top:0">
-        <div class="finish-post" style="left:0"></div>
-        <div class="finish-post" style="right:-6px"></div>
-      </div>
-    </div>
     <div class="lanes" id="lanes">
       <!-- Lanes rendered by JS -->
     </div>
     <div class="bottom-rail"></div>
+    <!-- Finish line positioned absolutely within track-area -->
+    <div class="finish-line" id="finish-line">
+      <div class="finish-post" style="left:0"></div>
+      <div class="finish-post" style="right:-6px"></div>
+    </div>
   </div>
 
   <!-- Leaderboard -->
@@ -329,8 +331,10 @@
 </div>
 
 <div class="spinner-overlay" id="spinner">
-  <div class="spinner-icon">🏇</div>
-  <div class="spinner-txt">And they're off…</div>
+  <div style="text-align:center;padding:40px;max-width:700px">
+    <div class="spinner-icon" id="intro-icon">🏟️</div>
+    <div class="spinner-txt" id="intro-txt"></div>
+  </div>
 </div>
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -731,50 +735,67 @@ function animateToTargets() {
 function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 function waitFrame() { return new Promise(r => requestAnimationFrame(r)); }
 
+function showIntroScreen(icon, text) {
+  const iconEl = document.getElementById('intro-icon');
+  const txtEl  = document.getElementById('intro-txt');
+  iconEl.textContent = icon;
+  txtEl.textContent  = text;
+  // Reset animation
+  txtEl.classList.remove('intro-in');
+  iconEl.classList.remove('intro-in');
+  void txtEl.offsetWidth; // reflow
+  txtEl.classList.add('intro-in');
+  iconEl.classList.add('intro-in');
+}
+
 async function runLoop() {
   const overlay = document.getElementById('spinner');
 
-  // ── Step 1: Show "And they're off…" overlay ──
-  overlay.style.display = 'flex';
-  await wait(3000);
-
-  // ── Step 2: Fetch fresh data ──
+  // ── Fetch data while overlay is showing ──
   const newRacers = await loadData();
   prevRanks = Object.fromEntries(racers.map(r => [r.id, r.rank]));
   racers = newRacers;
 
-  // ── Step 3: Hide overlay, clear lanes, wait for layout ──
+  // ── Screen 1: Welcome ──
+  overlay.style.display = 'flex';
+  showIntroScreen('🏟️', 'Ladies and Gentlemen, welcome to the Great JHB 2026–2027 Derby!');
+  await wait(4000);
+
+  // ── Screen 2: Under starters orders ──
+  showIntroScreen('🚦', 'They are under starters orders…');
+  await wait(3000);
+
+  // ── Screen 3: And they're off ──
+  showIntroScreen('🏇', "And they're off!");
+  await wait(2000);
+
+  // ── Hide overlay, reset track ──
   overlay.style.display = 'none';
   document.getElementById('lanes').innerHTML = '';
 
-  // Give browser time to reflow with correct dimensions
   await waitFrame();
   await waitFrame();
   await wait(50);
 
-  // ── Step 4: Render horses at start line ──
+  // ── Render horses at start line and fire race ──
   renderRace(racers);
   renderLeaderboard(racers);
 
-  // ── Step 5: Brief pause then fire race ──
   await waitFrame();
   await wait(100);
   startRaceAnimation();
 
-  // ── Step 6: Hold for 30s after race completes (race = 5s, so 35s total) ──
+  // ── Hold for 30s ──
   await wait(35000);
 
-  // ── Step 7: Show overlay again, loop ──
-  overlay.style.display = 'flex';
-  await wait(3000);
-
+  // ── Loop ──
   runLoop();
 }
 
 async function init() {
   buildCrowd();
 
-  // Load data silently while spinner is showing
+  // Load data silently while overlay shows
   racers = await loadData();
   renderLeaderboard(racers);
   prevRanks = Object.fromEntries(racers.map(r => [r.id, r.rank]));
