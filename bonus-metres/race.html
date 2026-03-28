@@ -409,13 +409,17 @@ function renderRace(raceData) {
     lanesEl.appendChild(dl);
   });
 
+  const HORSE_WIDTH = 80; // pixels — keep horses this far before finish line
+
   // Build or update lanes
   raceData.forEach((r, i) => {
     const silk   = SILKS[i % SILKS.length];
     const cap    = SILK_CAPS[i % SILK_CAPS.length];
     const y      = i * laneH;
     const prog   = topM > 0 ? r.metres / topM : 0;
-    const xPos   = startX + prog * raceW;
+    // Leader sits HORSE_WIDTH px before the finish line, others scale behind
+    const maxX   = finishX - HORSE_WIDTH;
+    const xPos   = startX + prog * (maxX - startX);
 
     let unit = document.getElementById(`horse-${r.id}`);
     if (!unit) {
