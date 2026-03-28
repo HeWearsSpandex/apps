@@ -117,6 +117,7 @@
       display: flex; align-items: flex-end; gap: 6px;
       transition: left 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       will-change: left;
+      z-index: 10;
     }
 
     /* Horse + rider as a stacked unit */
@@ -210,7 +211,7 @@
       background: repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 0 0 / 12px 12px;
       opacity: 0.85;
       box-shadow: 0 0 0 2px rgba(0,0,0,0.3);
-      z-index: 5;
+      z-index: 1;
       pointer-events: none;
     }
     .finish-post {
@@ -219,7 +220,7 @@
       width: 6px;
       background: linear-gradient(180deg, #fff, #ccc);
       box-shadow: 2px 0 4px rgba(0,0,0,0.4);
-      z-index: 6;
+      z-index: 1;
     }
 
     /* Distance markers */
@@ -388,9 +389,10 @@ function renderRace(raceData) {
   const topM     = raceData[0]?.metres || 1;
 
   // Finish line position
-  const finishX  = trackW - 64;
+  const finishX  = trackW - 30;  // right at the edge
   const startX   = 50;
   const raceW    = finishX - startX;
+  const HORSE_WIDTH = 120; // keep leader well clear of finish line
 
   document.getElementById('finish-line').style.left = finishX + 'px';
   document.getElementById('finish-line').style.right = 'auto';
@@ -400,16 +402,14 @@ function renderRace(raceData) {
   [0.25, 0.5, 0.75].forEach(f => {
     const dm = document.createElement('div');
     dm.className = 'distance-marker';
-    dm.style.left = (startX + f * raceW) + 'px';
+    dm.style.left = (startX + f * (finishX - HORSE_WIDTH - startX)) + 'px';
     const dl = document.createElement('div');
     dl.className = 'distance-label';
-    dl.style.left = (startX + f * raceW) + 'px';
+    dl.style.left = (startX + f * (finishX - HORSE_WIDTH - startX)) + 'px';
     dl.textContent = Math.round(f * 100) + '%';
     lanesEl.appendChild(dm);
     lanesEl.appendChild(dl);
   });
-
-  const HORSE_WIDTH = 80; // pixels — keep horses this far before finish line
 
   // Build or update lanes
   raceData.forEach((r, i) => {
