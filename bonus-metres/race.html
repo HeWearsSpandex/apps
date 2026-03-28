@@ -557,9 +557,12 @@ function renderLeaderboard(raceData) {
   const top3El = document.getElementById('lb-top3');
   const scroll = document.getElementById('lb-scroll');
 
+  // Sort by metres descending for standings display
+  const byRank = [...raceData].sort((a, b) => b.metres - a.metres || a.name.localeCompare(b.name));
+
   function rowHtml(r, i) {
     const pc   = r.rank===1?'p1':r.rank===2?'p2':r.rank===3?'p3':'px';
-    const silk = SILKS[i % SILKS.length];
+    const silk = SILKS[raceData.indexOf(r) % SILKS.length]; // silk colour based on lane (alpha order)
     const prev = prevRanks[r.id];
     let delta  = '';
     if (prev !== undefined && prev !== r.rank) {
@@ -581,9 +584,8 @@ function renderLeaderboard(raceData) {
     </div>`;
   }
 
-  // Fixed top 3 (by rank, not array index — handle ties)
-  const top3    = raceData.filter(r => r.rank <= 3);
-  const rest    = raceData.filter(r => r.rank > 3);
+  const top3 = byRank.filter(r => r.rank <= 3);
+  const rest  = byRank.filter(r => r.rank > 3);
 
   top3El.innerHTML = top3.map((r, i) => rowHtml(r, i)).join('');
   scroll.innerHTML = rest.map((r, i) => rowHtml(r, i + top3.length)).join('');
@@ -597,6 +599,20 @@ async function loadData() {
   const from = new Date(y, m, 1).toISOString().split('T')[0];
   const to   = new Date(y, m+1, 0).toISOString().split('T')[0];
 
+  // Always load ALL active/probation employees first
+  const { data: emps } = await sb.from('employees')
+    .select('id, full_name, initials, status')
+    .in('status', ['active', 'probation'])
+    .neq('status', 'token')
+    .order('full_name');
+
+  // Build map from all active staff — everyone starts at 0
+  const empMap = {};
+  (emps || []).forEach(e => {
+    empMap[e.id] = { id: e.id, name: e.full_name, initials: e.initials, metres: 0 };
+  });
+
+  // Fetch unpaid transactions this month
   const { data: ops } = await sb
     .from('transaction_operatives')
     .select(`employee_id,
@@ -609,16 +625,15 @@ async function loadData() {
     .not('employees.status', 'eq', 'inactive')
     .not('employees.status', 'eq', 'token');
 
-  // Find latest transaction created_at
+  // Accumulate metres and find latest entry date
   let latestDate = null;
-  const empMap = {};
   (ops || []).forEach(o => {
     const emp  = o.employees;
     if (!emp) return;
     const id   = o.employee_id;
+    if (!empMap[id]) return; // skip if not in active list
     const crew = (o.transactions?.transaction_operatives || []).length || 1;
     const myM  = parseFloat(o.transactions?.bonus_metres || 0) / crew;
-    if (!empMap[id]) empMap[id] = { id, name: emp.full_name, initials: emp.initials, metres: 0 };
     empMap[id].metres += myM;
     const created = o.transactions?.created_at;
     if (created && (!latestDate || created > latestDate)) latestDate = created;
@@ -636,27 +651,22 @@ async function loadData() {
     }
   }
 
-  if (!Object.keys(empMap).length) {
-    const { data: emps } = await sb.from('employees')
-      .select('id, full_name, initials')
-      .in('status', ['active','probation'])
-      .order('full_name');
-    (emps || []).forEach(e => { empMap[e.id] = { id: e.id, name: e.full_name, initials: e.initials, metres: 0 }; });
-  }
+  // ALL employees — sorted alphabetically for lane assignment (fixed lanes)
+  const byAlpha = Object.values(empMap).sort((a, b) => a.name.localeCompare(b.name));
 
-  const sorted = Object.values(empMap).sort((a, b) => b.metres - a.metres);
-
-  // Assign proper race positions — ties share the same rank, next rank skips
+  // Assign race rank by metres (for standings) — ties share rank
+  const byMetres = [...byAlpha].sort((a, b) => b.metres - a.metres);
   let rank = 1;
-  sorted.forEach((e, i) => {
-    if (i > 0 && e.metres < sorted[i - 1].metres) rank = i + 1;
+  byMetres.forEach((e, i) => {
+    if (i > 0 && e.metres < byMetres[i-1].metres) rank = i + 1;
     e.rank = rank;
   });
 
-  return sorted.map((e, i) => ({
-      ...e,
-      img: `${STORAGE_URL}${encodeURIComponent(e.name)}_cvface1.jpg`,
-    }));
+  // Return in ALPHABETICAL order (lane order) — standings panel uses rank
+  return byAlpha.map(e => ({
+    ...e,
+    img: `${STORAGE_URL}${encodeURIComponent(e.name)}_cvface1.jpg`,
+  }));
 }
 
 async function refresh() {
@@ -757,6 +767,55 @@ function animateToTargets() {
 // 3. Hold for 30s showing final positions
 // 4. Refresh data, reset horses to start line, show spinner again → repeat
 
+// ── Leaderboard auto-scroll ────────────────────────────────────────
+let scrollInterval = null;
+let scrollDirection = 1; // 1 = down, -1 = up
+let scrollPaused   = false;
+
+function startLeaderboardScroll() {
+  if (scrollInterval) clearInterval(scrollInterval);
+
+  const el = document.getElementById('lb-scroll');
+  if (!el) return;
+
+  // Reset to top
+  el.scrollTop = 0;
+  scrollDirection = 1;
+  scrollPaused    = false;
+
+  // Pause at top for 2s, then scroll down slowly, pause at bottom, scroll back up
+  let pauseTimer = null;
+
+  scrollInterval = setInterval(() => {
+    if (scrollPaused || !el) return;
+
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    const atTop    = el.scrollTop <= 0;
+
+    if (scrollDirection === 1 && atBottom) {
+      // Hit bottom — pause then reverse
+      scrollPaused = true;
+      pauseTimer = setTimeout(() => {
+        scrollDirection = -1;
+        scrollPaused = false;
+      }, 2500);
+    } else if (scrollDirection === -1 && atTop) {
+      // Hit top — pause then go back down
+      scrollPaused = true;
+      pauseTimer = setTimeout(() => {
+        scrollDirection = 1;
+        scrollPaused = false;
+      }, 2500);
+    } else {
+      el.scrollTop += scrollDirection * 1; // 1px per tick = smooth
+    }
+  }, 30); // ~33fps scroll
+}
+
+function stopLeaderboardScroll() {
+  if (scrollInterval) { clearInterval(scrollInterval); scrollInterval = null; }
+}
+
 function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 function waitFrame() { return new Promise(r => requestAnimationFrame(r)); }
 
@@ -810,10 +869,15 @@ async function runLoop() {
   await wait(100);
   startRaceAnimation();
 
-  // ── Hold for 30s ──
-  await wait(35000);
+  // ── Start leaderboard scroll after race has had time to settle ──
+  await wait(6000); // let the race play out first
+  startLeaderboardScroll();
 
-  // ── Loop ──
+  // ── Hold for remaining time (35s total - 6s already waited) ──
+  await wait(29000);
+
+  // ── Stop scroll and show overlay ──
+  stopLeaderboardScroll();
   runLoop();
 }
 
