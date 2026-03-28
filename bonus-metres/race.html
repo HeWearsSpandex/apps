@@ -20,25 +20,19 @@
     /* ── HEADER ── */
     .header {
       height: 54px;
-      background: linear-gradient(135deg, #1a0a00, #3d1a00, #1a0a00);
+      background: #ffffff;
       border-bottom: 3px solid var(--gold);
       display: flex; align-items: center; justify-content: space-between;
       padding: 0 20px; position: relative; z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
     .header-logo { height: 36px; }
     .header-title {
       font-family: 'Playfair Display', serif;
-      font-size: 20px; font-weight: 900; color: var(--gold);
-      text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+      font-size: 20px; font-weight: 900; color: #1a0a00;
     }
-    .header-sub { font-size: 11px; color: #c8a96e; letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
-    .month-pill {
-      background: var(--gold); color: var(--dark);
-      font-family: 'Playfair Display', serif;
-      font-size: 12px; font-weight: 700;
-      padding: 3px 12px; border-radius: 20px; display: inline-block;
-    }
-    .update-lbl { font-size: 10px; color: #c8a96e; margin-top: 3px; letter-spacing: 1px; }
+    .header-sub { font-size: 11px; color: #8B4513; letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+    .update-lbl { font-size: 11px; color: #8B4513; letter-spacing: 1px; font-weight: 600; }
 
     /* ── LAYOUT ── */
     .race-layout {
@@ -209,7 +203,8 @@
     /* Finish line */
     .finish-line {
       position: absolute;
-      top: 0; bottom: 0;
+      top: 0;
+      height: 100vh; /* tall enough to cover all lanes */
       width: 24px;
       background: repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 0 0 / 12px 12px;
       opacity: 0.85;
@@ -219,7 +214,7 @@
     }
     .finish-post {
       position: absolute;
-      top: -20px; bottom: -10px;
+      top: -30px; bottom: -10px;
       width: 6px;
       background: linear-gradient(180deg, #fff, #ccc);
       box-shadow: 2px 0 4px rgba(0,0,0,0.4);
@@ -300,8 +295,7 @@
     <div class="header-sub" id="period-sub">🏇 The JHB 2026–2027 Derby</div>
   </div>
   <div style="text-align:right">
-    <div class="month-pill" id="month-badge">Loading…</div>
-    <div class="update-lbl" id="update-lbl"></div>
+    <div class="update-lbl" id="update-lbl">Loading…</div>
   </div>
 </div>
 
@@ -313,12 +307,14 @@
       <div class="crowd" id="crowd"></div>
     </div>
     <div class="top-rail"></div>
-    <div class="lanes" id="lanes">
-      <!-- Finish line -->
-      <div class="finish-line" id="finish-line" style="right:40px">
+    <!-- Finish line lives outside lanes so clearing lanes doesn't remove it -->
+    <div style="position:relative;flex:0;height:0;overflow:visible;z-index:4">
+      <div class="finish-line" id="finish-line" style="position:absolute;top:0">
         <div class="finish-post" style="left:0"></div>
         <div class="finish-post" style="right:-6px"></div>
       </div>
+    </div>
+    <div class="lanes" id="lanes">
       <!-- Lanes rendered by JS -->
     </div>
     <div class="bottom-rail"></div>
@@ -572,13 +568,10 @@ async function loadData() {
   const from = new Date(y, m, 1).toISOString().split('T')[0];
   const to   = new Date(y, m+1, 0).toISOString().split('T')[0];
 
-  document.getElementById('month-badge').textContent =
-    now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-
   const { data: ops } = await sb
     .from('transaction_operatives')
     .select(`employee_id,
-             transactions!inner(id, date, date_paid, bonus_metres,
+             transactions!inner(id, date, date_paid, bonus_metres, created_at,
                transaction_operatives(employee_id)),
              employees!inner(full_name, initials, status)`)
     .gte('transactions.date', from)
@@ -587,6 +580,8 @@ async function loadData() {
     .not('employees.status', 'eq', 'inactive')
     .not('employees.status', 'eq', 'token');
 
+  // Find latest transaction created_at
+  let latestDate = null;
   const empMap = {};
   (ops || []).forEach(o => {
     const emp  = o.employees;
@@ -596,7 +591,21 @@ async function loadData() {
     const myM  = parseFloat(o.transactions?.bonus_metres || 0) / crew;
     if (!empMap[id]) empMap[id] = { id, name: emp.full_name, initials: emp.initials, metres: 0 };
     empMap[id].metres += myM;
+    const created = o.transactions?.created_at;
+    if (created && (!latestDate || created > latestDate)) latestDate = created;
   });
+
+  // Update last entry label
+  const lbl = document.getElementById('update-lbl');
+  if (lbl) {
+    if (latestDate) {
+      const d = new Date(latestDate);
+      lbl.textContent = 'Last entry: ' + d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+        + ' at ' + d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+    } else {
+      lbl.textContent = 'No entries this month yet';
+    }
+  }
 
   if (!Object.keys(empMap).length) {
     const { data: emps } = await sb.from('employees')
@@ -628,8 +637,6 @@ async function refresh() {
   renderRace(racers);
   renderLeaderboard(racers);
   animateToTargets();
-  document.getElementById('update-lbl').textContent =
-    'Updated ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
 }
 
 // ── Race animation engine ──────────────────────────────────────────
@@ -748,8 +755,6 @@ async function runLoop() {
   // ── Step 4: Render horses at start line ──
   renderRace(racers);
   renderLeaderboard(racers);
-  document.getElementById('update-lbl').textContent =
-    'Updated ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
 
   // ── Step 5: Brief pause then fire race ──
   await waitFrame();
