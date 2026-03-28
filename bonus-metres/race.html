@@ -86,13 +86,15 @@
       height: 10px; flex-shrink: 0;
       background: linear-gradient(180deg, #a0522d, #6b3410);
       box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+      position: relative; z-index: 0;
     }
 
     /* Lanes */
     .lanes {
       flex: 1;
       position: relative;
-      overflow: hidden;
+      overflow: visible;
+      z-index: 5;
     }
 
     .lane {
@@ -294,7 +296,7 @@
   <img class="header-logo" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/JHB%20Logo.png" alt="JHB">
   <div>
     <div class="header-title">🏇 Bonus Metres — Current Leaderboard</div>
-    <div class="header-sub" id="period-sub">This Month · Pending Metres</div>
+    <div class="header-sub" id="period-sub">🏇 The JHB 2026–2027 Derby</div>
   </div>
   <div style="text-align:right">
     <div class="month-pill" id="month-badge">Loading…</div>
