@@ -114,53 +114,66 @@
     /* Horse + rider unit */
     .horse-unit {
       position: absolute;
-      display: flex; align-items: center; gap: 0;
+      display: flex; align-items: flex-end; gap: 6px;
       transition: left 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       will-change: left;
     }
 
-    /* Jockey silks blob */
-    .jockey-wrap {
+    /* Horse + rider as a stacked unit */
+    .horse-stack {
       position: relative;
-      display: flex; flex-direction: column; align-items: center;
-      margin-right: -4px;
-      z-index: 2;
-    }
-    .jockey-photo {
-      width: 32px; height: 32px; border-radius: 50%;
-      object-fit: cover;
-      border: 3px solid #fff;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-      background: #ccc;
-    }
-    .jockey-silk {
-      width: 22px; height: 18px; border-radius: 3px 3px 6px 6px;
-      margin-top: -4px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-      position: relative; overflow: hidden;
-    }
-    .silk-stripe {
-      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-      width: 8px; height: 100%; background: rgba(255,255,255,0.3);
+      display: inline-flex;
+      align-items: flex-end;
     }
 
-    /* Horse emoji */
+    /* Horse emoji — flipped to face right */
     .horse-emoji {
-      font-size: 42px;
+      font-size: 44px;
       line-height: 1;
+      display: block;
+      transform: scaleX(-1); /* flip to face right */
       filter: drop-shadow(2px 3px 3px rgba(0,0,0,0.4));
       animation: gallop 0.32s ease-in-out infinite alternate;
       transform-origin: bottom center;
     }
     @keyframes gallop {
-      0%   { transform: scaleY(1.0)   translateY(0px)   rotate(-2deg); }
-      100% { transform: scaleY(0.92)  translateY(3px)   rotate(2deg); }
+      0%   { transform: scaleX(-1) scaleY(1.0)  translateY(0px)  rotate(-1deg); }
+      100% { transform: scaleX(-1) scaleY(0.93) translateY(2px)  rotate(1deg); }
     }
-    .horse-unit:nth-child(2n)   .horse-emoji { animation-delay: -0.08s; }
-    .horse-unit:nth-child(3n)   .horse-emoji { animation-delay: -0.16s; }
-    .horse-unit:nth-child(4n)   .horse-emoji { animation-delay: -0.24s; }
-    .horse-unit:nth-child(5n)   .horse-emoji { animation-delay: -0.05s; }
-    .horse-unit:nth-child(6n)   .horse-emoji { animation-delay: -0.19s; }
+    .horse-unit:nth-child(2n)  .horse-emoji { animation-delay: -0.08s; }
+    .horse-unit:nth-child(3n)  .horse-emoji { animation-delay: -0.16s; }
+    .horse-unit:nth-child(4n)  .horse-emoji { animation-delay: -0.24s; }
+    .horse-unit:nth-child(5n)  .horse-emoji { animation-delay: -0.05s; }
+    .horse-unit:nth-child(6n)  .horse-emoji { animation-delay: -0.19s; }
+
+    /* Jockey sits on top of horse, centred */
+    .jockey-wrap {
+      position: absolute;
+      bottom: 58%; /* sits on horse's back */
+      left: 30%;   /* roughly centre of horse body */
+      transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .jockey-photo {
+      width: 26px; height: 26px; border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.6);
+      background: #ccc;
+      display: block;
+    }
+    .jockey-silk {
+      width: 18px; height: 14px; border-radius: 2px 2px 5px 5px;
+      margin-top: -2px;
+      box-shadow: 0 2px 3px rgba(0,0,0,0.5);
+      position: relative; overflow: hidden;
+    }
+    .silk-stripe {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 6px; height: 100%; background: rgba(255,255,255,0.35);
+    }
 
     /* Name + metres tag */
     .horse-tag {
@@ -424,16 +437,17 @@ function renderRace(raceData) {
       unit.id = `horse-${r.id}`;
       unit.style.cssText = `top:${y + laneH * 0.5 - 28}px;left:${xPos}px`;
 
-      // Position badge
-      const badge = document.createElement('div');
-      badge.className = 'pos-badge';
-      badge.id = `badge-${r.id}`;
-      badge.style.background = i===0?'#ffd700':i===1?'#c0c0c0':i===2?'#cd7f32':'#333';
-      badge.style.color = i<3?'#000':'#fff';
-      badge.textContent = i + 1;
-      unit.appendChild(badge);
+      // horse-stack: horse emoji + jockey overlaid
+      const stack = document.createElement('div');
+      stack.className = 'horse-stack';
 
-      // Jockey wrap
+      // Horse emoji
+      const horse = document.createElement('div');
+      horse.className = 'horse-emoji';
+      horse.textContent = '🐎';
+      stack.appendChild(horse);
+
+      // Jockey wrap — absolutely positioned on top of horse
       const jWrap = document.createElement('div');
       jWrap.className = 'jockey-wrap';
 
@@ -445,7 +459,7 @@ function renderRace(raceData) {
         this.style.display = 'none';
         const fb = document.createElement('div');
         fb.className = 'jockey-photo';
-        fb.style.cssText = `background:${silk};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff;border:3px solid #fff`;
+        fb.style.cssText = `background:${silk};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#fff;border:2px solid #fff;width:26px;height:26px;border-radius:50%`;
         fb.textContent = r.initials.slice(0, 2);
         this.parentNode.insertBefore(fb, this.nextSibling);
       };
@@ -460,15 +474,19 @@ function renderRace(raceData) {
       silkDiv.appendChild(stripe);
       jWrap.appendChild(silkDiv);
 
-      unit.appendChild(jWrap);
+      stack.appendChild(jWrap);
 
-      // Horse emoji
-      const horse = document.createElement('div');
-      horse.className = 'horse-emoji';
-      horse.textContent = '🐎';
-      unit.appendChild(horse);
+      // Position badge on stack
+      const badge = document.createElement('div');
+      badge.className = 'pos-badge';
+      badge.id = `badge-${r.id}`;
+      badge.style.cssText = `background:${r.rank===1?'#ffd700':r.rank===2?'#c0c0c0':r.rank===3?'#cd7f32':'#333'};color:${r.rank<=3?'#000':'#fff'}`;
+      badge.textContent = r.rank;
+      stack.appendChild(badge);
 
-      // Tag
+      unit.appendChild(stack);
+
+      // Tag — name and metres beside the horse
       const tag = document.createElement('div');
       tag.className = 'horse-tag';
       const nameEl = document.createElement('div');
@@ -494,9 +512,9 @@ function renderRace(raceData) {
 
       const badge = document.getElementById(`badge-${r.id}`);
       if (badge) {
-        badge.textContent = i + 1;
-        badge.style.background = i===0?'#ffd700':i===1?'#c0c0c0':i===2?'#cd7f32':'#333';
-        badge.style.color = i<3?'#000':'#fff';
+        badge.textContent = r.rank;
+        badge.style.background = r.rank===1?'#ffd700':r.rank===2?'#c0c0c0':r.rank===3?'#cd7f32':'#333';
+        badge.style.color = r.rank<=3?'#000':'#fff';
       }
 
       const laneEl = document.getElementById(`lane-${r.id}`);
@@ -509,17 +527,17 @@ function renderRace(raceData) {
 function renderLeaderboard(raceData) {
   const scroll = document.getElementById('lb-scroll');
   scroll.innerHTML = raceData.map((r, i) => {
-    const pc   = i===0?'p1':i===1?'p2':i===2?'p3':'px';
+    const pc   = r.rank===1?'p1':r.rank===2?'p2':r.rank===3?'p3':'px';
     const silk = SILKS[i % SILKS.length];
     const prev = prevRanks[r.id];
     let delta  = '';
-    if (prev !== undefined && prev !== i) {
-      delta = prev > i
-        ? `<div class="lb-delta up">▲${prev-i}</div>`
-        : `<div class="lb-delta dn">▼${i-prev}</div>`;
+    if (prev !== undefined && prev !== r.rank) {
+      delta = prev > r.rank
+        ? `<div class="lb-delta up">▲${prev - r.rank}</div>`
+        : `<div class="lb-delta dn">▼${r.rank - prev}</div>`;
     }
     return `<div class="lb-row">
-      <div class="lb-pos ${pc}">${i+1}</div>
+      <div class="lb-pos ${pc}">${r.rank}</div>
       <div class="lb-swatch" style="background:${silk}"></div>
       <img class="lb-av" src="${r.img}"
         onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="">
@@ -575,18 +593,24 @@ async function loadData() {
     (emps || []).forEach(e => { empMap[e.id] = { id: e.id, name: e.full_name, initials: e.initials, metres: 0 }; });
   }
 
-  return Object.values(empMap)
-    .sort((a, b) => b.metres - a.metres)
-    .map((e, i) => ({
+  const sorted = Object.values(empMap).sort((a, b) => b.metres - a.metres);
+
+  // Assign proper race positions — ties share the same rank, next rank skips
+  let rank = 1;
+  sorted.forEach((e, i) => {
+    if (i > 0 && e.metres < sorted[i - 1].metres) rank = i + 1;
+    e.rank = rank;
+  });
+
+  return sorted.map((e, i) => ({
       ...e,
-      rank: i + 1,
       img: `${STORAGE_URL}${encodeURIComponent(e.name)}_cvface1.jpg`,
     }));
 }
 
 async function refresh() {
   const newRacers = await loadData();
-  prevRanks = Object.fromEntries(racers.map((r, i) => [r.id, i]));
+  prevRanks = Object.fromEntries(racers.map(r => [r.id, r.rank]));
   racers = newRacers;
   renderRace(racers);
   renderLeaderboard(racers);
@@ -599,7 +623,7 @@ async function init() {
   racers = await loadData();
   renderRace(racers);
   renderLeaderboard(racers);
-  prevRanks = Object.fromEntries(racers.map((r, i) => [r.id, i]));
+  prevRanks = Object.fromEntries(racers.map(r => [r.id, r.rank]));
   document.getElementById('spinner').style.display = 'none';
   document.getElementById('update-lbl').textContent =
     'Updated ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
