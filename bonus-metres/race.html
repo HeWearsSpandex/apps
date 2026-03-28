@@ -710,27 +710,61 @@ function animateToTargets() {
   });
 }
 
+// ── Loop sequence ──────────────────────────────────────────────────
+// 1. Show "And they're off…" for 3s
+// 2. Hide spinner, fire race animation (horses reach positions in 5s)
+// 3. Hold for 30s showing final positions
+// 4. Refresh data, reset horses to start line, show spinner again → repeat
+
+async function runLoop() {
+  // Fetch latest data
+  const newRacers = await loadData();
+  prevRanks = Object.fromEntries(racers.map(r => [r.id, r.rank]));
+  racers = newRacers;
+
+  const spinner = document.getElementById('spinner');
+
+  // Step 1: Show "And they're off…" for 3 seconds
+  spinner.style.display = 'flex';
+  await wait(3000);
+
+  // Step 2: Hide spinner, reset horses to start, fire race
+  spinner.style.display = 'none';
+  document.getElementById('lanes').innerHTML = '';
+  renderRace(racers);
+  renderLeaderboard(racers);
+  document.getElementById('update-lbl').textContent =
+    'Updated ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+  startRaceAnimation();
+
+  // Step 3: Hold on final positions for 30 seconds
+  await wait(35000);
+
+  // Step 4: Show spinner again as the reset transition, then loop
+  spinner.style.display = 'flex';
+  await wait(3000);
+
+  // Loop — spinner stays visible while data loads, then Step 1 hides and re-shows it
+  runLoop();
+}
+
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function init() {
   buildCrowd();
   racers = await loadData();
   renderRace(racers);
   renderLeaderboard(racers);
   prevRanks = Object.fromEntries(racers.map(r => [r.id, r.rank]));
-  document.getElementById('spinner').style.display = 'none';
-  document.getElementById('update-lbl').textContent =
-    'Updated ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
-
-  // Small delay then fire the race start
-  setTimeout(startRaceAnimation, 300);
-
-  setInterval(refresh, 60000);
+  // Spinner already visible from HTML — loop will handle it from here
+  runLoop();
 }
 
 window.addEventListener('resize', () => {
   document.getElementById('lanes').innerHTML = '';
   renderRace(racers);
-  // Re-run race animation on resize
-  setTimeout(startRaceAnimation, 100);
 });
 
 init();
