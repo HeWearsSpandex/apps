@@ -252,6 +252,11 @@
       border-bottom: 2px solid var(--gold);
       text-align: center; flex-shrink: 0;
     }
+    .lb-top3 {
+      flex-shrink: 0;
+      border-bottom: 2px solid rgba(212,160,23,0.4);
+      background: rgba(212,160,23,0.06);
+    }
     .lb-scroll { flex: 1; overflow-y: auto; }
     .lb-scroll::-webkit-scrollbar { width: 3px; }
     .lb-scroll::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 2px; }
@@ -260,6 +265,10 @@
       padding: 7px 10px;
       border-bottom: 1px solid rgba(212,160,23,0.1);
     }
+    .lb-top3 .lb-row { background: rgba(0,0,0,0.2); }
+    .lb-top3 .lb-row:nth-child(1) { border-left: 3px solid #ffd700; }
+    .lb-top3 .lb-row:nth-child(2) { border-left: 3px solid #c0c0c0; }
+    .lb-top3 .lb-row:nth-child(3) { border-left: 3px solid #cd7f32; }
     .lb-pos { font-family: 'Playfair Display', serif; font-size: 14px; font-weight: 700; width: 20px; text-align: center; flex-shrink: 0; }
     .lb-pos.p1 { color: #ffd700; } .lb-pos.p2 { color: #c0c0c0; } .lb-pos.p3 { color: #cd7f32; } .lb-pos.px { color: #555; font-size: 11px; }
     .lb-swatch { width: 10px; height: 30px; border-radius: 3px; flex-shrink: 0; }
@@ -319,6 +328,7 @@
   <!-- Leaderboard -->
   <div class="lb-panel">
     <div class="lb-head">🏆 Standings</div>
+    <div class="lb-top3" id="lb-top3"></div>
     <div class="lb-scroll" id="lb-scroll"></div>
   </div>
 
@@ -385,7 +395,10 @@ function renderRace(raceData) {
   const totalH   = Math.max(lanesEl.offsetHeight, trackArea.offsetHeight - skyH - botH, 200);
   const trackW   = lanesEl.offsetWidth || trackArea.offsetWidth || window.innerWidth - 230;
   const n        = raceData.length;
-  const laneH    = Math.floor(totalH / n);
+  const MIN_LANE_H = 28;
+  const laneH      = Math.max(MIN_LANE_H, Math.floor(totalH / n));
+  // If all lanes don't fit, lanes div becomes scrollable
+  lanesEl.style.overflowY = laneH === MIN_LANE_H ? 'auto' : 'visible';
   const topM     = raceData[0]?.metres || 1;
 
   // Finish line position
@@ -541,8 +554,10 @@ function renderRace(raceData) {
 
 // ── Leaderboard ────────────────────────────────────────────────────
 function renderLeaderboard(raceData) {
+  const top3El = document.getElementById('lb-top3');
   const scroll = document.getElementById('lb-scroll');
-  scroll.innerHTML = raceData.map((r, i) => {
+
+  function rowHtml(r, i) {
     const pc   = r.rank===1?'p1':r.rank===2?'p2':r.rank===3?'p3':'px';
     const silk = SILKS[i % SILKS.length];
     const prev = prevRanks[r.id];
@@ -564,7 +579,14 @@ function renderLeaderboard(raceData) {
       </div>
       ${delta}
     </div>`;
-  }).join('');
+  }
+
+  // Fixed top 3 (by rank, not array index — handle ties)
+  const top3    = raceData.filter(r => r.rank <= 3);
+  const rest    = raceData.filter(r => r.rank > 3);
+
+  top3El.innerHTML = top3.map((r, i) => rowHtml(r, i)).join('');
+  scroll.innerHTML = rest.map((r, i) => rowHtml(r, i + top3.length)).join('');
 }
 
 // ── Data ───────────────────────────────────────────────────────────
