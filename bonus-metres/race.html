@@ -95,6 +95,8 @@
       position: relative;
       overflow: visible;
       z-index: 5;
+      min-height: 0;
+      height: 100%;
     }
 
     .lane {
@@ -728,23 +730,30 @@ async function runLoop() {
   spinner.style.display = 'flex';
   await wait(3000);
 
-  // Step 2: Hide spinner, reset horses to start, fire race
+  // Step 2: Hide spinner, reset horses, render, then fire race
   spinner.style.display = 'none';
   document.getElementById('lanes').innerHTML = '';
+
+  // Wait a frame so the DOM has correct dimensions before rendering
+  await new Promise(r => requestAnimationFrame(r));
+  await new Promise(r => requestAnimationFrame(r));
+
   renderRace(racers);
   renderLeaderboard(racers);
   document.getElementById('update-lbl').textContent =
     'Updated ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+
+  // Another frame before starting animation so horses are at startX
+  await new Promise(r => requestAnimationFrame(r));
   startRaceAnimation();
 
   // Step 3: Hold on final positions for 30 seconds
   await wait(35000);
 
-  // Step 4: Show spinner again as the reset transition, then loop
+  // Step 4: Show spinner again as reset transition, then loop
   spinner.style.display = 'flex';
   await wait(3000);
 
-  // Loop — spinner stays visible while data loads, then Step 1 hides and re-shows it
   runLoop();
 }
 
