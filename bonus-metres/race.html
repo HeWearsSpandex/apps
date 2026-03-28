@@ -6,296 +6,206 @@
   <title>JHB Bonus Metres — Current Leaderboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Barlow+Condensed:wght@400;600;700;900&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --gold: #d4a017;
-      --dark: #1a0a00;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body {
-      width: 100%; height: 100vh; overflow: hidden;
-      font-family: 'Barlow Condensed', sans-serif;
-      background: #2d7a2d;
-    }
+    :root { --gold:#d4a017; --dark:#1a0a00; --rail:#8B4513; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    html, body { width:100%; height:100vh; overflow:hidden; font-family:'Barlow Condensed',sans-serif; background:#1a0a00; color:#fff; }
 
     /* ── HEADER ── */
     .header {
-      height: 54px;
-      background: #ffffff;
-      border-bottom: 3px solid var(--gold);
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 20px; position: relative; z-index: 10;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      height:52px; background:#fff;
+      border-bottom:3px solid var(--gold);
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 18px; position:relative; z-index:10;
+      box-shadow:0 2px 8px rgba(0,0,0,0.2);
     }
-    .header-logo { height: 36px; }
-    .header-title {
-      font-family: 'Playfair Display', serif;
-      font-size: 20px; font-weight: 900; color: #1a0a00;
-    }
-    .header-sub { font-size: 11px; color: #8B4513; letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
-    .update-lbl { font-size: 11px; color: #8B4513; letter-spacing: 1px; font-weight: 600; }
+    .header-logo { height:34px; }
+    .header-title { font-family:'Playfair Display',serif; font-size:19px; font-weight:900; color:var(--dark); }
+    .header-sub   { font-size:11px; color:#8B4513; letter-spacing:2px; text-transform:uppercase; margin-top:2px; }
+    .header-right { text-align:right; }
+    .update-lbl   { font-size:11px; color:#8B4513; font-weight:600; }
 
     /* ── LAYOUT ── */
-    .race-layout {
-      display: flex;
-      height: calc(100vh - 54px);
+    .main-layout { display:flex; height:calc(100vh - 52px); }
+
+    /* ── SCENE AREA ── */
+    .scene-area {
+      flex:1; position:relative; overflow:hidden;
+      background: linear-gradient(180deg, #2255cc 0%, #87ceeb 28%, #33aa33 28%);
     }
 
-    /* ── TRACK AREA ── */
-    .track-area {
-      flex: 1;
-      position: relative;
-      overflow: visible;
-      display: flex;
-      flex-direction: column;
-    }
+    /* Scene containers */
+    .scene { position:absolute; inset:0; display:none; }
+    .scene.active { display:flex; }
 
-    /* Sky strip */
-    .sky-strip {
-      height: 80px; flex-shrink: 0;
-      background: linear-gradient(180deg, #3a7bd5 0%, #87ceeb 100%);
-      position: relative; overflow: hidden;
+    /* ── SCENE: INTRO ── */
+    .scene-intro {
+      background:rgba(10,5,0,0.96);
+      flex-direction:column; align-items:center; justify-content:center;
+      gap:20px; text-align:center; padding:40px;
     }
-    .crowd {
-      position: absolute; bottom: 0; left: 0; right: 0; height: 50px;
-      background: #8B4513;
-      display: flex; align-items: flex-start; padding: 4px 0;
-      overflow: hidden;
+    .intro-icon { font-size:64px; }
+    .intro-text {
+      font-family:'Playfair Display',serif; font-size:28px; color:var(--gold);
+      max-width:640px; line-height:1.5;
+      text-shadow:0 2px 12px rgba(212,160,23,0.35);
+      animation:fadeInUp 0.7s ease-out;
     }
-    .crowd-head {
-      width: 14px; height: 14px; border-radius: 50%;
-      flex-shrink: 0; margin: 0 2px;
+    @keyframes fadeInUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ── SCENE: RACE ── */
+    .scene-race { flex-direction:column; }
+    .race-scene-label {
+      position:absolute; top:10px; left:50%; transform:translateX(-50%);
+      font-family:'Playfair Display',serif; font-size:13px; color:rgba(255,255,255,0.7);
+      letter-spacing:3px; text-transform:uppercase; z-index:10;
+    }
+    .race-track {
+      position:relative; flex:1; overflow:hidden;
+    }
+    /* Sky */
+    .race-sky {
+      height:80px; flex-shrink:0;
+      background:linear-gradient(180deg,#2255cc,#87ceeb);
+      position:relative; overflow:hidden;
     }
     .cloud {
-      position: absolute; background: rgba(255,255,255,0.9);
-      border-radius: 40px;
+      position:absolute; background:rgba(255,255,255,0.9); border-radius:40px;
+      animation:drift linear infinite;
     }
-    .cloud::before, .cloud::after {
-      content: ''; position: absolute; background: rgba(255,255,255,0.9); border-radius: 50%;
-    }
-    .cloud::before { width: 55%; height: 170%; top: -50%; left: 15%; }
-    .cloud::after  { width: 38%; height: 140%; top: -35%; right: 15%; }
+    .cloud::before,.cloud::after { content:''; position:absolute; background:rgba(255,255,255,0.9); border-radius:50%; }
+    .cloud::before { width:55%; height:170%; top:-50%; left:15%; }
+    .cloud::after  { width:38%; height:140%; top:-35%; right:15%; }
+    @keyframes drift { from{transform:translateX(-220px)} to{transform:translateX(110vw)} }
+    .race-rail-top { height:10px; background:linear-gradient(180deg,#a0522d,#6b3410); flex-shrink:0; }
+    .race-lanes    { flex:1; position:relative; overflow:hidden; }
+    .race-rail-bot { height:10px; background:linear-gradient(180deg,#6b3410,#a0522d); flex-shrink:0; }
 
-    /* Rail */
-    .top-rail {
-      height: 10px; flex-shrink: 0;
-      background: linear-gradient(180deg, #a0522d, #6b3410);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-      position: relative; z-index: 0;
+    .lane-bg {
+      position:absolute; left:0; right:0;
     }
+    .lane-bg.odd  { background:#2d7a2d; }
+    .lane-bg.even { background:#267326; }
 
-    /* Lanes */
-    .lanes {
-      flex: 1;
-      position: relative;
-      overflow: visible;
-      z-index: 5;
-      min-height: 0;
-      height: 100%;
-    }
-
-    .lane {
-      display: flex;
-      align-items: center;
-      position: absolute; left: 0; right: 0;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-    }
-    .lane:nth-child(odd)  { background: #2d7a2d; }
-    .lane:nth-child(even) { background: #267326; }
-
-    /* Lane number */
-    .lane-num {
-      width: 28px; flex-shrink: 0; text-align: center;
-      font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4);
-      font-family: 'Playfair Display', serif;
-    }
-
-    /* Horse + rider unit */
+    /* Horses */
     .horse-unit {
-      position: absolute;
-      display: flex; align-items: flex-end; gap: 6px;
-      will-change: left;
-      z-index: 10;
+      position:absolute; display:flex; align-items:center; gap:6px;
+      will-change:left; z-index:5;
     }
-
-    /* Horse + rider as a stacked unit */
-    .horse-stack {
-      position: relative;
-      display: inline-flex;
-      align-items: flex-end;
-    }
-
-    /* Horse emoji — flipped to face right */
-    .horse-emoji {
-      font-size: 44px;
-      line-height: 1;
-      display: block;
-      transform: scaleX(-1); /* flip to face right */
-      filter: drop-shadow(2px 3px 3px rgba(0,0,0,0.4));
-      animation: gallop 0.32s ease-in-out infinite alternate;
-      transform-origin: bottom center;
-    }
+    .horse-stack { position:relative; display:inline-flex; align-items:flex-end; }
+    .horse-emoji { display:block; transform:scaleX(-1); filter:drop-shadow(2px 3px 2px rgba(0,0,0,0.4)); animation:gallop 0.32s ease-in-out infinite alternate; transform-origin:bottom center; }
     @keyframes gallop {
-      0%   { transform: scaleX(-1) scaleY(1.0)  translateY(0px)  rotate(-1deg); }
-      100% { transform: scaleX(-1) scaleY(0.93) translateY(2px)  rotate(1deg); }
+      0%   { transform:scaleX(-1) scaleY(1.0)  translateY(0px)  rotate(-1deg); }
+      100% { transform:scaleX(-1) scaleY(0.93) translateY(2px)  rotate(1deg); }
     }
-    .horse-unit:nth-child(2n)  .horse-emoji { animation-delay: -0.08s; }
-    .horse-unit:nth-child(3n)  .horse-emoji { animation-delay: -0.16s; }
-    .horse-unit:nth-child(4n)  .horse-emoji { animation-delay: -0.24s; }
-    .horse-unit:nth-child(5n)  .horse-emoji { animation-delay: -0.05s; }
-    .horse-unit:nth-child(6n)  .horse-emoji { animation-delay: -0.19s; }
-
-    /* Jockey sits on top of horse, centred */
-    .jockey-wrap {
-      position: absolute;
-      bottom: 58%; /* sits on horse's back */
-      left: 30%;   /* roughly centre of horse body */
-      transform: translateX(-50%);
-      display: flex; flex-direction: column; align-items: center;
-      z-index: 2;
-      pointer-events: none;
-    }
-    .jockey-photo {
-      width: 26px; height: 26px; border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid #fff;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.6);
-      background: #ccc;
-      display: block;
-    }
-    .jockey-silk {
-      width: 18px; height: 14px; border-radius: 2px 2px 5px 5px;
-      margin-top: -2px;
-      box-shadow: 0 2px 3px rgba(0,0,0,0.5);
-      position: relative; overflow: hidden;
-    }
-    .silk-stripe {
-      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-      width: 6px; height: 100%; background: rgba(255,255,255,0.35);
-    }
-
-    /* Name + metres tag */
-    .horse-tag {
-      margin-left: 6px;
-      display: flex; flex-direction: column;
-    }
+    .horse-unit:nth-child(2n) .horse-emoji { animation-delay:-0.08s; }
+    .horse-unit:nth-child(3n) .horse-emoji { animation-delay:-0.16s; }
+    .horse-unit:nth-child(4n) .horse-emoji { animation-delay:-0.24s; }
+    .horse-unit:nth-child(5n) .horse-emoji { animation-delay:-0.05s; }
+    .jockey-wrap { position:absolute; bottom:58%; left:30%; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; z-index:2; pointer-events:none; }
+    .jockey-photo { border-radius:50%; object-fit:cover; display:block; }
+    .jockey-silk  { border-radius:2px 2px 5px 5px; position:relative; overflow:hidden; margin-top:-2px; }
+    .silk-stripe  { position:absolute; top:0; left:50%; transform:translateX(-50%); width:6px; height:100%; background:rgba(255,255,255,0.35); }
+    .pos-badge    { position:absolute; top:-6px; left:-6px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; z-index:3; }
     .horse-name {
-      font-size: 13px; font-weight: 700; color: #fff;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.8), -1px -1px 2px rgba(0,0,0,0.8);
-      white-space: nowrap;
-    }
-    .horse-metres {
-      font-size: 11px; font-weight: 600; color: #ffe082;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-      white-space: nowrap;
-    }
-
-    /* Position badge on horse */
-    .pos-badge {
-      position: absolute;
-      top: -6px; left: -6px;
-      width: 18px; height: 18px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 9px; font-weight: 900;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.5);
-      z-index: 3;
+      font-weight:700; color:#fff; white-space:nowrap;
+      text-shadow:1px 1px 2px rgba(0,0,0,0.9),-1px -1px 2px rgba(0,0,0,0.9);
     }
 
     /* Finish line */
-    .finish-line {
-      position: absolute;
-      top: 0; bottom: 0;
-      width: 26px;
-      background: repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 0 0 / 13px 13px;
-      opacity: 0.92;
-      z-index: 4;
-      pointer-events: none;
-    }
-    .finish-post {
-      position: absolute;
-      top: -24px; bottom: -12px;
-      width: 7px;
-      background: linear-gradient(180deg, #fff 60%, #bbb);
-      box-shadow: 2px 0 5px rgba(0,0,0,0.5);
-    }
+    .finish-line { position:absolute; top:0; bottom:0; width:20px; z-index:4; pointer-events:none; opacity:0; transition:opacity 0.6s; }
+    .finish-line::before { content:''; position:absolute; top:0; bottom:0; left:7px; width:6px; background:repeating-linear-gradient(180deg,#000 0,#000 10px,#fff 10px,#fff 20px); box-shadow:0 0 8px rgba(0,0,0,0.6); }
+    .f-post { position:absolute; top:-30px; bottom:-15px; width:8px; border-radius:4px; background:linear-gradient(180deg,#fff,#ddd); box-shadow:2px 2px 6px rgba(0,0,0,0.5); }
+    .f-banner { position:absolute; top:-18px; left:0; right:-14px; height:14px; background:repeating-conic-gradient(#000 0% 25%,#fff 0% 50%) 0 0/14px 14px; border-radius:2px; box-shadow:0 2px 4px rgba(0,0,0,0.5); }
 
-    /* Distance markers */
-    .distance-marker {
-      position: absolute; top: 0; bottom: 0;
-      width: 1px; background: rgba(255,255,255,0.15);
-      pointer-events: none; z-index: 3;
+    /* ── SCENE: SPOTLIGHT (battle/midpack/challenger) ── */
+    .scene-spotlight {
+      background:linear-gradient(180deg,#0a0500 0%,#1a0a00 100%);
+      flex-direction:column; padding:20px 30px; gap:10px;
     }
-    .distance-label {
-      position: absolute; top: -18px;
-      font-size: 9px; color: rgba(255,255,255,0.4);
-      transform: translateX(-50%);
-      white-space: nowrap;
+    .spotlight-label {
+      font-family:'Playfair Display',serif; font-size:13px; color:var(--gold);
+      letter-spacing:4px; text-transform:uppercase; margin-bottom:4px;
+      opacity:0.8;
     }
+    .spotlight-headline {
+      font-family:'Playfair Display',serif; font-size:32px; font-weight:900;
+      color:#fff; line-height:1.1; margin-bottom:16px;
+    }
+    .spotlight-headline span { color:var(--gold); }
+    .spotlight-riders { display:flex; flex-direction:column; gap:12px; flex:1; justify-content:center; }
+    .spotlight-rider {
+      display:flex; align-items:center; gap:14px;
+      background:rgba(255,255,255,0.05); border-radius:10px;
+      padding:10px 16px; border-left:4px solid var(--gold);
+    }
+    .spotlight-rider.rank1 { border-left-color:#ffd700; background:rgba(255,215,0,0.08); }
+    .spotlight-rider.rank2 { border-left-color:#c0c0c0; }
+    .spotlight-rider.rank3 { border-left-color:#cd7f32; }
+    .sr-pos  { font-family:'Playfair Display',serif; font-size:28px; font-weight:900; width:42px; text-align:center; flex-shrink:0; }
+    .sr-pos.p1 { color:#ffd700; } .sr-pos.p2 { color:#c0c0c0; } .sr-pos.p3 { color:#cd7f32; } .sr-pos.px { color:#666; font-size:20px; }
+    .sr-photo { width:52px; height:52px; border-radius:50%; object-fit:cover; flex-shrink:0; border:3px solid rgba(255,255,255,0.2); }
+    .sr-photo-fb { width:52px; height:52px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:900; border:3px solid rgba(255,255,255,0.2); }
+    .sr-info { flex:1; }
+    .sr-name   { font-size:22px; font-weight:900; color:#fff; }
+    .sr-metres { font-size:16px; color:var(--gold); font-weight:700; margin-top:2px; }
+    .sr-delta  { font-size:12px; font-weight:900; padding:2px 8px; border-radius:12px; margin-left:8px; }
+    .sr-delta.up { background:#0d3a0d; color:#4caf50; }
+    .sr-bar { height:6px; background:rgba(255,255,255,0.1); border-radius:3px; margin-top:8px; overflow:hidden; }
+    .sr-bar-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,var(--gold),#ff8c00); }
+    .sr-silk { width:20px; height:32px; border-radius:3px; flex-shrink:0; position:relative; overflow:hidden; }
+    .sr-silk-stripe { position:absolute; top:0; left:50%; transform:translateX(-50%); width:6px; height:100%; background:rgba(255,255,255,0.3); }
 
-    /* Bottom rail */
-    .bottom-rail {
-      height: 10px; flex-shrink: 0;
-      background: linear-gradient(180deg, #6b3410, #a0522d);
-      box-shadow: 0 -2px 4px rgba(0,0,0,0.4);
+    /* ── SCENE: STANDINGS ── */
+    .scene-standings {
+      flex-direction:column; background:linear-gradient(180deg,#0a0500,#1a0a00);
+      padding:20px 30px;
     }
+    .standings-title { font-family:'Playfair Display',serif; font-size:24px; color:var(--gold); margin-bottom:16px; letter-spacing:2px; }
+    .standings-grid  { display:grid; grid-template-columns:1fr 1fr; gap:6px; flex:1; overflow:hidden; align-content:start; }
+    .sg-row {
+      display:flex; align-items:center; gap:8px;
+      padding:6px 10px; border-radius:6px;
+      background:rgba(255,255,255,0.04);
+      border-left:3px solid transparent;
+    }
+    .sg-row.p1 { border-left-color:#ffd700; background:rgba(255,215,0,0.07); }
+    .sg-row.p2 { border-left-color:#c0c0c0; }
+    .sg-row.p3 { border-left-color:#cd7f32; }
+    .sg-pos    { font-family:'Playfair Display',serif; font-size:13px; font-weight:700; width:22px; text-align:center; flex-shrink:0; }
+    .sg-pos.p1 { color:#ffd700; } .sg-pos.p2 { color:#c0c0c0; } .sg-pos.p3 { color:#cd7f32; } .sg-pos.px { color:#555; font-size:10px; }
+    .sg-photo { width:28px; height:28px; border-radius:50%; object-fit:cover; flex-shrink:0; border:1px solid rgba(255,255,255,0.15); }
+    .sg-photo-fb { width:28px; height:28px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:900; }
+    .sg-info { flex:1; min-width:0; }
+    .sg-name   { font-size:12px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sg-metres { font-size:10px; color:var(--gold); }
 
     /* ── LEADERBOARD ── */
     .lb-panel {
-      width: 230px; flex-shrink: 0;
-      background: linear-gradient(180deg, #1a0a00, #2d1400);
-      border-left: 3px solid var(--gold);
-      display: flex; flex-direction: column; overflow: hidden;
+      width:220px; flex-shrink:0;
+      background:linear-gradient(180deg,#1a0a00,#2d1400);
+      border-left:3px solid var(--gold);
+      display:flex; flex-direction:column; overflow:hidden;
     }
-    .lb-head {
-      padding: 12px 14px;
-      font-family: 'Playfair Display', serif;
-      font-size: 15px; color: var(--gold);
-      border-bottom: 2px solid var(--gold);
-      text-align: center; flex-shrink: 0;
-    }
-    .lb-top3 {
-      flex-shrink: 0;
-      border-bottom: 2px solid rgba(212,160,23,0.4);
-      background: rgba(212,160,23,0.06);
-    }
-    .lb-scroll { flex: 1; overflow-y: auto; }
-    .lb-scroll::-webkit-scrollbar { width: 3px; }
-    .lb-scroll::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 2px; }
-    .lb-row {
-      display: flex; align-items: center; gap: 8px;
-      padding: 7px 10px;
-      border-bottom: 1px solid rgba(212,160,23,0.1);
-    }
-    .lb-top3 .lb-row { background: rgba(0,0,0,0.2); }
-    .lb-top3 .lb-row:nth-child(1) { border-left: 3px solid #ffd700; }
-    .lb-top3 .lb-row:nth-child(2) { border-left: 3px solid #c0c0c0; }
-    .lb-top3 .lb-row:nth-child(3) { border-left: 3px solid #cd7f32; }
-    .lb-pos { font-family: 'Playfair Display', serif; font-size: 14px; font-weight: 700; width: 20px; text-align: center; flex-shrink: 0; }
-    .lb-pos.p1 { color: #ffd700; } .lb-pos.p2 { color: #c0c0c0; } .lb-pos.p3 { color: #cd7f32; } .lb-pos.px { color: #555; font-size: 11px; }
-    .lb-swatch { width: 10px; height: 30px; border-radius: 3px; flex-shrink: 0; }
-    .lb-av { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 2px solid rgba(212,160,23,0.3); }
-    .lb-av-fb { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900; color: #fff; border: 2px solid rgba(212,160,23,0.3); flex-shrink: 0; }
-    .lb-info { flex: 1; min-width: 0; }
-    .lb-name { font-size: 12px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .lb-metres { font-size: 11px; color: var(--gold); font-weight: 600; }
-    .lb-delta { font-size: 9px; font-weight: 900; padding: 2px 4px; border-radius: 2px; flex-shrink: 0; }
-    .lb-delta.up { background: #0d3a0d; color: #4caf50; }
-    .lb-delta.dn { background: #3a0d0d; color: #f44336; }
-
-    /* ── SPINNER ── */
-    .spinner-overlay {
-      position: fixed; inset: 0; background: rgba(10,5,0,0.96);
-      display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
-    }
-    .spinner-icon { font-size: 64px; margin-bottom: 20px; }
-    .spinner-txt {
-      font-family: 'Playfair Display', serif; font-size: 26px; color: var(--gold);
-      text-align: center; max-width: 640px; line-height: 1.5;
-      text-shadow: 0 2px 12px rgba(212,160,23,0.35);
-    }
-    @keyframes fadeInUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-    @keyframes fadeOut  { from { opacity:1; } to { opacity:0; } }
-    .intro-in  { animation: fadeInUp 0.7s ease-out forwards; }
-    .intro-out { animation: fadeOut  0.5s ease-in forwards; }
+    .lb-head { padding:10px 12px; font-family:'Playfair Display',serif; font-size:14px; color:var(--gold); border-bottom:2px solid var(--gold); text-align:center; flex-shrink:0; }
+    .lb-top3 { flex-shrink:0; border-bottom:2px solid rgba(212,160,23,0.3); background:rgba(212,160,23,0.05); }
+    .lb-top3 .lb-row:nth-child(1) { border-left:3px solid #ffd700; }
+    .lb-top3 .lb-row:nth-child(2) { border-left:3px solid #c0c0c0; }
+    .lb-top3 .lb-row:nth-child(3) { border-left:3px solid #cd7f32; }
+    .lb-scroll { flex:1; overflow-y:auto; }
+    .lb-scroll::-webkit-scrollbar { width:3px; }
+    .lb-scroll::-webkit-scrollbar-thumb { background:var(--gold); }
+    .lb-row { display:flex; align-items:center; gap:7px; padding:6px 9px; border-bottom:1px solid rgba(255,255,255,0.05); }
+    .lb-pos { font-family:'Playfair Display',serif; font-size:13px; font-weight:700; width:18px; text-align:center; flex-shrink:0; }
+    .lb-pos.p1{color:#ffd700;} .lb-pos.p2{color:#c0c0c0;} .lb-pos.p3{color:#cd7f32;} .lb-pos.px{color:#555;font-size:10px;}
+    .lb-swatch { width:8px; height:28px; border-radius:2px; flex-shrink:0; }
+    .lb-av { width:28px; height:28px; border-radius:50%; object-fit:cover; flex-shrink:0; border:1px solid rgba(255,255,255,0.1); }
+    .lb-av-fb { width:28px; height:28px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:900; }
+    .lb-info { flex:1; min-width:0; }
+    .lb-name   { font-size:11px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .lb-metres { font-size:10px; color:var(--gold); }
+    .lb-delta  { font-size:8px; font-weight:900; padding:1px 3px; border-radius:2px; flex-shrink:0; }
+    .lb-delta.up { background:#0d3a0d; color:#4caf50; }
+    .lb-delta.dn { background:#3a0d0d; color:#f44336; }
   </style>
 </head>
 <body>
@@ -304,25 +214,46 @@
   <img class="header-logo" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/JHB%20Logo.png" alt="JHB">
   <div>
     <div class="header-title">🏇 Bonus Metres — Current Leaderboard</div>
-    <div class="header-sub" id="period-sub">🏇 The JHB 2026–2027 Derby</div>
+    <div class="header-sub">🏇 The JHB 2026–2027 Derby</div>
   </div>
-  <div style="text-align:right">
+  <div class="header-right">
     <div class="update-lbl" id="update-lbl">Loading…</div>
   </div>
 </div>
 
-<div class="race-layout">
+<div class="main-layout">
 
-  <!-- Track -->
-  <div class="track-area" id="track-area">
-    <div class="sky-strip" id="sky-strip">
-      <div class="crowd" id="crowd"></div>
+  <!-- Scene area -->
+  <div class="scene-area" id="scene-area">
+
+    <!-- INTRO -->
+    <div class="scene scene-intro" id="scene-intro">
+      <div class="intro-icon" id="intro-icon">🏟️</div>
+      <div class="intro-text" id="intro-text"></div>
     </div>
-    <div class="top-rail"></div>
-    <div class="lanes" id="lanes">
-      <!-- Lanes rendered by JS -->
+
+    <!-- RACE -->
+    <div class="scene scene-race" id="scene-race" style="flex-direction:column">
+      <div class="race-scene-label" id="race-label">The Race — Top 10</div>
+      <div class="race-sky" id="race-sky"></div>
+      <div class="race-rail-top"></div>
+      <div class="race-lanes" id="race-lanes"><div id="race-inner" style="position:absolute;top:0;left:0;height:100%"></div></div>
+      <div class="race-rail-bot"></div>
     </div>
-    <div class="bottom-rail"></div>
+
+    <!-- SPOTLIGHT (battle front / midpack / challengers) -->
+    <div class="scene scene-spotlight" id="scene-spotlight">
+      <div class="spotlight-label" id="spot-label"></div>
+      <div class="spotlight-headline" id="spot-headline"></div>
+      <div class="spotlight-riders" id="spot-riders"></div>
+    </div>
+
+    <!-- FULL STANDINGS -->
+    <div class="scene scene-standings" id="scene-standings">
+      <div class="standings-title">📋 Full Standings</div>
+      <div class="standings-grid" id="standings-grid"></div>
+    </div>
+
   </div>
 
   <!-- Leaderboard -->
@@ -334,13 +265,6 @@
 
 </div>
 
-<div class="spinner-overlay" id="spinner">
-  <div style="text-align:center;padding:40px;max-width:700px">
-    <div class="spinner-icon" id="intro-icon">🏟️</div>
-    <div class="spinner-txt" id="intro-txt"></div>
-  </div>
-</div>
-
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = 'https://oxgehlmalbvppjmdaswn.supabase.co';
@@ -348,580 +272,427 @@ const SUPABASE_KEY = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
 const STORAGE_URL  = `${SUPABASE_URL}/storage/v1/object/public/images/`;
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const SILKS = [
-  '#cc0000','#1155cc','#00993d','#cc7700','#7700cc',
-  '#cc0077','#00aacc','#884400','#336600','#003366',
-  '#cc3300','#006633','#5500aa','#aa5500','#007755',
-];
-const SILK_CAPS = [
-  '#ffffff','#ffcc00','#ffffff','#000000','#ffcc00',
-  '#ffffff','#000033','#ffffcc','#ffff00','#ff9900',
-  '#003366','#ffcc00','#ffee00','#ffffff','#ffcc00',
-];
+const SILKS = ['#cc0000','#1155cc','#00993d','#cc7700','#7700cc','#cc0077','#00aacc','#884400','#336600','#003366','#cc3300','#006633','#5500aa','#aa5500','#007755'];
+const CAPS  = ['#ffffff','#ffcc00','#ffffff','#000000','#ffcc00','#ffffff','#000033','#ffffcc','#ffff00','#ff9900','#003366','#ffcc00','#ffee00','#ffffff','#ffcc00'];
 
-let racers    = [];
-let prevRanks = {};
-let photos    = {};
+// ── State ─────────────────────────────────────────────────────────
+let racers      = [];   // sorted by metres desc
+let prevMetres  = {};   // id -> metres from last load
+let photos      = {};   // preloaded Image objects
+let lbScrollInt = null;
 
-// ── Build crowd ────────────────────────────────────────────────────
-function buildCrowd() {
-  const crowd  = document.getElementById('crowd');
-  const colours = ['#cc0000','#1155cc','#228b22','#ff8800','#8800cc','#fff','#ff69b4','#ffd700','#00ced1'];
-  const W = crowd.offsetWidth;
-  for (let x = 0; x < W; x += 16) {
-    const d = document.createElement('div');
-    d.className = 'crowd-head';
-    d.style.background = colours[Math.floor(Math.random() * colours.length)];
-    d.style.marginLeft  = (Math.random() * 4) + 'px';
-    d.style.marginTop   = (Math.random() * 12) + 'px';
-    crowd.appendChild(d);
-  }
-  // Clouds
-  const sky = document.getElementById('sky-strip');
-  [[10, 10, 90],[38, 5, 70],[68, 12, 110],[85, 6, 80]].forEach(([left, top, w]) => {
-    const c = document.createElement('div');
-    c.className = 'cloud';
-    c.style.cssText = `left:${left}%;top:${top}px;width:${w}px;height:${w*0.35}px`;
-    sky.appendChild(c);
+// ── Helpers ───────────────────────────────────────────────────────
+function wait(ms)    { return new Promise(r => setTimeout(r, ms)); }
+function waitFrame() { return new Promise(r => requestAnimationFrame(r)); }
+
+function showScene(id) {
+  document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function silkIdx(racer) {
+  // Stable silk colour based on name alpha sort index
+  return racers.indexOf(racer) % SILKS.length;
+}
+
+function fmt(m) { return Math.round(m).toLocaleString() + 'm'; }
+
+// ── Data ──────────────────────────────────────────────────────────
+async function loadData() {
+  const now  = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const to   = new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().split('T')[0];
+
+  const { data: emps } = await sb.from('employees')
+    .select('id, full_name, initials, status')
+    .in('status', ['active','probation'])
+    .order('full_name');
+
+  const empMap = {};
+  (emps || []).forEach(e => { empMap[e.id] = { id:e.id, name:e.full_name, initials:e.initials, metres:0 }; });
+
+  const { data: ops } = await sb.from('transaction_operatives')
+    .select(`employee_id, transactions!inner(id,date,date_paid,bonus_metres,created_at, transaction_operatives(employee_id)), employees!inner(full_name,initials,status)`)
+    .gte('transactions.date', from).lte('transactions.date', to)
+    .is('transactions.date_paid', null)
+    .not('employees.status','eq','inactive').not('employees.status','eq','token');
+
+  let latestDate = null;
+  (ops || []).forEach(o => {
+    if (!empMap[o.employee_id]) return;
+    const crew = (o.transactions?.transaction_operatives||[]).length || 1;
+    empMap[o.employee_id].metres += parseFloat(o.transactions?.bonus_metres||0) / crew;
+    const c = o.transactions?.created_at;
+    if (c && (!latestDate || c > latestDate)) latestDate = c;
+  });
+
+  const lbl = document.getElementById('update-lbl');
+  if (lbl && latestDate) {
+    const d = new Date(latestDate);
+    lbl.textContent = 'Last entry: ' + d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) + ' at ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  } else if (lbl) { lbl.textContent = 'No entries this month yet'; }
+
+  // Sort by metres desc, assign rank
+  const sorted = Object.values(empMap).sort((a,b) => b.metres - a.metres);
+  let rank = 1;
+  sorted.forEach((e,i) => {
+    if (i > 0 && e.metres < sorted[i-1].metres) rank = i+1;
+    e.rank = rank;
+    e.img  = `${STORAGE_URL}${encodeURIComponent(e.name)}_cvface1.jpg`;
+  });
+
+  return sorted;
+}
+
+function preloadPhotos(list) {
+  list.forEach(r => {
+    if (photos[r.id]) return;
+    const img = new Image(); img.crossOrigin = 'anonymous';
+    img.onload = () => { photos[r.id] = img; };
+    img.onerror= () => { photos[r.id] = null; };
+    img.src = r.img; photos[r.id] = img;
   });
 }
 
-// ── Render lanes ───────────────────────────────────────────────────
-function renderRace(raceData) {
-  const lanesEl  = document.getElementById('lanes');
-  const trackArea = document.getElementById('track-area') || lanesEl.parentElement.parentElement;
-  const skyH     = 80 + 10; // sky-strip + top-rail
-  const botH     = 10;       // bottom-rail
-  const totalH   = Math.max(lanesEl.offsetHeight, trackArea.offsetHeight - skyH - botH, 200);
-  const trackW   = lanesEl.offsetWidth || trackArea.offsetWidth || window.innerWidth - 230;
-  const n        = raceData.length;
-  const MIN_LANE_H = 28;
-  const laneH      = Math.max(MIN_LANE_H, Math.floor(totalH / n));
-  // If all lanes don't fit, lanes div becomes scrollable
-  lanesEl.style.overflowY = laneH === MIN_LANE_H ? 'auto' : 'visible';
-  const topM     = raceData[0]?.metres || 1;
-
-  // Finish line position
-  const finishX  = trackW - 30;  // right at the edge
-  const startX   = 50;
-  const raceW    = finishX - startX;
-  const HORSE_WIDTH = 120; // keep leader well clear of finish line
-
-  document.getElementById('finish-line')?.remove();
-  const fl = document.createElement('div');
-  fl.className = 'finish-line';
-  fl.id = 'finish-line';
-  fl.style.left = finishX + 'px';
-  const fp1 = document.createElement('div');
-  fp1.className = 'finish-post'; fp1.style.left = '0';
-  const fp2 = document.createElement('div');
-  fp2.className = 'finish-post'; fp2.style.right = '-7px';
-  fl.appendChild(fp1); fl.appendChild(fp2);
-  lanesEl.appendChild(fl);
-
-  // Distance markers
-  lanesEl.querySelectorAll('.distance-marker').forEach(e => e.remove());
-  [0.25, 0.5, 0.75].forEach(f => {
-    const dm = document.createElement('div');
-    dm.className = 'distance-marker';
-    dm.style.left = (startX + f * (finishX - HORSE_WIDTH - startX)) + 'px';
-    const dl = document.createElement('div');
-    dl.className = 'distance-label';
-    dl.style.left = (startX + f * (finishX - HORSE_WIDTH - startX)) + 'px';
-    dl.textContent = Math.round(f * 100) + '%';
-    lanesEl.appendChild(dm);
-    lanesEl.appendChild(dl);
-  });
-
-  // Build or update lanes
-  raceData.forEach((r, i) => {
-    const silk   = SILKS[i % SILKS.length];
-    const cap    = SILK_CAPS[i % SILK_CAPS.length];
-    const y      = i * laneH;
-    const prog   = topM > 0 ? r.metres / topM : 0;
-    // Leader sits HORSE_WIDTH px before the finish line, others scale behind
-    const maxX   = finishX - HORSE_WIDTH;
-    const xPos   = startX + prog * (maxX - startX);
-
-    let unit = document.getElementById(`horse-${r.id}`);
-    if (!unit) {
-      // Create lane background
-      const lane = document.createElement('div');
-      lane.className = 'lane';
-      lane.id = `lane-${r.id}`;
-      lane.style.cssText = `height:${laneH}px;top:${y}px`;
-
-      const num = document.createElement('div');
-      num.className = 'lane-num';
-      num.textContent = i + 1;
-      lane.appendChild(num);
-      lanesEl.appendChild(lane);
-
-      // Create horse unit — always starts at the start line
-      unit = document.createElement('div');
-      unit.className = 'horse-unit';
-      unit.id = `horse-${r.id}`;
-      unit.style.cssText = `top:${y + laneH * 0.5 - 28}px;left:${startX}px`;
-      unit._currentX = startX;
-      unit._targetX  = xPos;
-
-      // horse-stack: horse emoji + jockey overlaid
-      const stack = document.createElement('div');
-      stack.className = 'horse-stack';
-
-      // Horse emoji
-      const horse = document.createElement('div');
-      horse.className = 'horse-emoji';
-      horse.textContent = '🐎';
-      stack.appendChild(horse);
-
-      // Jockey wrap — absolutely positioned on top of horse
-      const jWrap = document.createElement('div');
-      jWrap.className = 'jockey-wrap';
-
-      const photo = document.createElement('img');
-      photo.className = 'jockey-photo';
-      photo.src = r.img;
-      photo.alt = r.initials;
-      photo.onerror = function() {
-        this.style.display = 'none';
-        const fb = document.createElement('div');
-        fb.className = 'jockey-photo';
-        fb.style.cssText = `background:${silk};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#fff;border:2px solid #fff;width:26px;height:26px;border-radius:50%`;
-        fb.textContent = r.initials.slice(0, 2);
-        this.parentNode.insertBefore(fb, this.nextSibling);
-      };
-      jWrap.appendChild(photo);
-
-      const silkDiv = document.createElement('div');
-      silkDiv.className = 'jockey-silk';
-      silkDiv.style.background = silk;
-      const stripe = document.createElement('div');
-      stripe.className = 'silk-stripe';
-      stripe.style.background = cap;
-      silkDiv.appendChild(stripe);
-      jWrap.appendChild(silkDiv);
-
-      stack.appendChild(jWrap);
-
-      // Position badge on stack
-      const badge = document.createElement('div');
-      badge.className = 'pos-badge';
-      badge.id = `badge-${r.id}`;
-      badge.style.cssText = `background:${r.rank===1?'#ffd700':r.rank===2?'#c0c0c0':r.rank===3?'#cd7f32':'#333'};color:${r.rank<=3?'#000':'#fff'}`;
-      badge.textContent = r.rank;
-      stack.appendChild(badge);
-
-      unit.appendChild(stack);
-
-      // Tag — name and metres beside the horse
-      const tag = document.createElement('div');
-      tag.className = 'horse-tag';
-      const nameEl = document.createElement('div');
-      nameEl.className = 'horse-name';
-      nameEl.id = `hname-${r.id}`;
-      nameEl.textContent = r.name.split(' ')[0] + ' ' + (r.name.split(' ')[1]?.[0]||'') + '.';
-      const mEl = document.createElement('div');
-      mEl.className = 'horse-metres';
-      mEl.id = `hm-${r.id}`;
-      mEl.textContent = r.metres > 0 ? Math.round(r.metres).toLocaleString() + 'm' : 'On grid';
-      tag.appendChild(nameEl);
-      tag.appendChild(mEl);
-      unit.appendChild(tag);
-
-      lanesEl.appendChild(unit);
-    } else {
-      // Update existing — never move backwards
-      const newTarget = Math.max(unit._currentX ?? startX, xPos);
-      unit._targetX = newTarget;
-      unit.style.top = `${y + laneH * 0.5 - 28}px`;
-
-      const mEl = document.getElementById(`hm-${r.id}`);
-      if (mEl) mEl.textContent = r.metres > 0 ? Math.round(r.metres).toLocaleString() + 'm' : 'On grid';
-
-      const badge = document.getElementById(`badge-${r.id}`);
-      if (badge) {
-        badge.textContent = r.rank;
-        badge.style.background = r.rank===1?'#ffd700':r.rank===2?'#c0c0c0':r.rank===3?'#cd7f32':'#333';
-        badge.style.color = r.rank<=3?'#000':'#fff';
-      }
-
-      const laneEl = document.getElementById(`lane-${r.id}`);
-      if (laneEl) { laneEl.style.top = `${y}px`; laneEl.style.height = `${laneH}px`; }
-    }
-  });
-}
-
-// ── Leaderboard ────────────────────────────────────────────────────
-function renderLeaderboard(raceData) {
-  const top3El = document.getElementById('lb-top3');
-  const scroll = document.getElementById('lb-scroll');
-
-  // Sort by metres descending for standings display
-  const byRank = [...raceData].sort((a, b) => b.metres - a.metres || a.name.localeCompare(b.name));
+// ── Leaderboard ───────────────────────────────────────────────────
+function renderLeaderboard() {
+  const byRank = [...racers]; // already sorted by metres
 
   function rowHtml(r, i) {
-    const pc   = r.rank===1?'p1':r.rank===2?'p2':r.rank===3?'p3':'px';
-    const silk = SILKS[raceData.indexOf(r) % SILKS.length]; // silk colour based on lane (alpha order)
-    const prev = prevRanks[r.id];
-    let delta  = '';
-    if (prev !== undefined && prev !== r.rank) {
-      delta = prev > r.rank
-        ? `<div class="lb-delta up">▲${prev - r.rank}</div>`
-        : `<div class="lb-delta dn">▼${r.rank - prev}</div>`;
-    }
+    const si  = i % SILKS.length;
+    const pc  = r.rank===1?'p1':r.rank===2?'p2':r.rank===3?'p3':'px';
+    const prev = prevMetres[r.id];
+    const gained = prev !== undefined ? r.metres - prev : 0;
+    const leaderM = racers[0]?.metres || 1;
+    const delta = gained > leaderM * 0.1
+      ? `<div class="lb-delta up">▲</div>` : '';
     return `<div class="lb-row">
       <div class="lb-pos ${pc}">${r.rank}</div>
-      <div class="lb-swatch" style="background:${silk}"></div>
-      <img class="lb-av" src="${r.img}"
-        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="">
-      <div class="lb-av-fb" style="background:${silk};display:none">${r.initials}</div>
+      <div class="lb-swatch" style="background:${SILKS[si]}"></div>
+      <img class="lb-av" src="${r.img}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="">
+      <div class="lb-av-fb" style="background:${SILKS[si]};display:none">${r.initials}</div>
       <div class="lb-info">
         <div class="lb-name">${r.name}</div>
-        <div class="lb-metres">${r.metres > 0 ? Math.round(r.metres).toLocaleString() + 'm' : 'On grid'}</div>
-      </div>
-      ${delta}
+        <div class="lb-metres">${r.metres > 0 ? fmt(r.metres) : 'Still at the Starting Post'}</div>
+      </div>${delta}
     </div>`;
   }
 
   const top3 = byRank.filter(r => r.rank <= 3);
-  const rest  = byRank.filter(r => r.rank > 3);
-
-  top3El.innerHTML = top3.map((r, i) => rowHtml(r, i)).join('');
-  scroll.innerHTML = rest.map((r, i) => rowHtml(r, i + top3.length)).join('');
+  const rest = byRank.filter(r => r.rank > 3);
+  document.getElementById('lb-top3').innerHTML = top3.map((r,i) => rowHtml(r,i)).join('');
+  document.getElementById('lb-scroll').innerHTML = rest.map((r,i) => rowHtml(r,i+top3.length)).join('');
 }
 
-// ── Data ───────────────────────────────────────────────────────────
-async function loadData() {
-  const now  = new Date();
-  const y    = now.getFullYear();
-  const m    = now.getMonth();
-  const from = new Date(y, m, 1).toISOString().split('T')[0];
-  const to   = new Date(y, m+1, 0).toISOString().split('T')[0];
-
-  // Always load ALL active/probation employees first
-  const { data: emps } = await sb.from('employees')
-    .select('id, full_name, initials, status')
-    .in('status', ['active', 'probation'])
-    .neq('status', 'token')
-    .order('full_name');
-
-  // Build map from all active staff — everyone starts at 0
-  const empMap = {};
-  (emps || []).forEach(e => {
-    empMap[e.id] = { id: e.id, name: e.full_name, initials: e.initials, metres: 0 };
-  });
-
-  // Fetch unpaid transactions this month
-  const { data: ops } = await sb
-    .from('transaction_operatives')
-    .select(`employee_id,
-             transactions!inner(id, date, date_paid, bonus_metres, created_at,
-               transaction_operatives(employee_id)),
-             employees!inner(full_name, initials, status)`)
-    .gte('transactions.date', from)
-    .lte('transactions.date', to)
-    .is('transactions.date_paid', null)
-    .not('employees.status', 'eq', 'inactive')
-    .not('employees.status', 'eq', 'token');
-
-  // Accumulate metres and find latest entry date
-  let latestDate = null;
-  (ops || []).forEach(o => {
-    const emp  = o.employees;
-    if (!emp) return;
-    const id   = o.employee_id;
-    if (!empMap[id]) return; // skip if not in active list
-    const crew = (o.transactions?.transaction_operatives || []).length || 1;
-    const myM  = parseFloat(o.transactions?.bonus_metres || 0) / crew;
-    empMap[id].metres += myM;
-    const created = o.transactions?.created_at;
-    if (created && (!latestDate || created > latestDate)) latestDate = created;
-  });
-
-  // Update last entry label
-  const lbl = document.getElementById('update-lbl');
-  if (lbl) {
-    if (latestDate) {
-      const d = new Date(latestDate);
-      lbl.textContent = 'Last entry: ' + d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
-        + ' at ' + d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
-    } else {
-      lbl.textContent = 'No entries this month yet';
-    }
-  }
-
-  // ALL employees — sorted alphabetically for lane assignment (fixed lanes)
-  const byAlpha = Object.values(empMap).sort((a, b) => a.name.localeCompare(b.name));
-
-  // Assign race rank by metres (for standings) — ties share rank
-  const byMetres = [...byAlpha].sort((a, b) => b.metres - a.metres);
-  let rank = 1;
-  byMetres.forEach((e, i) => {
-    if (i > 0 && e.metres < byMetres[i-1].metres) rank = i + 1;
-    e.rank = rank;
-  });
-
-  // Return in ALPHABETICAL order (lane order) — standings panel uses rank
-  return byAlpha.map(e => ({
-    ...e,
-    img: `${STORAGE_URL}${encodeURIComponent(e.name)}_cvface1.jpg`,
-  }));
-}
-
-async function refresh() {
-  const newRacers = await loadData();
-  prevRanks = Object.fromEntries(racers.map(r => [r.id, r.rank]));
-  racers = newRacers;
-  renderRace(racers);
-  renderLeaderboard(racers);
-  animateToTargets();
-}
-
-// ── Race animation engine ──────────────────────────────────────────
-// Drives all horse units from their _currentX toward _targetX
-// ── Race animation + camera follow ────────────────────────────────
-const RACE_DURATION = 20000; // 20s for leader to reach position — slow & watchable
-let raceStartTime   = null;
-let raceAnimating   = false;
-let cameraX         = 0;  // how many px the camera has scrolled right
-
-function startRaceAnimation() {
-  raceStartTime = null;
-  raceAnimating = true;
-  cameraX       = 0;
-  // Reset camera
-  const lanesEl = document.getElementById('lanes');
-  if (lanesEl) lanesEl.style.transform = 'translateX(0)';
-  requestAnimationFrame(raceFrame);
-}
-
-function raceFrame(timestamp) {
-  if (!raceStartTime) raceStartTime = timestamp;
-
-  const lanesEl = document.getElementById('lanes');
-  if (!lanesEl) { raceAnimating = false; return; }
-
-  let anyMoving = false;
-  const elapsed = timestamp - raceStartTime;
-
-  // Find leader target
-  let leaderTarget = 50;
-  racers.forEach(r => {
-    const unit = document.getElementById(`horse-${r.id}`);
-    if (unit && (unit._targetX ?? 0) > leaderTarget) leaderTarget = unit._targetX;
-  });
-  const leaderDist = leaderTarget - 50;
-
-  racers.forEach(r => {
-    const unit = document.getElementById(`horse-${r.id}`);
-    if (!unit) return;
-
-    const target  = unit._targetX  ?? 50;
-    const current = unit._currentX ?? 50;
-    if (current >= target) { unit._currentX = target; unit.style.left = target + 'px'; return; }
-
-    const myDist     = target - 50;
-    const myDuration = leaderDist > 0 ? RACE_DURATION * (myDist / leaderDist) : RACE_DURATION;
-    const progress   = Math.min(elapsed / myDuration, 1);
-    // Linear with slight ease-in at start for realism
-    const eased      = progress < 0.1
-      ? progress * 10 * 0.5 * progress * 10  // gentle start
-      : Math.min(1, 0.05 + progress * 0.95);
-    const newX = 50 + eased * (target - 50);
-
-    unit._currentX = Math.max(current, newX);
-    unit.style.left = unit._currentX + 'px';
-    if (progress < 1) anyMoving = true;
-  });
-
-  // ── Camera follow ──
-  // Find current leader position
-  let leaderX = 50;
-  racers.forEach(r => {
-    const unit = document.getElementById(`horse-${r.id}`);
-    if (unit && (unit._currentX ?? 50) > leaderX) leaderX = unit._currentX ?? 50;
-  });
-
-  const trackW     = lanesEl.offsetWidth || window.innerWidth - 230;
-  const midScreen  = trackW * 0.45; // start scrolling when leader hits 45% of track width
-  const targetCamX = leaderX > midScreen ? leaderX - midScreen : 0;
-
-  // Smooth camera ease
-  cameraX += (targetCamX - cameraX) * 0.02;
-  if (Math.abs(cameraX) > 0.5) {
-    lanesEl.style.transform = `translateX(${-cameraX}px)`;
-    // Also move finish line with the camera
-    const fl = document.getElementById('finish-line');
-    if (fl) fl.style.transform = `translateX(${-cameraX}px)`;
-  }
-
-  if (anyMoving) {
-    requestAnimationFrame(raceFrame);
-  } else {
-    raceAnimating = false;
-  }
-}
-
-// Smooth update animation (on refresh, not race start)
-function animateToTargets() {
-  const lanesEl = document.getElementById('lanes');
-  if (!lanesEl) return;
-
-  racers.forEach(r => {
-    const unit = document.getElementById(`horse-${r.id}`);
-    if (!unit) return;
-    const target  = unit._targetX  ?? 0;
-    const current = unit._currentX ?? 0;
-    if (current >= target) return;
-
-    // CSS transition for smooth refresh updates
-    unit.style.transition = 'left 2s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-    unit.style.left = target + 'px';
-    unit._currentX = target;
-
-    unit.addEventListener('transitionend', () => {
-      unit.style.transition = '';
-    }, { once: true });
-  });
-}
-
-// ── Loop sequence ──────────────────────────────────────────────────
-// 1. Show "And they're off…" for 3s
-// 2. Hide spinner, fire race animation (horses reach positions in 5s)
-// 3. Hold for 30s showing final positions
-// 4. Refresh data, reset horses to start line, show spinner again → repeat
-
-// ── Leaderboard auto-scroll ────────────────────────────────────────
-let scrollInterval = null;
-let scrollDirection = 1; // 1 = down, -1 = up
-let scrollPaused   = false;
-
-function startLeaderboardScroll() {
-  if (scrollInterval) clearInterval(scrollInterval);
-
+function startLbScroll() {
+  if (lbScrollInt) clearInterval(lbScrollInt);
   const el = document.getElementById('lb-scroll');
   if (!el) return;
-
-  // Reset to top
   el.scrollTop = 0;
-  scrollDirection = 1;
-  scrollPaused    = false;
+  let dir = 1;
+  lbScrollInt = setInterval(() => {
+    const atBot = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+    const atTop = el.scrollTop <= 0;
+    if (dir===1 && atBot)      { dir=-1; }
+    else if (dir===-1 && atTop){ dir= 1; }
+    else { el.scrollTop += dir; }
+  }, 30);
+}
 
-  // Pause at top for 2s, then scroll down slowly, pause at bottom, scroll back up
-  let pauseTimer = null;
+function stopLbScroll() { if (lbScrollInt) { clearInterval(lbScrollInt); lbScrollInt=null; } }
 
-  scrollInterval = setInterval(() => {
-    if (scrollPaused || !el) return;
+// ── SCENE: INTRO ──────────────────────────────────────────────────
+async function sceneIntro() {
+  showScene('scene-intro');
+  const screens = [
+    { icon:'🏟️', text:'Ladies and Gentlemen, welcome to the Great JHB 2026–2027 Derby!' },
+    { icon:'🚦', text:'They are under starters orders…'  },
+    { icon:'🏇', text:"And they're off!" },
+  ];
+  for (const s of screens) {
+    document.getElementById('intro-icon').textContent = s.icon;
+    const txt = document.getElementById('intro-text');
+    txt.style.animation = 'none'; void txt.offsetWidth;
+    txt.style.animation = '';
+    txt.textContent = s.text;
+    await wait(s === screens[2] ? 2000 : 3500);
+  }
+}
 
-    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
-    const atTop    = el.scrollTop <= 0;
+// ── SCENE: RACE ───────────────────────────────────────────────────
+async function sceneRace() {
+  showScene('scene-race');
 
-    if (scrollDirection === 1 && atBottom) {
-      // Hit bottom — pause then reverse
-      scrollPaused = true;
-      pauseTimer = setTimeout(() => {
-        scrollDirection = -1;
-        scrollPaused = false;
-      }, 2500);
-    } else if (scrollDirection === -1 && atTop) {
-      // Hit top — pause then go back down
-      scrollPaused = true;
-      pauseTimer = setTimeout(() => {
-        scrollDirection = 1;
-        scrollPaused = false;
-      }, 2500);
-    } else {
-      el.scrollTop += scrollDirection * 1; // 1px per tick = smooth
+  const lanesEl = document.getElementById('race-lanes');
+  const innerEl = document.getElementById('race-inner');
+  innerEl.innerHTML = '';
+  innerEl.style.transform = 'translateX(0)';
+
+  // Build clouds
+  const sky = document.getElementById('race-sky');
+  sky.innerHTML = '';
+  [[10,8,90],[35,4,70],[62,10,110],[83,5,80]].forEach(([l,t,w]) => {
+    const c = document.createElement('div');
+    c.className = 'cloud';
+    c.style.cssText = `left:${l}%;top:${t}px;width:${w}px;height:${w*0.35}px;animation-duration:${28+Math.random()*20}s;animation-delay:-${Math.random()*20}s`;
+    sky.appendChild(c);
+  });
+
+  document.getElementById('race-label').textContent = 'The Race — Top 10';
+
+  // Top 10 only for the race scene
+  const top10 = racers.slice(0, Math.min(10, racers.length));
+  const n = top10.length;
+  const viewW  = lanesEl.offsetWidth  || 900;
+  const viewH  = lanesEl.offsetHeight || 400;
+  // Inner track is 1.8x viewport — finish line starts off-screen right
+  const totalW = Math.round(viewW * 1.8);
+  const totalH = viewH;
+  innerEl.style.width  = totalW + 'px';
+  innerEl.style.height = totalH + 'px';
+  const laneH  = Math.floor(totalH / n);
+  const scale  = Math.min(1, laneH / 44);
+  const hSize  = Math.max(18, Math.round(44 * scale));
+  const pSize  = Math.max(12, Math.round(26 * scale));
+  const nSize  = Math.max(10, Math.round(14 * scale));
+
+  const startX  = 40;
+  const finishX = totalW - 40;
+  const maxX    = finishX - Math.max(50, Math.round(110 * scale));
+  const topM    = top10[0]?.metres || 1;
+
+  // Lane backgrounds
+  top10.forEach((r,i) => {
+    const bg = document.createElement('div');
+    bg.className = `lane-bg ${i%2===0?'odd':'even'}`;
+    bg.style.cssText = `top:${i*laneH}px;height:${laneH}px`;
+    innerEl.appendChild(bg);
+  });
+
+  // Finish line
+  const fl = document.createElement('div');
+  fl.className = 'finish-line'; fl.id = 'race-finish';
+  fl.style.left = finishX + 'px'; fl.style.opacity = '0';
+  const fp1 = document.createElement('div'); fp1.className='f-post'; fp1.style.left='0';
+  const fp2 = document.createElement('div'); fp2.className='f-post'; fp2.style.right='-14px';
+  const fb  = document.createElement('div'); fb.className='f-banner';
+  fl.appendChild(fp1); fl.appendChild(fp2); fl.appendChild(fb);
+  innerEl.appendChild(fl);
+
+  // Horse units
+  const units = {};
+  top10.forEach((r,i) => {
+    const si   = racers.indexOf(r) % SILKS.length;
+    const silk = SILKS[si], cap = CAPS[si];
+    const y    = i * laneH;
+    const targetX = r.metres > 0 ? startX + (r.metres / topM) * (maxX - startX) : startX;
+
+    const unit = document.createElement('div');
+    unit.className = 'horse-unit';
+    unit.style.cssText = `top:${y + Math.floor(laneH*0.5 - hSize*0.5)}px;left:${startX}px`;
+    unit._currentX = startX; unit._targetX = targetX;
+
+    const stack = document.createElement('div'); stack.className='horse-stack';
+    const horse = document.createElement('div'); horse.className='horse-emoji'; horse.textContent='🐎'; horse.style.fontSize=hSize+'px';
+    stack.appendChild(horse);
+
+    const jw = document.createElement('div'); jw.className='jockey-wrap';
+    const ph = document.createElement('img'); ph.className='jockey-photo';
+    ph.style.cssText=`width:${pSize}px;height:${pSize}px;border:2px solid #fff`;
+    ph.src=r.img;
+    ph.onerror=function(){ this.style.display='none'; const fb=document.createElement('div'); fb.style.cssText=`background:${silk};width:${pSize}px;height:${pSize}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${Math.max(6,Math.round(9*scale))}px;font-weight:900;color:#fff;border:2px solid #fff`; fb.textContent=r.initials.slice(0,2); this.parentNode.insertBefore(fb,this.nextSibling); };
+    jw.appendChild(ph);
+    const sd=document.createElement('div'); sd.className='jockey-silk'; sd.style.cssText=`background:${silk};width:${Math.max(10,Math.round(18*scale))}px;height:${Math.max(8,Math.round(14*scale))}px`;
+    const ss=document.createElement('div'); ss.className='silk-stripe'; ss.style.background=cap; sd.appendChild(ss); jw.appendChild(sd);
+    stack.appendChild(jw);
+
+    const badge=document.createElement('div'); badge.className='pos-badge';
+    const bs=Math.max(12,Math.round(18*scale));
+    badge.style.cssText=`background:${r.rank===1?'#ffd700':r.rank===2?'#c0c0c0':r.rank===3?'#cd7f32':'#333'};color:${r.rank<=3?'#000':'#fff'};width:${bs}px;height:${bs}px;font-size:${Math.max(7,Math.round(9*scale))}px`;
+    badge.textContent=r.rank; stack.appendChild(badge);
+    unit.appendChild(stack);
+
+    const nm=document.createElement('div'); nm.className='horse-name';
+    nm.style.fontSize=nSize+'px';
+    nm.textContent=r.name.split(' ')[0]+' '+(r.name.split(' ')[1]?.[0]||'.')+'.';
+    unit.appendChild(nm);
+    innerEl.appendChild(unit);
+    units[r.id]=unit;
+  });
+
+  // Animate race over 10 seconds
+  const RACE_MS = 10000;
+  let startTs = null;
+  let finalCamX = 0;
+  // Pan so finish line sits ~50px from right edge of viewport
+  finalCamX = Math.max(0, finishX - (viewW - 50));
+
+  let camX = 0;
+  await new Promise(resolve => {
+    function frame(ts) {
+      if (!startTs) startTs = ts;
+      const elapsed = ts - startTs;
+      const raceProgress = Math.min(elapsed / RACE_MS, 1);
+      let anyMoving = false;
+
+      top10.forEach(r => {
+        const unit = units[r.id]; if (!unit) return;
+        const dist = unit._targetX - startX;
+        const newX = startX + raceProgress * dist;
+        if (newX < unit._targetX) { anyMoving = true; }
+        unit._currentX = Math.min(newX, unit._targetX);
+        unit.style.left = Math.round(unit._currentX) + 'px';
+      });
+
+      // Camera: pan in sync with race progress
+      const newCam = raceProgress * finalCamX;
+      if (Math.abs(newCam - camX) > 0.5) {
+        camX = newCam;
+        innerEl.style.transform = `translateX(${-Math.round(camX)}px)`;
+      }
+
+      // Finish line fade in at 75%
+      if (raceProgress > 0.75) {
+        fl.style.opacity = String(Math.min(1, (raceProgress - 0.75) * 4));
+      }
+
+      if (raceProgress < 1) requestAnimationFrame(frame);
+      else resolve();
     }
-  }, 30); // ~33fps scroll
+    requestAnimationFrame(frame);
+  });
+
+  // Hold for 2s after race ends
+  await wait(2000);
 }
 
-function stopLeaderboardScroll() {
-  if (scrollInterval) { clearInterval(scrollInterval); scrollInterval = null; }
+// ── SCENE: SPOTLIGHT ─────────────────────────────────────────────
+function spotlightRow(r, showDelta) {
+  const si   = racers.indexOf(r) % SILKS.length;
+  const silk = SILKS[si];
+  const pc   = r.rank===1?'p1':r.rank===2?'p2':r.rank===3?'p3':'px';
+  const leaderM = racers[0]?.metres || 1;
+  const barW = Math.round((r.metres / leaderM) * 100);
+  const gained = prevMetres[r.id] !== undefined ? r.metres - prevMetres[r.id] : 0;
+  const deltaHtml = showDelta && gained > 0
+    ? `<span class="sr-delta up">+${fmt(gained)}</span>` : '';
+
+  return `<div class="spotlight-rider ${pc}">
+    <div class="sr-pos ${pc}">${r.rank}</div>
+    <div class="sr-silk" style="background:${silk}"><div class="sr-silk-stripe"></div></div>
+    <img class="sr-photo" src="${r.img}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="">
+    <div class="sr-photo-fb" style="background:${silk};display:none">${r.initials}</div>
+    <div class="sr-info">
+      <div class="sr-name">${r.name} ${deltaHtml}</div>
+      <div class="sr-metres">${r.metres > 0 ? fmt(r.metres) : 'Still at the Starting Post'}</div>
+      <div class="sr-bar"><div class="sr-bar-fill" style="width:${barW}%"></div></div>
+    </div>
+  </div>`;
 }
 
-function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
-function waitFrame() { return new Promise(r => requestAnimationFrame(r)); }
-
-function showIntroScreen(icon, text) {
-  const iconEl = document.getElementById('intro-icon');
-  const txtEl  = document.getElementById('intro-txt');
-  iconEl.textContent = icon;
-  txtEl.textContent  = text;
-  // Reset animation
-  txtEl.classList.remove('intro-in');
-  iconEl.classList.remove('intro-in');
-  void txtEl.offsetWidth; // reflow
-  txtEl.classList.add('intro-in');
-  iconEl.classList.add('intro-in');
+async function sceneSpotlight(label, headline, riders, showDelta) {
+  showScene('scene-spotlight');
+  document.getElementById('spot-label').textContent    = label;
+  document.getElementById('spot-headline').innerHTML   = headline;
+  document.getElementById('spot-riders').innerHTML     = riders.map(r => spotlightRow(r, showDelta)).join('');
+  await wait(8000);
 }
 
+// ── SCENE: FULL STANDINGS ─────────────────────────────────────────
+async function sceneFullStandings() {
+  showScene('scene-standings');
+  const grid = document.getElementById('standings-grid');
+  grid.innerHTML = racers.map((r,i) => {
+    const si = i % SILKS.length;
+    const pc = r.rank===1?'p1':r.rank===2?'p2':r.rank===3?'p3':'px';
+    return `<div class="sg-row ${pc}">
+      <div class="sg-pos ${pc}">${r.rank}</div>
+      <img class="sg-photo" src="${r.img}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" alt="">
+      <div class="sg-photo-fb" style="background:${SILKS[si]};display:none">${r.initials}</div>
+      <div class="sg-info">
+        <div class="sg-name">${r.name}</div>
+        <div class="sg-metres">${r.metres>0?fmt(r.metres):'Still at the Starting Post'}</div>
+      </div>
+    </div>`;
+  }).join('');
+  await wait(8000);
+}
+
+// ── MAIN LOOP ─────────────────────────────────────────────────────
 async function runLoop() {
-  const overlay = document.getElementById('spinner');
-
-  // ── Fetch data while overlay is showing ──
+  // Load fresh data
   const newRacers = await loadData();
-  prevRanks = Object.fromEntries(racers.map(r => [r.id, r.rank]));
+  preloadPhotos(newRacers);
+
+  // Store previous metres before updating
+  const oldMetres = { ...prevMetres };
+  prevMetres = Object.fromEntries(racers.map(r => [r.id, r.metres]));
   racers = newRacers;
 
-  // ── Screen 1: Welcome ──
-  overlay.style.display = 'flex';
-  showIntroScreen('🏟️', 'Ladies and Gentlemen, welcome to the Great JHB 2026–2027 Derby!');
-  await wait(4000);
+  renderLeaderboard();
+  startLbScroll();
 
-  // ── Screen 2: Under starters orders ──
-  showIntroScreen('🚦', 'They are under starters orders…');
-  await wait(3000);
+  // ── Scene 1: Intro ──
+  await sceneIntro();
 
-  // ── Screen 3: And they're off ──
-  showIntroScreen('🏇', "And they're off!");
-  await wait(2000);
+  // ── Scene 2: The Race (top 10) ──
+  await sceneRace();
 
-  // ── Hide overlay, reset track ──
-  overlay.style.display = 'none';
-  const _ln = document.getElementById('lanes'); if(_ln){_ln.innerHTML='';_ln.style.transform='translateX(0)';} cameraX=0;
+  // ── Scene 3: Battle at the front (positions 1 & 2) ──
+  const front = racers.filter(r => r.rank <= 2);
+  if (front.length) {
+    const names = front.map(r => r.name.split(' ')[0]).join(' vs ');
+    await sceneSpotlight(
+      '🥊 Battle at the Front',
+      `<span>${names}</span> — Fighting for the lead`,
+      front, false
+    );
+  }
 
-  await waitFrame();
-  await waitFrame();
-  await wait(50);
+  // ── Scene 4: Mid-pack (positions 3–6) ──
+  const mid = racers.filter(r => r.rank >= 3 && r.rank <= 6);
+  if (mid.length) {
+    await sceneSpotlight(
+      '⚔️ Mid-Pack Battle',
+      'Positions <span>3 to 6</span> — Every metre counts',
+      mid, false
+    );
+  }
 
-  // ── Render horses at start line and fire race ──
-  renderRace(racers);
-  renderLeaderboard(racers);
+  // ── Scene 5: The Challengers (gained 10%+ of leader's metres since last load) ──
+  const leaderM = racers[0]?.metres || 1;
+  const challengers = racers.filter(r => {
+    const prev = oldMetres[r.id];
+    if (prev === undefined) return false;
+    return (r.metres - prev) >= leaderM * 0.10;
+  });
+  if (challengers.length) {
+    await sceneSpotlight(
+      '🚀 The Challengers',
+      challengers.length === 1
+        ? `<span>${challengers[0].name.split(' ')[0]}</span> is making a move!`
+        : `${challengers.length} riders <span>making significant gains!</span>`,
+      challengers, true
+    );
+  }
 
-  await waitFrame();
-  await wait(100);
-  startRaceAnimation();
+  // ── Scene 6: Full standings ──
+  await sceneFullStandings();
 
-  // ── Start leaderboard scroll after race has had time to settle ──
-  await wait(6000); // let the race play out first
-  startLeaderboardScroll();
+  stopLbScroll();
 
-  // ── Hold for remaining time (35s total - 6s already waited) ──
-  await wait(29000);
-
-  // ── Stop scroll and show overlay ──
-  stopLeaderboardScroll();
+  // Loop
   runLoop();
 }
 
 async function init() {
-  buildCrowd();
-
-  // Load data silently while overlay shows
+  // Build clouds in sky (race scene gets its own, do it on first render)
   racers = await loadData();
-  renderLeaderboard(racers);
-  prevRanks = Object.fromEntries(racers.map(r => [r.id, r.rank]));
-
-  // Kick off the loop — spinner already visible from HTML
+  preloadPhotos(racers);
+  prevMetres = {};
+  renderLeaderboard();
   runLoop();
 }
-
-window.addEventListener('resize', () => {
-  const _ln = document.getElementById('lanes'); if(_ln){_ln.innerHTML='';_ln.style.transform='translateX(0)';} cameraX=0;
-  renderRace(racers);
-});
 
 init();
 </script>
