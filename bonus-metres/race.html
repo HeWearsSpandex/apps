@@ -50,7 +50,7 @@
     .track-area {
       flex: 1;
       position: relative;
-      overflow: hidden;
+      overflow: visible;
       display: flex;
       flex-direction: column;
     }
@@ -308,7 +308,7 @@
 <div class="race-layout">
 
   <!-- Track -->
-  <div class="track-area">
+  <div class="track-area" id="track-area">
     <div class="sky-strip" id="sky-strip">
       <div class="crowd" id="crowd"></div>
     </div>
@@ -385,8 +385,11 @@ function buildCrowd() {
 // ── Render lanes ───────────────────────────────────────────────────
 function renderRace(raceData) {
   const lanesEl  = document.getElementById('lanes');
-  const totalH   = lanesEl.offsetHeight;
-  const trackW   = lanesEl.offsetWidth;
+  const trackArea = document.getElementById('track-area') || lanesEl.parentElement.parentElement;
+  const skyH     = 80 + 10; // sky-strip + top-rail
+  const botH     = 10;       // bottom-rail
+  const totalH   = Math.max(lanesEl.offsetHeight, trackArea.offsetHeight - skyH - botH, 200);
+  const trackW   = lanesEl.offsetWidth || trackArea.offsetWidth || window.innerWidth - 230;
   const n        = raceData.length;
   const laneH    = Math.floor(totalH / n);
   const topM     = raceData[0]?.metres || 1;
