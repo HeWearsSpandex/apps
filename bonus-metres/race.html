@@ -680,14 +680,19 @@ async function refresh() {
 
 // ── Race animation engine ──────────────────────────────────────────
 // Drives all horse units from their _currentX toward _targetX
-// Leader reaches target in RACE_DURATION ms, others proportionally
-const RACE_DURATION = 5000; // ms for leader to reach position
+// ── Race animation + camera follow ────────────────────────────────
+const RACE_DURATION = 20000; // 20s for leader to reach position — slow & watchable
 let raceStartTime   = null;
 let raceAnimating   = false;
+let cameraX         = 0;  // how many px the camera has scrolled right
 
 function startRaceAnimation() {
-  raceStartTime  = null;
-  raceAnimating  = true;
+  raceStartTime = null;
+  raceAnimating = true;
+  cameraX       = 0;
+  // Reset camera
+  const lanesEl = document.getElementById('lanes');
+  if (lanesEl) lanesEl.style.transform = 'translateX(0)';
   requestAnimationFrame(raceFrame);
 }
 
@@ -698,38 +703,58 @@ function raceFrame(timestamp) {
   if (!lanesEl) { raceAnimating = false; return; }
 
   let anyMoving = false;
+  const elapsed = timestamp - raceStartTime;
+
+  // Find leader target
+  let leaderTarget = 50;
+  racers.forEach(r => {
+    const unit = document.getElementById(`horse-${r.id}`);
+    if (unit && (unit._targetX ?? 0) > leaderTarget) leaderTarget = unit._targetX;
+  });
+  const leaderDist = leaderTarget - 50;
 
   racers.forEach(r => {
     const unit = document.getElementById(`horse-${r.id}`);
     if (!unit) return;
 
-    const target  = unit._targetX  ?? 0;
-    const current = unit._currentX ?? 0;
+    const target  = unit._targetX  ?? 50;
+    const current = unit._currentX ?? 50;
+    if (current >= target) { unit._currentX = target; unit.style.left = target + 'px'; return; }
 
-    if (current >= target) {
-      unit._currentX = target;
-      unit.style.left = target + 'px';
-      return;
-    }
-
-    // Ease: each horse gets a duration proportional to its target distance
-    // Leader (largest target) takes RACE_DURATION; others scale
-    const topUnit   = document.getElementById(`horse-${racers[0].id}`);
-    const leaderDist = (topUnit?._targetX ?? target) - (topUnit ? 50 : 50);
     const myDist     = target - 50;
     const myDuration = leaderDist > 0 ? RACE_DURATION * (myDist / leaderDist) : RACE_DURATION;
+    const progress   = Math.min(elapsed / myDuration, 1);
+    // Linear with slight ease-in at start for realism
+    const eased      = progress < 0.1
+      ? progress * 10 * 0.5 * progress * 10  // gentle start
+      : Math.min(1, 0.05 + progress * 0.95);
+    const newX = 50 + eased * (target - 50);
 
-    const elapsed  = timestamp - raceStartTime;
-    const progress = Math.min(elapsed / myDuration, 1);
-    // Ease-out cubic
-    const eased    = 1 - Math.pow(1 - progress, 3);
-    const newX     = 50 + eased * (target - 50);
-
-    unit._currentX = Math.max(current, newX); // never go backwards
+    unit._currentX = Math.max(current, newX);
     unit.style.left = unit._currentX + 'px';
-
     if (progress < 1) anyMoving = true;
   });
+
+  // ── Camera follow ──
+  // Find current leader position
+  let leaderX = 50;
+  racers.forEach(r => {
+    const unit = document.getElementById(`horse-${r.id}`);
+    if (unit && (unit._currentX ?? 50) > leaderX) leaderX = unit._currentX ?? 50;
+  });
+
+  const trackW     = lanesEl.offsetWidth || window.innerWidth - 230;
+  const midScreen  = trackW * 0.45; // start scrolling when leader hits 45% of track width
+  const targetCamX = leaderX > midScreen ? leaderX - midScreen : 0;
+
+  // Smooth camera ease
+  cameraX += (targetCamX - cameraX) * 0.02;
+  if (Math.abs(cameraX) > 0.5) {
+    lanesEl.style.transform = `translateX(${-cameraX}px)`;
+    // Also move finish line with the camera
+    const fl = document.getElementById('finish-line');
+    if (fl) fl.style.transform = `translateX(${-cameraX}px)`;
+  }
 
   if (anyMoving) {
     requestAnimationFrame(raceFrame);
@@ -855,7 +880,7 @@ async function runLoop() {
 
   // ── Hide overlay, reset track ──
   overlay.style.display = 'none';
-  document.getElementById('lanes').innerHTML = '';
+  const _ln = document.getElementById('lanes'); if(_ln){_ln.innerHTML='';_ln.style.transform='translateX(0)';} cameraX=0;
 
   await waitFrame();
   await waitFrame();
@@ -894,7 +919,7 @@ async function init() {
 }
 
 window.addEventListener('resize', () => {
-  document.getElementById('lanes').innerHTML = '';
+  const _ln = document.getElementById('lanes'); if(_ln){_ln.innerHTML='';_ln.style.transform='translateX(0)';} cameraX=0;
   renderRace(racers);
 });
 
