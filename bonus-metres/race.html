@@ -721,56 +721,60 @@ function animateToTargets() {
 // 3. Hold for 30s showing final positions
 // 4. Refresh data, reset horses to start line, show spinner again → repeat
 
+function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+function waitFrame() { return new Promise(r => requestAnimationFrame(r)); }
+
 async function runLoop() {
-  // Fetch latest data
+  const overlay = document.getElementById('spinner');
+
+  // ── Step 1: Show "And they're off…" overlay ──
+  overlay.style.display = 'flex';
+  await wait(3000);
+
+  // ── Step 2: Fetch fresh data ──
   const newRacers = await loadData();
   prevRanks = Object.fromEntries(racers.map(r => [r.id, r.rank]));
   racers = newRacers;
 
-  const spinner = document.getElementById('spinner');
-
-  // Step 1: Show "And they're off…" for 3 seconds
-  spinner.style.display = 'flex';
-  await wait(3000);
-
-  // Step 2: Hide spinner, reset horses, render, then fire race
-  spinner.style.display = 'none';
+  // ── Step 3: Hide overlay, clear lanes, wait for layout ──
+  overlay.style.display = 'none';
   document.getElementById('lanes').innerHTML = '';
 
-  // Wait a frame so the DOM has correct dimensions before rendering
-  await new Promise(r => requestAnimationFrame(r));
-  await new Promise(r => requestAnimationFrame(r));
+  // Give browser time to reflow with correct dimensions
+  await waitFrame();
+  await waitFrame();
+  await wait(50);
 
+  // ── Step 4: Render horses at start line ──
   renderRace(racers);
   renderLeaderboard(racers);
   document.getElementById('update-lbl').textContent =
     'Updated ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
 
-  // Another frame before starting animation so horses are at startX
-  await new Promise(r => requestAnimationFrame(r));
+  // ── Step 5: Brief pause then fire race ──
+  await waitFrame();
+  await wait(100);
   startRaceAnimation();
 
-  // Step 3: Hold on final positions for 30 seconds
+  // ── Step 6: Hold for 30s after race completes (race = 5s, so 35s total) ──
   await wait(35000);
 
-  // Step 4: Show spinner again as reset transition, then loop
-  spinner.style.display = 'flex';
+  // ── Step 7: Show overlay again, loop ──
+  overlay.style.display = 'flex';
   await wait(3000);
 
   runLoop();
 }
 
-function wait(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 async function init() {
   buildCrowd();
+
+  // Load data silently while spinner is showing
   racers = await loadData();
-  renderRace(racers);
   renderLeaderboard(racers);
   prevRanks = Object.fromEntries(racers.map(r => [r.id, r.rank]));
-  // Spinner already visible from HTML — loop will handle it from here
+
+  // Kick off the loop — spinner already visible from HTML
   runLoop();
 }
 
