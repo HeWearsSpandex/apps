@@ -77,7 +77,7 @@
     .cloud::after  { width:38%; height:140%; top:-35%; right:15%; }
     @keyframes drift { from{transform:translateX(-220px)} to{transform:translateX(110vw)} }
     .race-rail-top { height:10px; background:linear-gradient(180deg,#a0522d,#6b3410); flex-shrink:0; }
-    .race-lanes    { flex:1; position:relative; overflow:hidden; }
+    .race-lanes    { flex:1; position:relative; overflow:hidden; background:#2d7a2d; }
     .race-rail-bot { height:10px; background:linear-gradient(180deg,#6b3410,#a0522d); flex-shrink:0; }
 
     .lane-bg {
@@ -445,8 +445,13 @@ async function sceneRace() {
   const n = top10.length;
   const viewW  = lanesEl.offsetWidth  || 900;
   const viewH  = lanesEl.offsetHeight || 400;
-  // Inner track is 1.8x viewport — finish line starts off-screen right
-  const totalW = Math.round(viewW * 1.8);
+
+  // finalCamX will be finishX - (viewW - 50)
+  // For inner to fill viewport after pan: totalW - finalCamX >= viewW
+  // So totalW >= viewW + finalCamX = viewW + finishX - viewW + 50 = finishX + 50
+  // We set finishX = totalW - 40, solve: totalW >= totalW - 40 + 50 = totalW + 10 — always true
+  // But we want some breathing room, so use 2x
+  const totalW = Math.round(viewW * 2.0);
   const totalH = viewH;
   innerEl.style.width  = totalW + 'px';
   innerEl.style.height = totalH + 'px';
@@ -524,8 +529,10 @@ async function sceneRace() {
   const RACE_MS = 10000;
   let startTs = null;
   let finalCamX = 0;
-  // Pan so finish line sits ~50px from right edge of viewport
-  finalCamX = Math.max(0, finishX - (viewW - 50));
+  // After pan, right edge of inner (totalW - finalCamX) should equal viewW
+  // So finalCamX = totalW - viewW. But we want finish line ~50px from right:
+  // finishX - finalCamX = viewW - 50  =>  finalCamX = finishX - viewW + 50
+  finalCamX = Math.max(0, finishX - viewW + 60);
 
   let camX = 0;
   await new Promise(resolve => {
@@ -599,7 +606,7 @@ async function sceneSpotlight(label, headline, riders, showDelta) {
 }
 
 // ── SCENE: FULL STANDINGS ─────────────────────────────────────────
-async function sceneFullStandings() {
+async function sceneFullStandings(duration) {
   showScene('scene-standings');
   const grid = document.getElementById('standings-grid');
   grid.innerHTML = racers.map((r,i) => {
@@ -615,7 +622,7 @@ async function sceneFullStandings() {
       </div>
     </div>`;
   }).join('');
-  await wait(8000);
+  await wait(duration || 8000);
 }
 
 // ── MAIN LOOP ─────────────────────────────────────────────────────
@@ -624,21 +631,57 @@ async function runLoop() {
   const newRacers = await loadData();
   preloadPhotos(newRacers);
 
-  // Store previous metres before updating
-  const oldMetres = { ...prevMetres };
-  prevMetres = Object.fromEntries(racers.map(r => [r.id, r.metres]));
+  // Save current metres as "old" before updating
+  const oldMetres = Object.keys(prevMetres).length > 0
+    ? { ...prevMetres }
+    : null; // null = first loop, no comparison possible
+
+  // Old leader's metres for threshold (use old data so threshold is meaningful)
+  const oldLeaderM = oldMetres
+    ? Math.max(...Object.values(oldMetres), 1)
+    : null;
+
+  // Update state
+  prevMetres = Object.fromEntries(newRacers.map(r => [r.id, r.metres]));
   racers = newRacers;
 
   renderLeaderboard();
   startLbScroll();
 
+  // ── Calculate challengers before scenes ──
+  // Someone qualifies if they gained >= 10% of the OLD leader's metres since last load
+  // Treat prev=undefined (new entrant) as 0
+  const challengers = oldMetres && oldLeaderM
+    ? racers.filter(r => {
+        const prev  = oldMetres[r.id] ?? 0;
+        const gained = r.metres - prev;
+        return gained >= oldLeaderM * 0.10 && r.metres > 0;
+      }).sort((a,b) => {
+        const gainA = a.metres - (oldMetres[a.id] ?? 0);
+        const gainB = b.metres - (oldMetres[b.id] ?? 0);
+        return gainB - gainA;
+      })
+    : [];
+  const challengersShown = challengers.length > 0;
+
   // ── Scene 1: Intro ──
   await sceneIntro();
 
-  // ── Scene 2: The Race (top 10) ──
+  // ── Scene 2: Challengers (before the race — building drama) ──
+  if (challengersShown) {
+    await sceneSpotlight(
+      '🚀 Coming Up the Outside…',
+      challengers.length === 1
+        ? `<span>${challengers[0].name.split(' ')[0]}</span> is making a move!`
+        : `${challengers.length} riders <span>making significant gains!</span>`,
+      challengers, true
+    );
+  }
+
+  // ── Scene 3: The Race (top 10) ──
   await sceneRace();
 
-  // ── Scene 3: Battle at the front (positions 1 & 2) ──
+  // ── Scene 4: Battle at the front (positions 1 & 2) ──
   const front = racers.filter(r => r.rank <= 2);
   if (front.length) {
     const names = front.map(r => r.name.split(' ')[0]).join(' vs ');
@@ -649,7 +692,7 @@ async function runLoop() {
     );
   }
 
-  // ── Scene 4: Mid-pack (positions 3–6) ──
+  // ── Scene 5: Mid-pack (positions 3–6) ──
   const mid = racers.filter(r => r.rank >= 3 && r.rank <= 6);
   if (mid.length) {
     await sceneSpotlight(
@@ -659,25 +702,8 @@ async function runLoop() {
     );
   }
 
-  // ── Scene 5: The Challengers (gained 10%+ of leader's metres since last load) ──
-  const leaderM = racers[0]?.metres || 1;
-  const challengers = racers.filter(r => {
-    const prev = oldMetres[r.id];
-    if (prev === undefined) return false;
-    return (r.metres - prev) >= leaderM * 0.10;
-  });
-  if (challengers.length) {
-    await sceneSpotlight(
-      '🚀 The Challengers',
-      challengers.length === 1
-        ? `<span>${challengers[0].name.split(' ')[0]}</span> is making a move!`
-        : `${challengers.length} riders <span>making significant gains!</span>`,
-      challengers, true
-    );
-  }
-
-  // ── Scene 6: Full standings ──
-  await sceneFullStandings();
+  // ── Scene 6: Full standings — 16s if no challengers, 8s if challengers shown ──
+  await sceneFullStandings(challengersShown ? 8000 : 16000);
 
   stopLbScroll();
 
