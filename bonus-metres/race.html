@@ -626,42 +626,71 @@ async function sceneFullStandings(duration) {
 }
 
 // ── MAIN LOOP ─────────────────────────────────────────────────────
+// Fetch each person's metres as of midnight today (transactions before today)
+async function loadMetresAtStartOfDay() {
+  const now        = new Date();
+  const today      = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const monthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+
+  // Get all unpaid transactions from this month but BEFORE today
+  const { data: txs } = await sb.from('transactions')
+    .select('id, bonus_metres')
+    .gte('date', monthStart)
+    .lt('date', today)
+    .is('date_paid', null);
+
+  if (!txs || !txs.length) return {};
+
+  // Get operatives for those transactions
+  const txIds = txs.map(t => t.id);
+  const { data: ops } = await sb.from('transaction_operatives')
+    .select('employee_id, transaction_id, transactions(bonus_metres, transaction_operatives(employee_id))')
+    .in('transaction_id', txIds);
+
+  // Build a crew count map
+  const crewMap = {};
+  (ops || []).forEach(o => {
+    const crew = (o.transactions?.transaction_operatives||[]).length || 1;
+    crewMap[o.transaction_id] = crew;
+  });
+
+  const map = {};
+  (ops || []).forEach(o => {
+    const id   = o.employee_id;
+    const tx   = txs.find(t => t.id === o.transaction_id);
+    if (!tx) return;
+    const crew = crewMap[o.transaction_id] || 1;
+    const myM  = parseFloat(tx.bonus_metres || 0) / crew;
+    map[id] = (map[id] || 0) + myM;
+  });
+  return map;
+}
+
 async function runLoop() {
-  // Load fresh data
-  const newRacers = await loadData();
+  // Load fresh data and start-of-day snapshot in parallel
+  const [newRacers, startOfDayMetres] = await Promise.all([
+    loadData(),
+    loadMetresAtStartOfDay()
+  ]);
   preloadPhotos(newRacers);
 
-  // Save current metres as "old" before updating
-  const oldMetres = Object.keys(prevMetres).length > 0
-    ? { ...prevMetres }
-    : null; // null = first loop, no comparison possible
-
-  // Old leader's metres for threshold (use old data so threshold is meaningful)
-  const oldLeaderM = oldMetres
-    ? Math.max(...Object.values(oldMetres), 1)
-    : null;
-
-  // Update state
   prevMetres = Object.fromEntries(newRacers.map(r => [r.id, r.metres]));
   racers = newRacers;
 
   renderLeaderboard();
   startLbScroll();
 
-  // ── Calculate challengers before scenes ──
-  // Someone qualifies if they gained >= 10% of the OLD leader's metres since last load
-  // Treat prev=undefined (new entrant) as 0
-  const challengers = oldMetres && oldLeaderM
-    ? racers.filter(r => {
-        const prev  = oldMetres[r.id] ?? 0;
-        const gained = r.metres - prev;
-        return gained >= oldLeaderM * 0.10 && r.metres > 0;
-      }).sort((a,b) => {
-        const gainA = a.metres - (oldMetres[a.id] ?? 0);
-        const gainB = b.metres - (oldMetres[b.id] ?? 0);
-        return gainB - gainA;
-      })
-    : [];
+  // ── Challenger detection: gained 10%+ of leader's metres since start of today ──
+  const leaderM = racers[0]?.metres || 1;
+  const challengers = racers.filter(r => {
+    const metresAtStartOfDay = startOfDayMetres[r.id] ?? 0;
+    const gained = r.metres - metresAtStartOfDay;
+    return gained >= leaderM * 0.10 && r.metres > 0;
+  }).sort((a, b) => {
+    const gainA = a.metres - (startOfDayMetres[a.id] ?? 0);
+    const gainB = b.metres - (startOfDayMetres[b.id] ?? 0);
+    return gainB - gainA;
+  });
   const challengersShown = challengers.length > 0;
 
   // ── Scene 1: Intro ──
@@ -712,12 +741,22 @@ async function runLoop() {
 }
 
 async function init() {
-  // Build clouds in sky (race scene gets its own, do it on first render)
   racers = await loadData();
   preloadPhotos(racers);
   prevMetres = {};
   renderLeaderboard();
   runLoop();
+
+  // Refresh label and leaderboard every 30s — doesn't affect scene data or challenger detection
+  setInterval(async () => {
+    const fresh = await loadData(); // updates update-lbl as a side effect
+    preloadPhotos(fresh);
+    // Only update leaderboard panel display, not the racers used by scenes
+    const tempRacers = racers;
+    racers = fresh;
+    renderLeaderboard();
+    racers = tempRacers;
+  }, 30000);
 }
 
 init();
