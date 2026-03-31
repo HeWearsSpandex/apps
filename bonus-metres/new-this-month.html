@@ -246,6 +246,13 @@
         .filter(e => e.metres > 0 || e.bonus > 0)
         .sort((a, b) => b.metres - a.metres);
 
+      // Assign proper joint ranks
+      let rank = 1;
+      ranked.forEach((e, i) => {
+        if (i > 0 && e.metres < ranked[i-1].metres) rank = i + 1;
+        e.rank = rank;
+      });
+
       // Period label
       const sinceDate = lastPayDate
         ? new Date(lastPayDate).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })
@@ -260,44 +267,71 @@
         return;
       }
 
-      // ── Podium top 3 ──────────────────────────────────────────────────────
-      const top3   = ranked.slice(0, 3);
-      const visual = [top3[1], top3[0], top3[2]].filter(Boolean); // 2nd left, 1st centre, 3rd right
-      const cls    = ['p2', 'p1', 'p3'];
-      const crowns = ['🥈', '🥇', '🥉'];
+      // ── Podium — group by rank, show joint positions ───────────────────────
+      // Collect unique ranks 1, 2, 3 (may have multiple people per rank)
+      const podiumGroups = [];
+      let podiumCount = 0;
+      for (const e of ranked) {
+        if (e.rank > 3 || podiumCount >= 6) break; // cap at 6 in podium area
+        const existing = podiumGroups.find(g => g.rank === e.rank);
+        if (existing) { existing.people.push(e); }
+        else { podiumGroups.push({ rank: e.rank, people: [e] }); }
+        podiumCount++;
+      }
 
-      const podiumImgs = await Promise.all(visual.map(p => safeImg(p.name, 100)));
+      // For visual layout: rank1 centre, rank2 left, rank3 right
+      const podiumOrder = [
+        podiumGroups.find(g => g.rank === 2),
+        podiumGroups.find(g => g.rank === 1),
+        podiumGroups.find(g => g.rank === 3),
+      ].filter(Boolean);
 
-      document.getElementById('podium-places').innerHTML = visual.map((p, i) => {
-        const imgSrc  = podiumImgs[i] || '';
-        const fallback = initialsDataUrl(p.initials, 100);
-        const blockH  = cls[i] === 'p1' ? 90 : cls[i] === 'p2' ? 64 : 46;
-        const num     = cls[i] === 'p1' ? '1' : cls[i] === 'p2' ? '2' : '3';
-        return `<div class="podium-place ${cls[i]}">
+      const rankMeta = {
+        1: { cls:'p1', crown:'🥇', blockH:90, num:'1st' },
+        2: { cls:'p2', crown:'🥈', blockH:64, num:'2nd' },
+        3: { cls:'p3', crown:'🥉', blockH:46, num:'3rd' },
+      };
+
+      const podiumHtml = await Promise.all(podiumOrder.map(async g => {
+        const meta = rankMeta[g.rank];
+        const isJoint = g.people.length > 1;
+        const imgs = await Promise.all(g.people.map(p => safeImg(p.name, 100)));
+
+        const faces = g.people.map((p, i) => {
+          const fallback = initialsDataUrl(p.initials, 100);
+          const size = isJoint ? 60 : (meta.cls === 'p1' ? 100 : meta.cls === 'p2' ? 80 : 70);
+          return `<div style="display:flex;flex-direction:column;align-items:center;${isJoint?'margin:0 2px':''}">
+            <img class="podium-face" src="${imgs[i] || fallback}" onerror="this.src='${fallback}'" alt="${p.name}" style="width:${size}px;height:${size}px">
+            <div class="podium-name">${p.name.split(' ')[0]}</div>
+          </div>`;
+        }).join('');
+
+        return `<div class="podium-place ${meta.cls}">
           <div class="podium-face-wrap">
-            <div class="podium-crown">${crowns[i]}</div>
-            <img class="podium-face" src="${imgSrc || fallback}" onerror="this.src='${fallback}'" alt="${p.name}">
+            <div class="podium-crown">${isJoint ? '=' : ''}${meta.crown}</div>
+            <div style="display:flex;align-items:flex-end;justify-content:center">${faces}</div>
           </div>
-          <div class="podium-name">${p.name.split(' ')[0]}</div>
-          <div class="podium-metres">${Math.round(p.metres).toLocaleString()}m</div>
-          <div class="podium-block" style="height:${blockH}px">${num}</div>
+          <div class="podium-metres">${Math.round(g.people[0].metres).toLocaleString()}m${isJoint ? ' each' : ''}</div>
+          <div class="podium-block" style="height:${meta.blockH}px">${isJoint ? '=' : ''}${meta.num}</div>
         </div>`;
-      }).join('');
+      }));
 
+      document.getElementById('podium-places').innerHTML = podiumHtml.join('');
       document.getElementById('podium-spinner').style.display = 'none';
 
-      // ── List (4th onwards) ────────────────────────────────────────────────
-      const rest     = ranked.slice(3);
+      // ── List (below podium rank) ──────────────────────────────────────────
+      const podiumRanks = new Set(podiumGroups.map(g => g.rank));
+      const rest     = ranked.filter(e => !podiumRanks.has(e.rank));
       const listImgs = await Promise.all(rest.map(p => safeImg(p.name, 36)));
 
       document.getElementById('list-scroll').innerHTML = rest.length === 0
         ? '<div class="empty" style="padding:30px">Top 3 shown in podium →</div>'
         : rest.map((p, i) => {
-            const rank    = i + 4;
             const imgSrc  = listImgs[i] || '';
             const fallback = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'><circle cx='18' cy='18' r='18' fill='%23e8e8e8'/><text x='18' y='23' text-anchor='middle' font-size='11' font-weight='700' fill='%23999' font-family='Arial'>${p.initials}</text></svg>`;
+            const rankLabel = p.rank;
             return `<div class="list-row">
-              <div class="row-rank ${rank <= 10 ? 'top10' : ''}">${rank}</div>
+              <div class="row-rank ${p.rank <= 10 ? 'top10' : ''}">${rankLabel}</div>
               <div class="row-face"><img src="${imgSrc || fallback}" onerror="this.src='${fallback}'" alt="${p.name}"></div>
               <div class="row-name">${p.name}</div>
               <div class="row-metres">${Math.round(p.metres).toLocaleString()}m</div>
@@ -307,8 +341,8 @@
       document.getElementById('list-spinner').style.display = 'none';
 
       // ── Ticker ────────────────────────────────────────────────────────────
-      const t = ranked.slice(0, 10).map((p, i) =>
-        `<span class="ticker-item">#${i+1} <strong>${p.name.split(' ')[0]}</strong> — ${Math.round(p.metres).toLocaleString()}m · ${fmt(p.bonus)}</span>`
+      const t = ranked.slice(0, 10).map((p) =>
+        `<span class="ticker-item">#${p.rank} <strong>${p.name.split(' ')[0]}</strong> — ${Math.round(p.metres).toLocaleString()}m · ${fmt(p.bonus)}</span>`
       ).join('');
       document.getElementById('ticker-inner').innerHTML = t + t;
 
