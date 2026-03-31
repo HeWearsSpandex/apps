@@ -303,6 +303,7 @@ async function loadData() {
   const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
   const to   = new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().split('T')[0];
 
+  // Load all active employees
   const { data: emps } = await sb.from('employees')
     .select('id, full_name, initials, status')
     .in('status', ['active','probation'])
@@ -311,19 +312,40 @@ async function loadData() {
   const empMap = {};
   (emps || []).forEach(e => { empMap[e.id] = { id:e.id, name:e.full_name, initials:e.initials, metres:0 }; });
 
-  const { data: ops } = await sb.from('transaction_operatives')
-    .select(`employee_id, transactions!inner(id,date,date_paid,bonus_metres,created_at, transaction_operatives(employee_id)), employees!inner(full_name,initials,status)`)
-    .gte('transactions.date', from).lte('transactions.date', to)
-    .is('transactions.date_paid', null)
-    .not('employees.status','eq','inactive').not('employees.status','eq','token');
+  // Query transactions directly with reliable date filter
+  const { data: txs } = await sb.from('transactions')
+    .select('id, date, bonus_metres, created_at')
+    .gte('date', from)
+    .lte('date', to)
+    .is('date_paid', null);
 
+  if (!txs || !txs.length) {
+    const lbl = document.getElementById('update-lbl');
+    if (lbl) lbl.textContent = 'No entries this month yet';
+    return Object.values(empMap).map(e => ({ ...e, rank:1, img:`${STORAGE_URL}${encodeURIComponent(e.name)}_cvface1.jpg` }));
+  }
+
+  // Get operatives for those transactions
+  const txIds = txs.map(t => t.id);
+  const { data: ops } = await sb.from('transaction_operatives')
+    .select('employee_id, transaction_id')
+    .in('transaction_id', txIds);
+
+  // Build crew count per transaction
+  const crewCount = {};
+  (ops || []).forEach(o => {
+    crewCount[o.transaction_id] = (crewCount[o.transaction_id] || 0) + 1;
+  });
+
+  // Accumulate metres per employee
   let latestDate = null;
   (ops || []).forEach(o => {
     if (!empMap[o.employee_id]) return;
-    const crew = (o.transactions?.transaction_operatives||[]).length || 1;
-    empMap[o.employee_id].metres += parseFloat(o.transactions?.bonus_metres||0) / crew;
-    const c = o.transactions?.created_at;
-    if (c && (!latestDate || c > latestDate)) latestDate = c;
+    const tx   = txs.find(t => t.id === o.transaction_id);
+    if (!tx) return;
+    const crew = crewCount[o.transaction_id] || 1;
+    empMap[o.employee_id].metres += parseFloat(tx.bonus_metres || 0) / crew;
+    if (tx.created_at && (!latestDate || tx.created_at > latestDate)) latestDate = tx.created_at;
   });
 
   const lbl = document.getElementById('update-lbl');
