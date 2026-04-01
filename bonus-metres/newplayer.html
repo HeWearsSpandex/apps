@@ -962,7 +962,8 @@
         </div>
       `;
 
-      await renderRace(name, allRanked, employeeId);
+      // Run race and coin animation in parallel
+      const racePromise = renderRace(name, allRanked, employeeId);
 
       // Coin stack animation — based on outstanding bonus
       if (myOutM > 0) {
@@ -1034,6 +1035,8 @@
           });
         });
       }
+
+      await racePromise;
     }
 
     function showTab(tabId, btn) {
@@ -1099,7 +1102,6 @@
       const finishX = viewW - 30;
       const maxX    = finishX - 60;
 
-      console.log('[Race] viewW:', viewW, 'startX:', startX, 'finishX:', finishX, 'maxX:', maxX, 'leaderM:', leaderM);
 
       // Lane backgrounds
       racers.forEach((r, i) => {
@@ -1131,7 +1133,6 @@
         const silk = SILKS[r.silkIdx], cap = CAPS[r.silkIdx];
         const y    = i * LANE_H;
         const targetX = r.fyM > 0 ? startX + (r.fyM / leaderM) * (maxX - startX) : startX;
-        console.log('[Race]', r.name, 'fyM:', r.fyM, 'targetX:', targetX);
 
         const unit = document.createElement('div');
         unit.className = 'race-horse-unit';
@@ -1183,7 +1184,7 @@
         units[r.id] = { unit, targetX };
       });
 
-      document.getElementById('race-spinner').style.display = 'none';
+      document.getElementById('race-spinner')?.style && (document.getElementById('race-spinner').style.display = 'none');
 
       // ── Animate — all horses run at the same pace, once ──
       const RACE_MS = 8000;
