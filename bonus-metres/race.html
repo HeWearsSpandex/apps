@@ -214,7 +214,7 @@
   <img class="header-logo" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/JHB%20Logo.png" alt="JHB">
   <div>
     <div class="header-title">🏇 Bonus Metres — Current Leaderboard</div>
-    <div class="header-sub">🏇 The JHB 2026–2027 Derby</div>
+    <div class="header-sub" id="fy-label">🏇 The JHB Derby</div>
   </div>
   <div class="header-right">
     <div class="update-lbl" id="update-lbl">Loading…</div>
@@ -279,6 +279,9 @@ const CAPS  = ['#ffffff','#ffcc00','#ffffff','#000000','#ffcc00','#ffffff','#000
 let racers      = [];   // sorted by metres desc
 let prevMetres  = {};   // id -> metres from last load
 let photos      = {};   // preloaded Image objects
+const { from: _fyFrom } = getFYDates();
+const FY_START  = _fyFrom.substring(0, 4);
+const FY_END    = parseInt(FY_START) + 1;
 let lbScrollInt = null;
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -298,12 +301,22 @@ function silkIdx(racer) {
 function fmt(m) { return Math.round(m).toLocaleString() + 'm'; }
 
 // ── Data ──────────────────────────────────────────────────────────
+// Financial year runs Apr 1 – Mar 31
+// If current month is Jan–Mar, FY started previous April
+function getFYDates() {
+  const now = new Date();
+  const m   = now.getMonth(); // 0=Jan, 3=Apr
+  const y   = now.getFullYear();
+  const fyStart = m >= 3 ? y : y - 1; // Apr or later = this year, else previous year
+  return {
+    from:  `${fyStart}-04-01`,
+    to:    `${fyStart + 1}-03-31`,
+    today: `${y}-${String(m+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+  };
+}
+
 async function loadData() {
-  const now  = new Date();
-  const y    = now.getFullYear();
-  const m    = String(now.getMonth() + 1).padStart(2, '0');
-  const from = `${y}-${m}-01`;
-  const to   = `${y}-${m}-${new Date(y, now.getMonth()+1, 0).getDate()}`;
+  const { from, to } = getFYDates();
 
   // Load all active employees
   const { data: emps } = await sb.from('employees')
@@ -314,21 +327,31 @@ async function loadData() {
   const empMap = {};
   (emps || []).forEach(e => { empMap[e.id] = { id:e.id, name:e.full_name, initials:e.initials, metres:0 }; });
 
-  // Query transactions directly with reliable date filter
-  const { data: txs } = await sb.from('transactions')
-    .select('id, date, bonus_metres, created_at')
-    .gte('date', from)
-    .lte('date', to)
+  // Include: unpaid transactions (outstanding) OR paid within the FY period
+  // Two separate queries, combine results
+  const { data: unpaidTxs } = await sb.from('transactions')
+    .select('id, date, bonus_metres, created_at, date_paid')
     .is('date_paid', null);
 
-  if (!txs || !txs.length) {
+  const { data: paidTxs } = await sb.from('transactions')
+    .select('id, date, bonus_metres, created_at, date_paid')
+    .gte('date_paid', from)
+    .lte('date_paid', to);
+
+  const txs = [...(unpaidTxs || []), ...(paidTxs || [])];
+  // Deduplicate by id (shouldn't overlap but just in case)
+  const txMap = {};
+  txs.forEach(t => { txMap[t.id] = t; });
+  const uniqueTxs = Object.values(txMap);
+
+  if (!uniqueTxs.length) {
     const lbl = document.getElementById('update-lbl');
-    if (lbl) lbl.textContent = 'No entries this month yet';
+    if (lbl) lbl.textContent = 'No entries this year yet';
     return Object.values(empMap).map(e => ({ ...e, rank:1, img:`${STORAGE_URL}${encodeURIComponent(e.name)}_cvface1.jpg` }));
   }
 
   // Get operatives for those transactions
-  const txIds = txs.map(t => t.id);
+  const txIds = uniqueTxs.map(t => t.id);
   const { data: ops } = await sb.from('transaction_operatives')
     .select('employee_id, transaction_id')
     .in('transaction_id', txIds);
@@ -343,7 +366,7 @@ async function loadData() {
   let latestDate = null;
   (ops || []).forEach(o => {
     if (!empMap[o.employee_id]) return;
-    const tx   = txs.find(t => t.id === o.transaction_id);
+    const tx   = uniqueTxs.find(t => t.id === o.transaction_id);
     if (!tx) return;
     const crew = crewCount[o.transaction_id] || 1;
     empMap[o.employee_id].metres += parseFloat(tx.bonus_metres || 0) / crew;
@@ -429,7 +452,7 @@ function stopLbScroll() { if (lbScrollInt) { clearInterval(lbScrollInt); lbScrol
 async function sceneIntro() {
   showScene('scene-intro');
   const screens = [
-    { icon:'🏟️', text:'Ladies and Gentlemen, welcome to the Great JHB 2026–2027 Derby!' },
+    { icon:'🏟️', text:`Ladies and Gentlemen, welcome to the Great JHB ${FY_START}–${FY_END} Derby!` },
     { icon:'🚦', text:'They are under starters orders…'  },
     { icon:'🏇', text:"And they're off!" },
   ];
@@ -650,41 +673,45 @@ async function sceneFullStandings(duration) {
 }
 
 // ── MAIN LOOP ─────────────────────────────────────────────────────
-// Fetch each person's metres as of midnight today (transactions before today)
+// Fetch each person's metres as of midnight today
 async function loadMetresAtStartOfDay() {
-  const now        = new Date();
-  const today      = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-  const monthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
-  // Get all unpaid transactions from this month but BEFORE today
-  const { data: txs } = await sb.from('transactions')
+  const { from, today } = getFYDates();
+
+  // Unpaid transactions (outstanding) — all of them
+  const { data: unpaidTxs } = await sb.from('transactions')
     .select('id, bonus_metres')
-    .gte('date', monthStart)
-    .lt('date', today)
     .is('date_paid', null);
 
-  if (!txs || !txs.length) return {};
+  // Paid within FY but date_paid strictly before today
+  const { data: paidTxs } = await sb.from('transactions')
+    .select('id, bonus_metres')
+    .gte('date_paid', from)
+    .lt('date_paid', today);
 
-  // Get operatives for those transactions
-  const txIds = txs.map(t => t.id);
+  const txs = [...(unpaidTxs || []), ...(paidTxs || [])];
+  const txMap = {};
+  txs.forEach(t => { txMap[t.id] = t; });
+  const uniqueTxs = Object.values(txMap);
+
+  if (!uniqueTxs.length) return {};
+
+  const txIds = uniqueTxs.map(t => t.id);
   const { data: ops } = await sb.from('transaction_operatives')
-    .select('employee_id, transaction_id, transactions(bonus_metres, transaction_operatives(employee_id))')
+    .select('employee_id, transaction_id')
     .in('transaction_id', txIds);
 
-  // Build a crew count map
-  const crewMap = {};
+  const crewCount = {};
   (ops || []).forEach(o => {
-    const crew = (o.transactions?.transaction_operatives||[]).length || 1;
-    crewMap[o.transaction_id] = crew;
+    crewCount[o.transaction_id] = (crewCount[o.transaction_id] || 0) + 1;
   });
 
   const map = {};
   (ops || []).forEach(o => {
-    const id   = o.employee_id;
-    const tx   = txs.find(t => t.id === o.transaction_id);
+    const id  = o.employee_id;
+    const tx  = uniqueTxs.find(t => t.id === o.transaction_id);
     if (!tx) return;
-    const crew = crewMap[o.transaction_id] || 1;
-    const myM  = parseFloat(tx.bonus_metres || 0) / crew;
-    map[id] = (map[id] || 0) + myM;
+    const crew = crewCount[o.transaction_id] || 1;
+    map[id] = (map[id] || 0) + parseFloat(tx.bonus_metres || 0) / crew;
   });
   return map;
 }
@@ -764,6 +791,14 @@ async function runLoop() {
 }
 
 async function init() {
+  // Set financial year label
+  const { from } = getFYDates();
+  
+  
+  
+  const fyEl = document.getElementById('fy-label');
+  if (fyEl) fyEl.textContent = `🏇 The JHB ${FY_START}–${FY_END} Derby`;
+
   racers = await loadData();
   preloadPhotos(racers);
   prevMetres = {};
