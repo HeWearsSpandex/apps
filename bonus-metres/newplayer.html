@@ -1132,7 +1132,9 @@
       racers.forEach((r, i) => {
         const silk = SILKS[r.silkIdx], cap = CAPS[r.silkIdx];
         const y    = i * LANE_H;
-        const targetX = r.fyM > 0 ? startX + (r.fyM / leaderM) * (maxX - startX) : startX;
+        // Minimum 8% progress so nobody sits right on the start line
+        const minTarget = startX + (maxX - startX) * 0.08;
+        const targetX = Math.max(minTarget, r.fyM > 0 ? startX + (r.fyM / leaderM) * (maxX - startX) : minTarget);
 
         const unit = document.createElement('div');
         unit.className = 'race-horse-unit';
@@ -1174,6 +1176,9 @@
         const nm = document.createElement('div');
         nm.className = 'race-horse-name' + (r.isPlayer ? ' race-player-label' : '');
         nm.style.fontSize = NAME_SIZE + 'px';
+        nm.style.maxWidth = '80px';
+        nm.style.overflow = 'hidden';
+        nm.style.textOverflow = 'ellipsis';
         const shortFirst = r.name.split(' ')[0];
         nm.textContent   = r.isPlayer && r.rank > 3
           ? `${shortFirst} (You)`
