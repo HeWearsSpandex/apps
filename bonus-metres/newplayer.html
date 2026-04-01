@@ -1089,13 +1089,17 @@
       const railBot = document.createElement('div'); railBot.className = 'race-rail-bot-mini';
       wrap.appendChild(railBot);
 
-      // Wait for layout so offsetWidth is correct
-      await new Promise(r => requestAnimationFrame(r));
+      // Small delay to ensure DOM is painted and dimensions are available
+      await new Promise(r => setTimeout(r, 50));
 
-      const viewW   = lanesEl.offsetWidth || 340;
+      // Use window width minus sidebar/padding rather than offsetWidth which may be 0
+      const viewW   = wrap.offsetWidth || (window.innerWidth - 40);
+      lanesEl.style.width = viewW + 'px';
       const startX  = 30;
       const finishX = viewW - 30;
       const maxX    = finishX - 60;
+
+      console.log('[Race] viewW:', viewW, 'startX:', startX, 'finishX:', finishX, 'maxX:', maxX, 'leaderM:', leaderM);
 
       // Lane backgrounds
       racers.forEach((r, i) => {
@@ -1127,6 +1131,7 @@
         const silk = SILKS[r.silkIdx], cap = CAPS[r.silkIdx];
         const y    = i * LANE_H;
         const targetX = r.fyM > 0 ? startX + (r.fyM / leaderM) * (maxX - startX) : startX;
+        console.log('[Race]', r.name, 'fyM:', r.fyM, 'targetX:', targetX);
 
         const unit = document.createElement('div');
         unit.className = 'race-horse-unit';
