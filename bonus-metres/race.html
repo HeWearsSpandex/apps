@@ -676,11 +676,15 @@ async function sceneFullStandings(duration) {
 // Fetch each person's metres as of midnight today
 async function loadMetresAtStartOfDay() {
   const { from, today } = getFYDates();
+  const now = new Date();
+  // Local midnight as ISO string — avoids BST offset issues
+  const localMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
-  // Unpaid transactions (outstanding) — all of them
+  // Unpaid transactions created BEFORE midnight today (not today's new entries)
   const { data: unpaidTxs } = await sb.from('transactions')
     .select('id, bonus_metres')
-    .is('date_paid', null);
+    .is('date_paid', null)
+    .lt('created_at', localMidnight);
 
   // Paid within FY but date_paid strictly before today
   const { data: paidTxs } = await sb.from('transactions')
