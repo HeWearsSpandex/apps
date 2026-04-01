@@ -30,8 +30,8 @@
     }
     .header img { height: 40px; }
     .header-title { font-size: 22px; font-weight: 700; letter-spacing: 0.5px; color: #1a1a1a; }
-    .header-period { font-size: 13px; color: #aaa; text-align: right; }
-    .header-period strong { color: #555; display: block; font-size: 14px; }
+    .header-updated { font-size: 12px; color: #aaa; text-align: right; }
+    .header-updated strong { color: #555; display: block; font-size: 13px; }
 
     /* ── MAIN LAYOUT ── */
     .body-wrap { flex: 1; display: flex; gap: 0; overflow: hidden; }
@@ -75,7 +75,7 @@
     .list-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 16px 0 0; background: #fff; }
     .list-header {
       display: grid;
-      grid-template-columns: 44px 48px 1fr 120px;
+      grid-template-columns: 44px 48px 1fr 90px 110px;
       padding: 6px 20px 10px;
       font-size: 10px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.8px; color: #bbb;
@@ -86,7 +86,7 @@
     .list-scroll::-webkit-scrollbar { display: none; }
     .list-row {
       display: grid;
-      grid-template-columns: 44px 48px 1fr 120px;
+      grid-template-columns: 44px 48px 1fr 90px 110px;
       align-items: center; padding: 8px 20px;
       border-bottom: 1px solid #f5f5f5;
     }
@@ -96,6 +96,13 @@
     .row-face img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid #f0f0f0; display: block; }
     .row-name    { font-size: 14px; font-weight: 600; padding-left: 10px; color: #1a1a1a; }
     .row-metres  { font-size: 15px; font-weight: 700; color: #c00; text-align: right; }
+    .row-activity { font-size: 11px; color: #bbb; text-align: right; padding-left: 8px; }
+    .row-activity.recent { color: #2e7d32; font-weight: 600; }
+    .row-activity.stale  { color: #e65100; }
+    .row-arrow { font-size: 13px; font-weight: 900; text-align: center; }
+    .row-arrow.up   { color: #2e7d32; }
+    .row-arrow.down { color: #c00; }
+    .row-arrow.same { color: #ddd; }
 
     /* ── MOBILE ── */
     @media (max-width: 700px) {
@@ -110,8 +117,9 @@
       .podium-place.p2 .podium-block { height: 44px; }
       .podium-place.p3 .podium-block { height: 32px; }
       .header-title { font-size: 16px; }
-      .list-row { padding: 7px 14px; }
-      .list-header { padding: 6px 14px 8px; }
+      .list-row { padding: 7px 14px; grid-template-columns: 44px 48px 1fr 90px; }
+      .list-header { padding: 6px 14px 8px; grid-template-columns: 44px 48px 1fr 90px; }
+      .row-activity { display: none; }
     }
 
     /* ── SPINNER ── */
@@ -120,13 +128,6 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .empty { text-align: center; padding: 60px 20px; color: #ccc; font-size: 16px; }
-
-    /* ── TICKER ── */
-    .ticker { flex-shrink: 0; height: 36px; background: #c00; overflow: hidden; display: flex; align-items: center; }
-    .ticker-inner { white-space: nowrap; animation: ticker 50s linear infinite; font-size: 13px; color: rgba(255,255,255,0.85); padding-left: 100%; }
-    @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-100%); } }
-    .ticker-item { margin-right: 60px; }
-    .ticker-item strong { color: #fff; }
   </style>
 </head>
 <body>
@@ -134,9 +135,8 @@
   <div class="header">
     <img src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/JHB%20Logo.png" alt="JHB">
     <div class="header-title">🏆 Bonus Metres Leaderboard</div>
-    <div class="header-period">
-      <strong id="period-name">Loading…</strong>
-      <span id="period-sub"></span>
+    <div class="header-updated">
+      <strong id="update-lbl">Loading…</strong>
     </div>
   </div>
 
@@ -152,6 +152,7 @@
         <span></span>
         <span style="padding-left:10px">Name</span>
         <span style="text-align:right">Metres</span>
+        <span style="text-align:right;padding-left:8px">Last Activity</span>
       </div>
       <div class="list-scroll-wrap">
         <div class="list-scroll" id="list-scroll">
@@ -160,8 +161,6 @@
       </div>
     </div>
   </div>
-
-  <div class="ticker"><div class="ticker-inner" id="ticker-inner">Loading…</div></div>
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
@@ -192,20 +191,12 @@
     function fmt(n)  { return '£' + parseFloat(n).toFixed(2); }
 
     async function build() {
-      // Last month-end for period label
-      const { data: lastRun } = await sb
-        .from('month_end_runs')
-        .select('payment_date, period_name')
-        .order('payment_date', { ascending: false })
-        .limit(1);
-
-      const lastPayDate = lastRun?.[0]?.payment_date || null;
 
       // All unpaid transaction_operatives with transaction and employee data
       const { data: ops, error } = await sb
         .from('transaction_operatives')
         .select(`employee_id, share_value,
-                 transactions!inner(id, bonus_metres, date_paid),
+                 transactions!inner(id, bonus_metres, date_paid, created_at),
                  employees!inner(full_name, initials, status)`)
         .is('transactions.date_paid', null);
 
@@ -221,9 +212,27 @@
       ops.forEach(op => {
         const txId = op.transactions?.id;
         if (!txId) return;
-        if (!txOpCount[txId]) txOpCount[txId] = { metres: parseFloat(op.transactions.bonus_metres), count: 0 };
+        if (!txOpCount[txId]) txOpCount[txId] = { metres: parseFloat(op.transactions.bonus_metres), count: 0, created_at: op.transactions.created_at };
         txOpCount[txId].count++;
       });
+
+      // Track latest transaction overall for header
+      let latestCreated = null;
+      ops.forEach(op => {
+        const c = op.transactions?.created_at;
+        if (c && (!latestCreated || c > latestCreated)) latestCreated = c;
+      });
+
+      // Update header with last entry time
+      const lbl = document.getElementById('update-lbl');
+      if (lbl && latestCreated) {
+        const d = new Date(latestCreated);
+        lbl.innerHTML = `Last entry: <strong>${d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})} at ${d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</strong>`;
+      } else if (lbl) { lbl.textContent = 'No outstanding entries'; }
+
+      // Load previous ranks from localStorage for arrows
+      let prevRanks = {};
+      try { prevRanks = JSON.parse(localStorage.getItem('jhb_lb_ranks') || '{}'); } catch(e) {}
 
       // Build per-person totals
       const empMap = {};
@@ -234,12 +243,18 @@
         if (!txId) return;
 
         const id = op.employee_id;
-        if (!empMap[id]) empMap[id] = { id, name: emp.full_name, initials: emp.initials, bonus: 0, metres: 0, visits: 0 };
+        if (!empMap[id]) empMap[id] = { id, name: emp.full_name, initials: emp.initials, bonus: 0, metres: 0, visits: 0, lastActivity: null };
 
         empMap[id].bonus  += parseFloat(op.share_value);
         empMap[id].visits++;
         const tx = txOpCount[txId];
-        if (tx) empMap[id].metres += tx.metres / tx.count;
+        if (tx) {
+          empMap[id].metres += tx.metres / tx.count;
+          // Track latest activity date per person
+          if (tx.created_at && (!empMap[id].lastActivity || tx.created_at > empMap[id].lastActivity)) {
+            empMap[id].lastActivity = tx.created_at;
+          }
+        }
       });
 
       const ranked = Object.values(empMap)
@@ -253,17 +268,15 @@
         e.rank = parseInt(rank, 10);
       });
 
-      // Period label
-      const sinceDate = lastPayDate
-        ? new Date(lastPayDate).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })
-        : 'Start';
-      document.getElementById('period-name').textContent = 'Current Period';
-      document.getElementById('period-sub').textContent  = `Since ${sinceDate}`;
+      // Save current ranks to localStorage for next load's arrows
+      const newRanks = {};
+      ranked.forEach(e => { newRanks[e.id] = e.rank; });
+      try { localStorage.setItem('jhb_lb_ranks', JSON.stringify(newRanks)); } catch(e) {}
 
       if (!ranked.length) {
         document.getElementById('podium-spinner').style.display = 'none';
         document.getElementById('list-spinner').style.display   = 'none';
-        document.getElementById('podium-places').innerHTML = '<div class="empty">No data yet for this period</div>';
+        document.getElementById('podium-places').innerHTML = '<div class="empty">No outstanding entries yet</div>';
         return;
       }
 
@@ -332,24 +345,44 @@
       document.getElementById('list-scroll').innerHTML = rest.length === 0
         ? '<div class="empty" style="padding:30px">Top 3 shown in podium →</div>'
         : rest.map((p, i) => {
-            const imgSrc  = listImgs[i] || '';
+            const imgSrc   = listImgs[i] || '';
             const fallback = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'><circle cx='18' cy='18' r='18' fill='%23e8e8e8'/><text x='18' y='23' text-anchor='middle' font-size='11' font-weight='700' fill='%23999' font-family='Arial'>${p.initials}</text></svg>`;
             const rankLabel = tiedRanks.has(p.rank) ? `=${p.rank}` : p.rank;
+
+            // Arrow — compare to previous rank
+            const prev = prevRanks[p.id];
+            let arrowHtml = '';
+            if (prev === undefined) {
+              arrowHtml = `<span class="row-arrow same" title="New entry">●</span>`;
+            } else if (p.rank < prev) {
+              arrowHtml = `<span class="row-arrow up" title="Up ${prev - p.rank}">▲ ${prev - p.rank}</span>`;
+            } else if (p.rank > prev) {
+              arrowHtml = `<span class="row-arrow down" title="Down ${p.rank - prev}">▼ ${p.rank - prev}</span>`;
+            } else {
+              arrowHtml = `<span class="row-arrow same">—</span>`;
+            }
+
+            // Last activity
+            let activityHtml = '<div class="row-activity">—</div>';
+            if (p.lastActivity) {
+              const d    = new Date(p.lastActivity);
+              const now  = new Date();
+              const days = Math.floor((now - d) / 86400000);
+              const dateStr = d.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+              const cls  = days <= 3 ? 'recent' : days >= 14 ? 'stale' : '';
+              activityHtml = `<div class="row-activity ${cls}">${dateStr}</div>`;
+            }
+
             return `<div class="list-row">
               <div class="row-rank ${p.rank <= 10 ? 'top10' : ''}">${rankLabel}</div>
               <div class="row-face"><img src="${imgSrc || fallback}" onerror="this.src='${fallback}'" alt="${p.name}"></div>
-              <div class="row-name">${p.name}</div>
+              <div class="row-name">${p.name} ${arrowHtml}</div>
               <div class="row-metres">${Math.round(p.metres).toLocaleString()}m</div>
+              ${activityHtml}
             </div>`;
           }).join('');
 
       document.getElementById('list-spinner').style.display = 'none';
-
-      // ── Ticker ────────────────────────────────────────────────────────────
-      const t = ranked.slice(0, 10).map((p) =>
-        `<span class="ticker-item">${tiedRanks.has(p.rank)?'=':'#'}${p.rank} <strong>${p.name.split(' ')[0]}</strong> — ${Math.round(p.metres).toLocaleString()}m · ${fmt(p.bonus)}</span>`
-      ).join('');
-      document.getElementById('ticker-inner').innerHTML = t + t;
 
       setTimeout(startPingPongScroll, 2000);
     }

@@ -435,8 +435,10 @@
     async function loadMomChart() {
       const now        = new Date();
       const fyYear     = getFYYear();
-      const nextMD     = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      const nextMonthStr = `${nextMD.getFullYear()}-${String(nextMD.getMonth() + 1).padStart(2,'0')}`;
+
+      // Pending goes into the CURRENT month until a month-end run closes it
+      const pendingMD     = new Date(now.getFullYear(), now.getMonth(), 1);
+      const pendingMonthStr = `${pendingMD.getFullYear()}-${String(pendingMD.getMonth() + 1).padStart(2,'0')}`;
 
       // Set tab labels
       document.getElementById('fy0-tab').textContent = `Apr ${fyYear} – Mar ${fyYear+1}`;
@@ -445,13 +447,14 @@
       let months = [];
 
       if (currentChartTab === 'rolling') {
-        // Last 12 months + next month pending
-        for (let i = 11; i >= 0; i--) {
+        // Last 12 months including current month as pending
+        for (let i = 11; i >= 1; i--) {
           const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
           const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
           months.push({ label: d.toLocaleDateString('en-GB',{month:'short',year:'2-digit'}), dateStr, paid:0, unpaid:0, jobs:0 });
         }
-        months.push({ label: nextMD.toLocaleDateString('en-GB',{month:'short',year:'2-digit'})+' ⟳', dateStr: nextMonthStr, paid:0, unpaid:0, jobs:0, isPending:true });
+        // Current month — pending until month-end is run
+        months.push({ label: pendingMD.toLocaleDateString('en-GB',{month:'short',year:'2-digit'})+' ⟳', dateStr: pendingMonthStr, paid:0, unpaid:0, jobs:0, isPending:true });
       } else {
         // Financial year view
         const fy = currentChartTab === 'fy0' ? fyYear : fyYear + 1;
@@ -482,7 +485,7 @@
 
       (unpaidData || []).forEach(tx => {
         const val    = parseFloat(tx.bonus_metres||0) * parseFloat(tx.rate||0.03);
-        const bucket = months.find(m => m.dateStr === nextMonthStr);
+        const bucket = months.find(m => m.dateStr === pendingMonthStr);
         if (!bucket) return;
         bucket.jobs++; bucket.unpaid += val;
       });
