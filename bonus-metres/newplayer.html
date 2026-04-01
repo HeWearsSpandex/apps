@@ -757,24 +757,22 @@
       const crewCount = {};
       (fyOps||[]).forEach(o => { crewCount[o.transaction_id] = (crewCount[o.transaction_id]||0)+1; });
 
-      // Build FY metres per employee
-      const fyMetres = {};
+      // ── Build FY metres AND outstanding metres per employee from fyOps ──
+      // fyTxMap contains both unpaid and FY-paid transactions
+      // unpaidTxIds is the set of unpaid transaction IDs
+      const unpaidTxIds = new Set((unpaidTxs||[]).map(t => t.id));
+
+      const fyMetres       = {};
+      const outstandingMetres = {};
       (fyOps||[]).forEach(o => {
         const tx = fyTxMap[o.transaction_id]; if (!tx) return;
         const crew = crewCount[o.transaction_id]||1;
-        fyMetres[o.employee_id] = (fyMetres[o.employee_id]||0) + parseFloat(tx.bonus_metres||0)/crew;
-      });
-
-      // ── Outstanding (unpaid) metres per employee ──
-      const { data: unpaidOps } = await sb.from('transaction_operatives')
-        .select('employee_id, transaction_id').in('transaction_id', (unpaidTxs||[]).map(t=>t.id));
-      const unpaidCrewCount = {};
-      (unpaidOps||[]).forEach(o => { unpaidCrewCount[o.transaction_id]=(unpaidCrewCount[o.transaction_id]||0)+1; });
-      const outstandingMetres = {};
-      (unpaidOps||[]).forEach(o => {
-        const tx = fyTxMap[o.transaction_id]; if (!tx) return;
-        const crew = unpaidCrewCount[o.transaction_id]||1;
-        outstandingMetres[o.employee_id] = (outstandingMetres[o.employee_id]||0) + parseFloat(tx.bonus_metres||0)/crew;
+        const myM  = parseFloat(tx.bonus_metres||0)/crew;
+        fyMetres[o.employee_id] = (fyMetres[o.employee_id]||0) + myM;
+        // Only count in outstanding if transaction is unpaid
+        if (unpaidTxIds.has(o.transaction_id)) {
+          outstandingMetres[o.employee_id] = (outstandingMetres[o.employee_id]||0) + myM;
+        }
       });
 
       // ── Last closed month-end run ──
@@ -1090,6 +1088,9 @@
 
       const railBot = document.createElement('div'); railBot.className = 'race-rail-bot-mini';
       wrap.appendChild(railBot);
+
+      // Wait for layout so offsetWidth is correct
+      await new Promise(r => requestAnimationFrame(r));
 
       const viewW   = lanesEl.offsetWidth || 340;
       const startX  = 30;
