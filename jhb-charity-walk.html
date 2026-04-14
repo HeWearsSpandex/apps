@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JHB UK Ltd — Charity Walk 2026</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --red:    #cc2222;
+    --red2:   #e03030;
+    --dark:   #1a1a1a;
+    --mid:    #555;
+    --light:  #f5f5f5;
+    --border: #ddd;
+    --white:  #fff;
+  }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: var(--light);
+    color: var(--dark);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--white);
+    border-bottom: 3px solid var(--red);
+    padding: 0 28px;
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    flex-shrink: 0;
+    min-height: 62px;
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border-right: 1px solid var(--border);
+    padding-right: 24px;
+    margin-right: 20px;
+  }
+  .jhb-logo-block {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1px;
+  }
+  .jhb-name {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--red);
+    letter-spacing: -0.5px;
+    line-height: 1;
+    font-style: italic;
+  }
+  .jhb-tagline {
+    font-size: 9px;
+    color: var(--mid);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .header-title {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .walk-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--dark);
+    letter-spacing: -0.3px;
+  }
+  .walk-sub {
+    font-size: 11px;
+    color: var(--mid);
+    margin-top: 1px;
+  }
+  .charity-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff5f5;
+    border: 1px solid #ffcccc;
+    border-radius: 6px;
+    padding: 7px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--red);
+    align-self: center;
+    white-space: nowrap;
+  }
+  .charity-badge .heart {
+    font-size: 14px;
+    animation: heartbeat 1.4s ease infinite;
+  }
+  @keyframes heartbeat {
+    0%,100%{transform:scale(1)} 14%{transform:scale(1.25)} 28%{transform:scale(1)}
+  }
+
+  /* ── MAP ── */
+  #map { flex: 1; }
+
+  /* ── BOTTOM PANEL ── */
+  .panel {
+    background: var(--white);
+    border-top: 2px solid var(--border);
+    padding: 12px 24px;
+    flex-shrink: 0;
+  }
+  .panel-top {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .controls { display: flex; gap: 10px; align-items: center; }
+
+  .btn {
+    border: none;
+    border-radius: 5px;
+    padding: 9px 22px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+    font-family: inherit;
+  }
+  .btn-primary { background: var(--red); color: #fff; }
+  .btn-primary:hover { background: var(--red2); transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-secondary { background: #f0f0f0; color: var(--dark); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #e5e5e5; }
+
+  .speed-wrap {
+    display: flex; gap: 8px; align-items: center;
+    padding: 0 4px;
+  }
+  .speed-wrap label { font-size: 11px; color: var(--mid); letter-spacing: 0.5px; font-weight: 600; }
+  input[type=range] { width: 90px; accent-color: var(--red); }
+  .speed-val { font-size: 11px; color: var(--mid); min-width: 24px; font-weight: 600; }
+
+  .phase-tag {
+    background: #fff0f0;
+    border: 1px solid #ffcccc;
+    border-radius: 100px;
+    padding: 5px 14px;
+    font-size: 11px;
+    color: var(--red);
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-left: auto;
+  }
+
+  /* ── LEGEND ── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+  .leg {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: #fafafa;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: #999;
+    white-space: nowrap;
+    transition: all 0.35s;
+  }
+  .leg.active  { color: var(--dark); border-color: #aaa; background: #fff; }
+  .leg.arrived {
+    color: #157a15;
+    border-color: #90d890;
+    background: #f0fff0;
+    font-weight: 600;
+  }
+  .leg-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1.5px solid rgba(0,0,0,0.15);
+  }
+
+  /* ── STATUS ── */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-top: 8px;
+    margin-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .status-txt { font-size: 12px; color: var(--mid); flex: 1; }
+  .prog-wrap  { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .prog-track { width: 200px; height: 5px; background: #e5e5e5; border-radius: 3px; overflow: hidden; }
+  .prog-fill  { height: 100%; width: 0; background: var(--red); border-radius: 3px; transition: width 0.3s ease; }
+  .prog-pct   { font-size: 11px; color: var(--mid); min-width: 32px; font-weight: 600; }
+
+  /* Google Maps info window */
+  .gm-style-iw-c  { border-radius: 8px !important; padding: 0 !important; box-shadow: 0 2px 12px rgba(0,0,0,0.15) !important; }
+  .gm-style-iw-d  { overflow: hidden !important; padding: 12px 16px !important; }
+  .iw-title { font-weight: 700; font-size: 13px; color: var(--red); margin-bottom: 4px; font-family: 'Segoe UI', Arial, sans-serif; }
+  .iw-body  { font-size: 12px; color: #555; line-height: 1.6; font-family: 'Segoe UI', Arial, sans-serif; }
+  .iw-dist  { font-size: 11px; color: #999; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex; align-items:center; gap:0;">
+    <div class="header-left">
+      <div class="jhb-logo-block">
+        <div class="jhb-name">JHB</div>
+        <div class="jhb-tagline">UK Ltd · Line Marking Experts</div>
+      </div>
+    </div>
+    <div class="header-title">
+      <div class="walk-title">Charity Walk 2026</div>
+      <div class="walk-sub">9 walkers · 5 starting points · Kingsteignton School → South Brent</div>
+    </div>
+  </div>
+  <div class="charity-badge">
+    <span class="heart">&#10084;</span>
+    Raising Money for Charity
+  </div>
+</header>
+
+<div id="map"></div>
+
+<div class="panel">
+  <div class="panel-top">
+    <div class="controls">
+      <button class="btn btn-primary" id="playBtn" onclick="startAnimation()" disabled>Loading routes…</button>
+      <button class="btn btn-secondary" onclick="resetAll()">&#8635; Reset</button>
+      <div class="speed-wrap">
+        <label>SPEED</label>
+        <input type="range" id="spd" min="1" max="8" value="3" oninput="updateSpeed(this.value)">
+        <span class="speed-val" id="spdVal">3&#215;</span>
+      </div>
+    </div>
+    <div class="phase-tag" id="phaseTag">Loading routes…</div>
+  </div>
+
+  <div class="legend" id="legend">
+    <div class="leg" id="leg-jb">  <div class="leg-dot" style="background:#e65c00"></div>James &amp; Beth</div>
+    <div class="leg" id="leg-ttz"> <div class="leg-dot" style="background:#8e44ad"></div>Tom, Tristan &amp; Zak</div>
+    <div class="leg" id="leg-mark"><div class="leg-dot" style="background:#1565c0"></div>Mark</div>
+    <div class="leg" id="leg-aj">  <div class="leg-dot" style="background:#e6ac00"></div>Alex &amp; Joe</div>
+    <div class="leg" id="leg-jen"> <div class="leg-dot" style="background:#c2185b"></div>Jenna</div>
+    <div class="leg" id="leg-all" style="display:none"><div class="leg-dot" style="background:#cc2222"></div>All Together &#8594; JHB South Brent</div>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-txt" id="statusTxt">Calculating walking routes, please wait…</div>
+    <div class="prog-wrap">
+      <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+      <span class="prog-pct" id="progPct">0%</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────
+// ROUTE DATA
+// ─────────────────────────────────────────────────────────────────
+const SCHOOL_POS = { lat: 50.5539992, lng: -3.6039197 };
+const JHB_POS    = { lat: 50.432484,  lng: -3.803917  };
+
+const GROUPS = [
+  { id:'jb',   label:'James & Beth',       color:'#e65c00', legId:'leg-jb',
+    start:{ lat:50.5826722, lng:-3.6834438 },
+    members:'James Hodge-Brooks & Beth Hodge-Brooks',
+    from:'Bovey Tracey (TQ13 9DN)' },
+  { id:'ttz',  label:'Tom, Tristan & Zak', color:'#8e44ad', legId:'leg-ttz',
+    start:{ lat:50.5520059, lng:-3.5958176 },
+    members:'Tom Brooks, Tristan Allen & Zak Carnell',
+    from:'Kingsteignton (TQ12 3NB)' },
+  { id:'mark', label:'Mark',               color:'#1565c0', legId:'leg-mark',
+    start:{ lat:50.5883971, lng:-3.7157595 },
+    members:'Mark Stafford',
+    from:'Bovey Tracey (TQ13 9LL)' },
+  { id:'aj',   label:'Alex & Joe',         color:'#e6ac00', legId:'leg-aj',
+    start:{ lat:50.5362974, lng:-3.6402188 },
+    members:'Alex Nita & Joe Nixon',
+    from:'Newton Abbot (TQ12 1RL)' },
+  { id:'jen',  label:'Jenna',              color:'#c2185b', legId:'leg-jen',
+    start:{ lat:50.480587,  lng:-3.780076  },
+    members:'Jenna Turvey',
+    from:'Buckfastleigh (TQ11 0DD)' },
+];
+
+// ─────────────────────────────────────────────────────────────────
+// GLOBALS
+// ─────────────────────────────────────────────────────────────────
+let map, dirSvc;
+let routePaths     = {};
+let collectivePath = [];
+let polylines      = {};
+let trailLines     = {};
+let markers        = {};
+let animFrameIds   = {};
+let arrivedCount   = 0;
+let speedMult      = 3;
+let animRunning    = false;
+let routesLoaded   = 0;
+const TOTAL_ROUTES = GROUPS.length + 1;
+
+// ─────────────────────────────────────────────────────────────────
+// MAP INIT
+// ─────────────────────────────────────────────────────────────────
+function initMap() {
+  map = new google.maps.Map(document.getElementById('map'), {
+    center: { lat: 50.525, lng: -3.700 },
+    zoom: 11,
+    mapTypeId: 'roadmap',
+    mapTypeControl: true,
+    streetViewControl: false,
+    mapTypeControlOptions: {
+      style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+      position: google.maps.ControlPosition.TOP_RIGHT,
+    },
+  });
+
+  dirSvc = new google.maps.DirectionsService();
+
+  // Place group start markers
+  GROUPS.forEach(g => {
+    const marker = new google.maps.Marker({
+      position: g.start, map,
+      icon: circleIcon(g.color, 13),
+      title: g.label, zIndex: 5,
+    });
+    const iw = new google.maps.InfoWindow({
+      content: `<div class="iw-title">&#127939; ${g.label}</div>
+                <div class="iw-body">${g.members}</div>
+                <div class="iw-dist">Starting from: ${g.from}</div>`
+    });
+    marker.addListener('click', () => iw.open(map, marker));
+    markers[g.id] = marker;
+  });
+
+  // School marker
+  const schoolMarker = new google.maps.Marker({
+    position: SCHOOL_POS, map, zIndex: 10,
+    icon: flagIcon('#cc2222'),
+    title: 'Kingsteignton School — Meeting Point',
+  });
+  const schoolIW = new google.maps.InfoWindow({
+    content: `<div class="iw-title">&#127983; Meeting Point</div>
+              <div class="iw-body">Kingsteignton School<br>TQ12 6JB</div>
+              <div class="iw-dist">All 9 walkers converge here before the final leg</div>`
+  });
+  schoolMarker.addListener('click', () => schoolIW.open(map, schoolMarker));
+  markers['school'] = schoolMarker;
+
+  // JHB finish marker
+  const jhbMarker = new google.maps.Marker({
+    position: JHB_POS, map, zIndex: 10,
+    icon: flagIcon('#cc2222'),
+    title: 'JHB UK Ltd, South Brent — Finish',
+  });
+  const jhbIW = new google.maps.InfoWindow({
+    content: `<div class="iw-title">&#127937; Finish Line</div>
+              <div class="iw-body">JHB UK Ltd<br>The Roadhouse, Marley Head<br>South Brent, TQ10 9FQ</div>
+              <div class="iw-dist">01626 830014 · jhbukltd.co.uk</div>`
+  });
+  jhbMarker.addListener('click', () => jhbIW.open(map, jhbMarker));
+  markers['jhb'] = jhbMarker;
+
+  fetchRoutes();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ICONS
+// ─────────────────────────────────────────────────────────────────
+function circleIcon(color, scale) {
+  return {
+    path: google.maps.SymbolPath.CIRCLE,
+    fillColor: color, fillOpacity: 1,
+    strokeColor: '#fff', strokeWeight: 2,
+    scale,
+  };
+}
+
+function flagIcon(color) {
+  return {
+    path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+    fillColor: color, fillOpacity: 1,
+    strokeColor: '#fff', strokeWeight: 1.5,
+    scale: 1.8,
+    anchor: new google.maps.Point(12, 22),
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// FETCH WALKING ROUTES
+// ─────────────────────────────────────────────────────────────────
+function fetchRoutes() {
+  GROUPS.forEach(g => {
+    dirSvc.route({
+      origin: g.start,
+      destination: SCHOOL_POS,
+      travelMode: google.maps.TravelMode.WALKING,
+    }, (res, status) => {
+      if (status === 'OK') {
+        routePaths[g.id] = decodePath(res);
+        const leg = res.routes[0].legs[0];
+        g.distance = leg.distance.text;
+        g.duration  = leg.duration.text;
+      } else {
+        routePaths[g.id] = interpolate(g.start, SCHOOL_POS, 100);
+        g.distance = '—'; g.duration = '—';
+        console.warn('Route failed:', g.id, status);
+      }
+      onRouteLoaded();
+    });
+  });
+
+  dirSvc.route({
+    origin: SCHOOL_POS,
+    destination: JHB_POS,
+    travelMode: google.maps.TravelMode.WALKING,
+  }, (res, status) => {
+    if (status === 'OK') {
+      collectivePath = decodePath(res);
+      const leg = res.routes[0].legs[0];
+      window._collDist = leg.distance.text;
+      window._collDur  = leg.duration.text;
+    } else {
+      collectivePath = interpolate(SCHOOL_POS, JHB_POS, 120);
+      window._collDist = '—'; window._collDur = '—';
+    }
+    onRouteLoaded();
+  });
+}
+
+function decodePath(res) {
+  const pts = [];
+  res.routes[0].legs.forEach(leg =>
+    leg.steps.forEach(step =>
+      google.maps.geometry.encoding.decodePath(step.polyline.points).forEach(p => pts.push(p))
+    )
+  );
+  return pts;
+}
+
+function interpolate(a, b, n) {
+  const pts = [];
+  for (let i = 0; i <= n; i++)
+    pts.push(new google.maps.LatLng(
+      a.lat + (b.lat - a.lat) * i / n,
+      a.lng + (b.lng - a.lng) * i / n
+    ));
+  return pts;
+}
+
+function onRouteLoaded() {
+  routesLoaded++;
+  const pct = Math.round((routesLoaded / TOTAL_ROUTES) * 40);
+  setStatus(`Calculating walking routes… ${routesLoaded} of ${TOTAL_ROUTES} done`, pct);
+
+  if (routesLoaded === TOTAL_ROUTES) {
+    // Draw faint ghost paths on the map
+    GROUPS.forEach(g => {
+      new google.maps.Polyline({
+        path: routePaths[g.id], map,
+        strokeColor: g.color, strokeOpacity: 0.15, strokeWeight: 3,
+      });
+    });
+    new google.maps.Polyline({
+      path: collectivePath, map,
+      strokeColor: '#cc2222', strokeOpacity: 0.1, strokeWeight: 4,
+    });
+
+    document.getElementById('playBtn').disabled = false;
+    document.getElementById('playBtn').textContent = '▶ Play Routes';
+    document.getElementById('phaseTag').textContent = 'Ready to Walk';
+    setStatus('All walking routes loaded — press Play to begin the journey!', 0);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ANIMATION — PHASE 1: individual walks to school
+// ─────────────────────────────────────────────────────────────────
+function startAnimation() {
+  if (animRunning || routesLoaded < TOTAL_ROUTES) return;
+  animRunning  = true;
+  arrivedCount = 0;
+
+  document.getElementById('playBtn').disabled = true;
+  document.getElementById('phaseTag').textContent = 'Phase 1 — Walking to School';
+  setStatus('All groups setting off from their starting points…', 5);
+
+  GROUPS.forEach(g => {
+    document.getElementById(g.legId).classList.add('active');
+    markers[g.id].setIcon(circleIcon(g.color, 15));
+    animateToSchool(g);
+  });
+}
+
+function animateToSchool(g) {
+  const path = routePaths[g.id];
+  if (!path || !path.length) { onArrived(g); return; }
+
+  polylines[g.id] = new google.maps.Polyline({
+    path: [], map,
+    strokeColor: g.color, strokeOpacity: 0.85, strokeWeight: 4, zIndex: 3,
+  });
+  trailLines[g.id] = new google.maps.Polyline({
+    path: [], map,
+    strokeColor: g.color, strokeOpacity: 0.25, strokeWeight: 9, zIndex: 2,
+  });
+
+  let step = 0;
+  const TRAIL = 18;
+
+  function tick() {
+    if (!animRunning) return;
+    const stride = Math.max(1, Math.floor(speedMult * 0.75));
+
+    for (let s = 0; s < stride && step < path.length; s++, step++) {
+      const pos = path[step];
+      markers[g.id].setPosition(pos);
+      polylines[g.id].setPath(path.slice(0, step + 1));
+      trailLines[g.id].setPath(path.slice(Math.max(0, step - TRAIL), step + 1));
+    }
+
+    // Progress across all groups
+    const total = GROUPS.reduce((s, gr) => s + (routePaths[gr.id]?.length || 0), 0);
+    const done  = GROUPS.reduce((s, gr) => s + (polylines[gr.id]?.getPath().getLength() || 0), 0);
+    const pct   = 5 + (done / total) * 57;
+    setStatus(
+      `Walking to Kingsteignton School… ${arrivedCount} of ${GROUPS.length} groups arrived`,
+      pct
+    );
+
+    if (step >= path.length) {
+      trailLines[g.id].setMap(null);
+      onArrived(g);
+    } else {
+      animFrameIds[g.id] = requestAnimationFrame(tick);
+    }
+  }
+  animFrameIds[g.id] = requestAnimationFrame(tick);
+}
+
+function onArrived(g) {
+  arrivedCount++;
+  markers[g.id].setPosition(SCHOOL_POS);
+  markers[g.id].setIcon(circleIcon(g.color, 9));
+
+  const el = document.getElementById(g.legId);
+  el.classList.remove('active');
+  el.classList.add('arrived');
+
+  setStatus(
+    `${arrivedCount} of ${GROUPS.length} groups at Kingsteignton School!`,
+    62 + arrivedCount * 3
+  );
+
+  if (arrivedCount === GROUPS.length) {
+    setTimeout(startCollective, 1200);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ANIMATION — PHASE 2: all together to JHB
+// ─────────────────────────────────────────────────────────────────
+function startCollective() {
+  document.getElementById('phaseTag').textContent = 'Phase 2 — All Together → South Brent';
+  document.getElementById('leg-all').style.display = 'flex';
+  document.getElementById('leg-all').classList.add('active');
+
+  const dist = window._collDist || '';
+  setStatus(`All 9 walkers united at the school! Now walking to JHB UK Ltd, South Brent ${dist ? '(' + dist + ')' : ''}…`, 77);
+
+  // Bring all individual markers to school position
+  GROUPS.forEach(g => markers[g.id].setPosition(SCHOOL_POS));
+
+  // Collective marker — large red JHB dot
+  const bigMarker = new google.maps.Marker({
+    position: SCHOOL_POS, map, zIndex: 20,
+    icon: {
+      path: google.maps.SymbolPath.CIRCLE,
+      fillColor: '#cc2222', fillOpacity: 1,
+      strokeColor: '#fff', strokeWeight: 3,
+      scale: 22,
+    },
+    title: 'JHB Team — all 9 walkers',
+  });
+  const countLabel = new google.maps.Marker({
+    position: SCHOOL_POS, map, zIndex: 21,
+    icon: { path: google.maps.SymbolPath.CIRCLE, fillOpacity: 0, strokeOpacity: 0, scale: 0 },
+    label: { text: '9', color: '#fff', fontWeight: 'bold', fontSize: '13px', fontFamily: 'Segoe UI, Arial, sans-serif' },
+  });
+
+  const collPoly = new google.maps.Polyline({
+    path: [], map,
+    strokeColor: '#cc2222', strokeOpacity: 0.9, strokeWeight: 6, zIndex: 5,
+  });
+  const collTrail = new google.maps.Polyline({
+    path: [], map,
+    strokeColor: '#cc2222', strokeOpacity: 0.2, strokeWeight: 14, zIndex: 4,
+  });
+
+  let step = 0;
+  const TRAIL = 22;
+
+  function tick() {
+    if (!animRunning) return;
+    const stride = Math.max(1, Math.floor(speedMult));
+
+    for (let s = 0; s < stride && step < collectivePath.length; s++, step++) {
+      const pos = collectivePath[step];
+      bigMarker.setPosition(pos);
+      countLabel.setPosition(pos);
+      collPoly.setPath(collectivePath.slice(0, step + 1));
+      collTrail.setPath(collectivePath.slice(Math.max(0, step - TRAIL), step + 1));
+    }
+
+    const pct = 77 + (step / collectivePath.length) * 21;
+    setStatus(`JHB team walking together to South Brent…`, pct);
+
+    if (step >= collectivePath.length) {
+      collTrail.setMap(null);
+      onFinish(bigMarker, countLabel);
+    } else {
+      requestAnimationFrame(tick);
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// FINISH
+// ─────────────────────────────────────────────────────────────────
+function onFinish(bigMarker, countLabel) {
+  animRunning = false;
+  bigMarker.setPosition(JHB_POS);
+  countLabel.setPosition(JHB_POS);
+
+  document.getElementById('phaseTag').textContent = '🎉 Walk Complete!';
+
+  const allEl = document.getElementById('leg-all');
+  allEl.classList.remove('active');
+  allEl.classList.add('arrived');
+  allEl.innerHTML = '<div class="leg-dot" style="background:#cc2222;border-color:rgba(0,0,0,0.1)"></div>Walk Complete — All at JHB! 🎉';
+
+  setStatus('🎉 Everyone has arrived at JHB UK Ltd, South Brent! Fantastic effort from the whole team!', 100);
+
+  map.panTo(JHB_POS);
+  setTimeout(() => map.setZoom(15), 700);
+
+  // Celebratory pulse
+  let pulse = 0;
+  const pulseFn = () => {
+    pulse++;
+    bigMarker.setIcon({
+      path: google.maps.SymbolPath.CIRCLE,
+      fillColor: pulse % 2 === 0 ? '#cc2222' : '#ff6666',
+      fillOpacity: 1,
+      strokeColor: '#fff', strokeWeight: 3,
+      scale: 22 + (pulse % 2) * 5,
+    });
+    if (pulse < 12) setTimeout(pulseFn, 220);
+  };
+  pulseFn();
+
+  document.getElementById('playBtn').disabled = false;
+  document.getElementById('playBtn').textContent = '✓ Walk Complete';
+}
+
+// ─────────────────────────────────────────────────────────────────
+// RESET
+// ─────────────────────────────────────────────────────────────────
+function resetAll() {
+  animRunning  = false;
+  arrivedCount = 0;
+
+  Object.values(animFrameIds).forEach(id => cancelAnimationFrame(id));
+  animFrameIds = {};
+  Object.values(polylines).forEach(p => p?.setMap(null));
+  Object.values(trailLines).forEach(p => p?.setMap(null));
+  polylines  = {};
+  trailLines = {};
+
+  GROUPS.forEach(g => {
+    markers[g.id].setPosition(g.start);
+    markers[g.id].setIcon(circleIcon(g.color, 13));
+    const el = document.getElementById(g.legId);
+    el.classList.remove('active', 'arrived');
+  });
+
+  const allEl = document.getElementById('leg-all');
+  allEl.style.display = 'none';
+  allEl.classList.remove('active', 'arrived');
+  allEl.innerHTML = '<div class="leg-dot" style="background:#cc2222"></div>All Together → JHB South Brent';
+
+  document.getElementById('phaseTag').textContent = 'Ready to Walk';
+  document.getElementById('playBtn').disabled = false;
+  document.getElementById('playBtn').textContent = '▶ Play Routes';
+
+  setStatus('Press Play to start the walk', 0);
+  map.setCenter({ lat: 50.525, lng: -3.700 });
+  map.setZoom(11);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────
+function setStatus(msg, pct) {
+  document.getElementById('statusTxt').textContent = msg;
+  const p = Math.min(100, Math.round(pct));
+  document.getElementById('progFill').style.width = p + '%';
+  document.getElementById('progPct').textContent  = p + '%';
+}
+
+function updateSpeed(v) {
+  speedMult = parseInt(v);
+  document.getElementById('spdVal').textContent = v + '×';
+}
+</script>
+
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&libraries=geometry&callback=initMap">
+</script>
+
+</body>
+</html>
