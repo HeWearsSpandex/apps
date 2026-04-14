@@ -273,9 +273,12 @@ let routesLoaded   = 0;
 const TOTAL_ROUTES = GROUPS.length + 2; // 4 individual + blackpool→buck + buck→JHB
 
 // ─────────────────────────────────────────────────────────────────
-// PHOTO OVERLAY CLASS
+// PHOTO OVERLAY CLASS — assigned at runtime inside initMap()
 // ─────────────────────────────────────────────────────────────────
-class PhotoOverlay extends google.maps.OverlayView {
+let PhotoOverlay;
+
+function definePhotoOverlay() {
+  PhotoOverlay = class extends google.maps.OverlayView {
   constructor(position, members, color, title) {
     super();
     this.pos     = position;
@@ -354,13 +357,15 @@ class PhotoOverlay extends google.maps.OverlayView {
     if (this.div) { this.div.parentNode?.removeChild(this.div); this.div = null; }
   }
 
-  onClick(cb) { this._clickCb = cb; }
+    onClick(cb) { this._clickCb = cb; }
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────
 // MAP INIT
 // ─────────────────────────────────────────────────────────────────
 function initMap() {
+  definePhotoOverlay();
   map = new google.maps.Map(document.getElementById('map'), {
     center: { lat: 50.52, lng: -3.72 },
     zoom: 11,
@@ -790,7 +795,7 @@ function updateSpeed(v) {
 </script>
 
 <script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap">
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&libraries=geometry&callback=initMap">
 </script>
 
 </body>
