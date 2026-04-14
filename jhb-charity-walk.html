@@ -5,583 +5,442 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JHB UK Ltd — Charity Walk 2026</title>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --red: #cc2222; --red2: #e03030;
+  --dark: #1a1a1a; --mid: #666;
+  --border: #ddd; --white: #fff; --light: #f5f5f5;
+}
+body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--light); color: var(--dark); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-  :root {
-    --red:    #cc2222;
-    --red2:   #e03030;
-    --dark:   #1a1a1a;
-    --mid:    #666;
-    --light:  #f5f5f5;
-    --border: #ddd;
-    --white:  #fff;
-  }
+/* ── HEADER ── */
+header { background: var(--white); border-bottom: 3px solid var(--red); padding: 0 20px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; min-height: 60px; gap: 16px; }
+.logo-img { height: 48px; width: auto; object-fit: contain; }
+.header-centre { flex: 1; text-align: center; }
+.walk-title { font-size: 16px; font-weight: 700; color: var(--dark); }
+.walk-sub   { font-size: 11px; color: var(--mid); margin-top: 1px; }
+.charity-badge { display: flex; align-items: center; gap: 8px; background: #fff5f5; border: 1px solid #ffcccc; border-radius: 6px; padding: 7px 14px; font-size: 12px; font-weight: 600; color: var(--red); white-space: nowrap; }
+.heart { display: inline-block; animation: hb 1.4s ease infinite; }
+@keyframes hb { 0%,100%{transform:scale(1)} 14%{transform:scale(1.25)} 28%{transform:scale(1)} }
 
-  body {
-    font-family: 'Segoe UI', Arial, sans-serif;
-    background: var(--light);
-    color: var(--dark);
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
-  }
+/* ── MAP WRAPPER ── */
+#mapWrap { flex: 1; position: relative; overflow: hidden; }
+#map { width: 100%; height: 100%; }
 
-  /* ── HEADER ── */
-  header {
-    background: var(--white);
-    border-bottom: 3px solid var(--red);
-    padding: 0 28px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-    min-height: 62px;
-    gap: 16px;
-  }
-  .header-left { display: flex; align-items: center; gap: 16px; }
-  .jhb-logo-block { border-right: 1px solid var(--border); padding-right: 16px; }
-  .jhb-name    { font-size: 22px; font-weight: 900; color: var(--red); letter-spacing: -0.5px; font-style: italic; line-height: 1; }
-  .jhb-tagline { font-size: 9px; color: var(--mid); letter-spacing: 1.5px; text-transform: uppercase; }
-  .walk-title  { font-size: 16px; font-weight: 700; color: var(--dark); letter-spacing: -0.3px; }
-  .walk-sub    { font-size: 11px; color: var(--mid); margin-top: 1px; }
-  .charity-badge {
-    display: flex; align-items: center; gap: 8px;
-    background: #fff5f5; border: 1px solid #ffcccc;
-    border-radius: 6px; padding: 7px 16px;
-    font-size: 12px; font-weight: 600; color: var(--red); white-space: nowrap;
-  }
-  .charity-badge .heart { font-size: 14px; animation: heartbeat 1.4s ease infinite; }
-  @keyframes heartbeat { 0%,100%{transform:scale(1)} 14%{transform:scale(1.25)} 28%{transform:scale(1)} }
+/* ── PANEL ── */
+.panel { background: var(--white); border-top: 2px solid var(--border); padding: 10px 20px; flex-shrink: 0; }
+.panel-top { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.btn { border: none; border-radius: 5px; padding: 8px 20px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s; white-space: nowrap; font-family: inherit; }
+.btn-red  { background: var(--red); color: #fff; }
+.btn-red:hover  { background: var(--red2); transform: translateY(-1px); }
+.btn-red:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.btn-grey { background: #f0f0f0; color: var(--dark); border: 1px solid var(--border); }
+.btn-grey:hover { background: #e5e5e5; }
+.speed-row { display: flex; gap: 8px; align-items: center; }
+.speed-row label { font-size: 11px; color: var(--mid); font-weight: 600; }
+input[type=range] { width: 80px; accent-color: var(--red); }
+.speed-val { font-size: 11px; color: var(--mid); min-width: 22px; font-weight: 700; }
+.phase-tag { margin-left: auto; background: #fff0f0; border: 1px solid #ffcccc; border-radius: 100px; padding: 4px 14px; font-size: 11px; color: var(--red); font-weight: 700; letter-spacing: 0.8px; white-space: nowrap; }
 
-  /* ── MAP ── */
-  #map { flex: 1; }
+/* ── LEGEND ── */
+.legend { display: flex; flex-wrap: wrap; gap: 6px; }
+.leg { display: flex; align-items: center; gap: 5px; background: #fafafa; border: 1px solid var(--border); border-radius: 5px; padding: 4px 10px 4px 5px; font-size: 12px; color: #aaa; white-space: nowrap; transition: all 0.3s; }
+.leg.waiting { color: #888; border-color: #ccc; background: #fafafa; }
+.leg.current { color: var(--red); border-color: #ffaaaa; background: #fff5f5; font-weight: 700; box-shadow: 0 0 0 2px rgba(204,34,34,0.12); }
+.leg.walking { color: var(--dark); border-color: #aaa; background: #fff; }
+.leg.arrived { color: #157a15; border-color: #90d890; background: #f0fff0; font-weight: 600; }
+.leg-av { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd; flex-shrink: 0; transition: border-color 0.3s; }
+.leg.current .leg-av { border-color: var(--red); }
+.leg.walking .leg-av { border-color: #888; }
+.leg.arrived .leg-av { border-color: #4caf50; }
 
-  /* ── PANEL ── */
-  .panel { background: var(--white); border-top: 2px solid var(--border); padding: 12px 24px; flex-shrink: 0; }
-  .panel-top { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
-  .controls  { display: flex; gap: 10px; align-items: center; }
+/* ── STATUS ── */
+.status-bar { display: flex; align-items: center; gap: 12px; padding-top: 7px; margin-top: 7px; border-top: 1px solid var(--border); }
+.status-txt { font-size: 12px; color: var(--mid); flex: 1; }
+.prog-track { width: 180px; height: 5px; background: #e5e5e5; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+.prog-fill  { height: 100%; width: 0; background: var(--red); border-radius: 3px; transition: width 0.3s; }
+.prog-pct   { font-size: 11px; color: var(--mid); min-width: 30px; font-weight: 700; }
 
-  .btn { border: none; border-radius: 5px; padding: 9px 22px; font-size: 13px; font-weight: 700; cursor: pointer; letter-spacing: 0.3px; transition: all 0.15s; white-space: nowrap; font-family: inherit; }
-  .btn-primary   { background: var(--red); color: #fff; }
-  .btn-primary:hover { background: var(--red2); transform: translateY(-1px); }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-  .btn-secondary { background: #f0f0f0; color: var(--dark); border: 1px solid var(--border); }
-  .btn-secondary:hover { background: #e5e5e5; }
+/* ── DONATION SCREEN ── */
+#donScreen {
+  display: none; position: absolute; inset: 0; z-index: 200;
+  background: var(--white); flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 32px 24px;
+}
+#donScreen.show { display: flex; animation: fadeUp 0.7s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+.don-logo  { height: 64px; margin-bottom: 18px; }
+.don-title { font-size: 28px; font-weight: 900; color: var(--red); letter-spacing: -1px; line-height: 1.1; margin-bottom: 8px; }
+.don-sub   { font-size: 15px; color: var(--mid); margin-bottom: 24px; max-width: 460px; line-height: 1.55; }
+.don-qr    { width: 210px; height: 210px; border: 5px solid var(--red); border-radius: 12px; object-fit: contain; margin-bottom: 16px; background: #fff; }
+.don-scan  { font-size: 14px; font-weight: 600; color: var(--dark); margin-bottom: 6px; }
+.don-url   { font-size: 12px; color: #aaa; margin-bottom: 18px; }
+.don-walkers { font-size: 12px; color: #bbb; max-width: 520px; line-height: 1.8; }
+.don-walkers strong { color: var(--mid); }
 
-  .speed-wrap { display: flex; gap: 8px; align-items: center; }
-  .speed-wrap label { font-size: 11px; color: var(--mid); font-weight: 600; }
-  input[type=range] { width: 90px; accent-color: var(--red); }
-  .speed-val { font-size: 11px; color: var(--mid); min-width: 24px; font-weight: 600; }
-
-  .phase-tag {
-    margin-left: auto;
-    background: #fff0f0; border: 1px solid #ffcccc; border-radius: 100px;
-    padding: 5px 14px; font-size: 11px; color: var(--red); font-weight: 700;
-    letter-spacing: 1px; text-transform: uppercase;
-  }
-
-  /* ── LEGEND ── */
-  .legend { display: flex; flex-wrap: wrap; gap: 6px; }
-  .leg {
-    display: flex; align-items: center; gap: 8px;
-    background: #fafafa; border: 1px solid var(--border);
-    border-radius: 5px; padding: 4px 10px 4px 5px;
-    font-size: 12px; color: #999; white-space: nowrap; transition: all 0.35s;
-  }
-  .leg.active  { color: var(--dark); border-color: #aaa; background: #fff; }
-  .leg.arrived { color: #157a15; border-color: #90d890; background: #f0fff0; font-weight: 600; }
-  .leg-avatar {
-    width: 26px; height: 26px; border-radius: 50%;
-    object-fit: cover; border: 2px solid #ddd;
-    transition: border-color 0.35s;
-    flex-shrink: 0;
-  }
-  .leg.active  .leg-avatar { border-color: #888; }
-  .leg.arrived .leg-avatar { border-color: #4caf50; }
-
-  /* ── STATUS ── */
-  .status-bar { display: flex; align-items: center; gap: 14px; padding-top: 8px; margin-top: 8px; border-top: 1px solid var(--border); }
-  .status-txt { font-size: 12px; color: var(--mid); flex: 1; }
-  .prog-wrap  { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-  .prog-track { width: 200px; height: 5px; background: #e5e5e5; border-radius: 3px; overflow: hidden; }
-  .prog-fill  { height: 100%; width: 0; background: var(--red); border-radius: 3px; transition: width 0.3s ease; }
-  .prog-pct   { font-size: 11px; color: var(--mid); min-width: 32px; font-weight: 600; }
-
-  /* Google Maps info window */
-  .gm-style-iw-c  { border-radius: 8px !important; padding: 0 !important; box-shadow: 0 2px 12px rgba(0,0,0,0.15) !important; }
-  .gm-style-iw-d  { overflow: hidden !important; padding: 0 !important; }
-  .iw-wrap  { padding: 12px 16px; font-family: 'Segoe UI', Arial, sans-serif; }
-  .iw-head  { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-  .iw-photo { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #eee; flex-shrink: 0; }
-  .iw-photo-group { display: flex; }
-  .iw-photo-group img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; margin-left: -8px; }
-  .iw-photo-group img:first-child { margin-left: 0; }
-  .iw-title { font-weight: 700; font-size: 13px; color: var(--red); }
-  .iw-body  { font-size: 12px; color: #555; line-height: 1.6; }
-  .iw-dist  { font-size: 11px; color: #999; margin-top: 4px; }
-
-  /* Custom map marker styles injected via overlay */
-  .photo-marker-outer {
-    width: 44px; height: 44px; border-radius: 50%;
-    border: 3px solid #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    overflow: hidden; cursor: pointer;
-    transition: transform 0.2s;
-  }
-  .photo-marker-outer:hover { transform: scale(1.1); }
-  .photo-marker-outer img { width: 100%; height: 100%; object-fit: cover; }
-  .photo-marker-group {
-    display: flex; cursor: pointer;
-  }
-  .photo-marker-group .photo-marker-outer {
-    margin-left: -10px; width: 36px; height: 36px;
-  }
-  .photo-marker-group .photo-marker-outer:first-child { margin-left: 0; }
+/* IW */
+.gm-style-iw-c { border-radius: 8px !important; padding: 0 !important; box-shadow: 0 2px 12px rgba(0,0,0,0.15) !important; }
+.gm-style-iw-d { overflow: hidden !important; padding: 0 !important; }
+.iw { padding: 11px 14px; font-family: 'Segoe UI', Arial, sans-serif; }
+.iw-head { display: flex; align-items: center; gap: 9px; margin-bottom: 5px; }
+.iw-faces { display: flex; }
+.iw-faces img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; margin-left: -6px; }
+.iw-faces img:first-child { margin-left: 0; }
+.iw-title { font-weight: 700; font-size: 13px; color: var(--red); }
+.iw-body  { font-size: 12px; color: #555; line-height: 1.55; }
+.iw-dist  { font-size: 11px; color: #aaa; margin-top: 3px; }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="header-left">
-    <div class="jhb-logo-block">
-      <div class="jhb-name">JHB</div>
-      <div class="jhb-tagline">UK Ltd · Line Marking Experts</div>
-    </div>
-    <div>
-      <div class="walk-title">Charity Walk 2026</div>
-      <div class="walk-sub">9 walkers · 4 starting points · Blackpool School → Buckfastleigh → South Brent</div>
-    </div>
+  <img class="logo-img" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/JHB%20Logo.png" alt="JHB UK Ltd" onerror="this.outerHTML='<span style=\'font-size:22px;font-weight:900;color:#cc2222;font-style:italic\'>JHB</span>'">
+  <div class="header-centre">
+    <div class="walk-title">Charity Walk 2026</div>
+    <div class="walk-sub">9 walkers · Blackpool School → Buckfastleigh → South Brent</div>
   </div>
-  <div class="charity-badge">
-    <span class="heart">&#10084;</span>
-    Raising Money for Charity
-  </div>
+  <div class="charity-badge"><span class="heart">&#10084;</span> Raising Money for Charity</div>
 </header>
 
-<div id="map"></div>
+<div id="mapWrap">
+  <div id="map"></div>
+
+  <!-- Donation screen sits inside map wrapper so it covers just the map area -->
+  <div id="donScreen">
+    <img class="don-logo" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/JHB%20Logo.png" alt="JHB UK Ltd">
+    <div class="don-title">The walk is done.<br>Now it's your turn! &#127939;</div>
+    <div class="don-sub">The JHB team have walked from across Devon to raise money for charity. Every pound counts — please scan the QR code or visit our JustGiving page to donate.</div>
+    <img class="don-qr" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/justgiving-qr-code.png" alt="JustGiving QR Code">
+    <div class="don-scan">Scan to donate</div>
+    <div class="don-url">or visit our JustGiving page</div>
+    <div class="don-walkers">
+      <strong>Your walkers:</strong><br>
+      James Hodge-Brooks · Beth Hodge-Brooks · Tom Brooks · Tristan Allen · Zak Carnell<br>
+      Mark Stafford · Alex Nita · Joe Nixon · Jenna Turvey
+    </div>
+    <button class="btn btn-grey" style="margin-top:24px" onclick="replayWalk()">&#8635; Replay the walk</button>
+  </div>
+</div>
 
 <div class="panel">
   <div class="panel-top">
-    <div class="controls">
-      <button class="btn btn-primary" id="playBtn" onclick="startAnimation()" disabled>Loading routes…</button>
-      <button class="btn btn-secondary" onclick="resetAll()">&#8635; Reset</button>
-      <div class="speed-wrap">
-        <label>SPEED</label>
-        <input type="range" id="spd" min="1" max="8" value="3" oninput="updateSpeed(this.value)">
-        <span class="speed-val" id="spdVal">3&#215;</span>
-      </div>
+    <button class="btn btn-red" id="playBtn" onclick="startWalk()" disabled>Loading routes…</button>
+    <button class="btn btn-grey" onclick="resetWalk()">&#8635; Reset</button>
+    <div class="speed-row">
+      <label>SPEED</label>
+      <input type="range" id="spd" min="1" max="8" value="3" oninput="updateSpeed(this.value)">
+      <span class="speed-val" id="spdVal">3&#215;</span>
     </div>
     <div class="phase-tag" id="phaseTag">Loading routes…</div>
   </div>
 
   <div class="legend" id="legend">
     <div class="leg" id="leg-jb">
-      <img class="leg-avatar" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/James%20Hodge-Brooks_cvface1.jpg" onerror="this.style.display='none'">
-      <img class="leg-avatar" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/Beth%20Hodge-Brooks_cvface1.jpg" onerror="this.style.display='none'">
+      <img class="leg-av" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/James%20Hodge-Brooks_cvface1.jpg" onerror="this.style.display='none'">
+      <img class="leg-av" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/Beth%20Hodge-Brooks_cvface1.jpg" onerror="this.style.display='none'">
       James &amp; Beth
     </div>
     <div class="leg" id="leg-ttz">
-      <img class="leg-avatar" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/Tom%20Brooks_cvface1.jpg" onerror="this.style.display='none'">
-      <img class="leg-avatar" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/Tristan%20Allen_cvface1.jpg" onerror="this.style.display='none'">
-      <img class="leg-avatar" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/Zak%20Carnell_cvface1.jpg" onerror="this.style.display='none'">
+      <img class="leg-av" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/Tom%20Brooks_cvface1.jpg" onerror="this.style.display='none'">
+      <img class="leg-av" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/Tristan%20Allen_cvface1.jpg" onerror="this.style.display='none'">
+      <img class="leg-av" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/Zak%20Carnell_cvface1.jpg" onerror="this.style.display='none'">
       Tom, Tristan &amp; Zak
     </div>
     <div class="leg" id="leg-mark">
-      <img class="leg-avatar" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/Mark%20Stafford_cvface1.jpg" onerror="this.style.display='none'">
+      <img class="leg-av" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/Mark%20Stafford_cvface1.jpg" onerror="this.style.display='none'">
       Mark
     </div>
     <div class="leg" id="leg-aj">
-      <img class="leg-avatar" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/Alex%20Nita_cvface1.jpg" onerror="this.style.display='none'">
-      <img class="leg-avatar" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/Joe%20Nixon_cvface1.jpg" onerror="this.style.display='none'">
+      <img class="leg-av" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/Alex%20Nita_cvface1.jpg" onerror="this.style.display='none'">
+      <img class="leg-av" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/Joe%20Nixon_cvface1.jpg" onerror="this.style.display='none'">
       Alex &amp; Joe
     </div>
     <div class="leg" id="leg-jen">
-      <img class="leg-avatar" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/Jenna%20Turvey_cvface1.jpg" onerror="this.style.display='none'">
-      Jenna (joining at Buckfastleigh)
+      <img class="leg-av" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/Jenna%20Turvey_cvface1.jpg" onerror="this.style.display='none'">
+      Jenna (waiting at Buckfastleigh)
     </div>
     <div class="leg" id="leg-all" style="display:none">
-      <img class="leg-avatar" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/James%20Hodge-Brooks_cvface1.jpg" onerror="this.style.display='none'">
-      All Together &#8594; JHB South Brent
+      <img class="leg-av" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/James%20Hodge-Brooks_cvface1.jpg" onerror="this.style.display='none'">
+      All 9 Together &#8594; JHB South Brent
     </div>
   </div>
 
   <div class="status-bar">
-    <div class="status-txt" id="statusTxt">Calculating walking routes, please wait…</div>
-    <div class="prog-wrap">
-      <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
-      <span class="prog-pct" id="progPct">0%</span>
-    </div>
+    <div class="status-txt" id="statusTxt">Calculating walking routes…</div>
+    <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+    <span class="prog-pct" id="progPct">0%</span>
   </div>
 </div>
 
 <script>
-// ─────────────────────────────────────────────────────────────────
-// CONSTANTS
-// ─────────────────────────────────────────────────────────────────
-const BASE_IMG = 'https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/';
-const imgUrl = name => BASE_IMG + encodeURIComponent(name) + '_cvface1.jpg';
+// ═══════════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════════
+const IMG = 'https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/';
+const imgUrl = n => IMG + encodeURIComponent(n) + '_cvface1.jpg';
 
-const BLACKPOOL_POS    = { lat: 50.5544255, lng: -3.6777171 }; // Blackpool Primary School TQ12 6JB
-const BUCKFASTLEIGH_POS= { lat: 50.480587,  lng: -3.780076  }; // Buckfastleigh - Jenna's start
-const JHB_POS          = { lat: 50.432484,  lng: -3.803917  }; // JHB UK Ltd, South Brent
+const BLACKPOOL_POS     = { lat: 50.5544255, lng: -3.6777171 };
+const BUCKFASTLEIGH_POS = { lat: 50.480587,  lng: -3.780076  };
+const JHB_POS           = { lat: 50.432484,  lng: -3.803917  };
 
-// 4 groups walking to Blackpool School
+// Groups walk sequentially (in order) to Blackpool School
 const GROUPS = [
-  { id:'jb',   label:'James & Beth',       color:'#e65c00', legId:'leg-jb',
-    start:{ lat:50.5826722, lng:-3.6834438 },
-    members:['James Hodge-Brooks','Beth Hodge-Brooks'],
-    from:'Bovey Tracey (TQ13 9DN)' },
   { id:'ttz',  label:'Tom, Tristan & Zak', color:'#8e44ad', legId:'leg-ttz',
     start:{ lat:50.5520059, lng:-3.5958176 },
-    members:['Tom Brooks','Tristan Allen','Zak Carnell'],
-    from:'Kingsteignton (TQ12 3NB)' },
+    members:['Tom Brooks','Tristan Allen','Zak Carnell'], from:'Kingsteignton (TQ12 3NB)' },
+  { id:'jb',   label:'James & Beth',       color:'#e65c00', legId:'leg-jb',
+    start:{ lat:50.5826722, lng:-3.6834438 },
+    members:['James Hodge-Brooks','Beth Hodge-Brooks'], from:'Bovey Tracey (TQ13 9DN)' },
   { id:'mark', label:'Mark',               color:'#1565c0', legId:'leg-mark',
     start:{ lat:50.5883971, lng:-3.7157595 },
-    members:['Mark Stafford'],
-    from:'Bovey Tracey (TQ13 9LL)' },
+    members:['Mark Stafford'], from:'Bovey Tracey (TQ13 9LL)' },
   { id:'aj',   label:'Alex & Joe',         color:'#c17f00', legId:'leg-aj',
     start:{ lat:50.5362974, lng:-3.6402188 },
-    members:['Alex Nita','Joe Nixon'],
-    from:'Newton Abbot (TQ12 1RL)' },
+    members:['Alex Nita','Joe Nixon'], from:'Newton Abbot (TQ12 1RL)' },
 ];
-
-// Jenna waits at Buckfastleigh
 const JENNA = {
   id:'jen', label:'Jenna', color:'#c2185b', legId:'leg-jen',
-  start: BUCKFASTLEIGH_POS,
-  members:['Jenna Turvey'],
-  from:'Buckfastleigh (TQ11 0DD)'
+  members:['Jenna Turvey'], from:'Buckfastleigh (TQ11 0DD)'
 };
 
-// ─────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
 // STATE
-// ─────────────────────────────────────────────────────────────────
-let map, dirSvc;
-let routePaths     = {};  // id → LatLng[] (leg to Blackpool)
-let legBuckPath    = [];  // Blackpool → Buckfastleigh
-let legJHBPath     = [];  // Buckfastleigh → JHB
-let mapMarkers     = {};  // id → google.maps.marker or overlay
-let overlays       = {};  // id → PhotoOverlay
-let polylines      = {};
-let trailLines     = {};
-let animFrameIds   = {};
-let arrivedBlackpool = 0;
-let speedMult      = 3;
-let animRunning    = false;
-let routesLoaded   = 0;
-const TOTAL_ROUTES = GROUPS.length + 2; // 4 individual + blackpool→buck + buck→JHB
+// ═══════════════════════════════════════════════════════════════
+let map, dirSvc, PhotoOverlay;
+let routePaths   = {};
+let legBuckPath  = [];
+let legJHBPath   = [];
+let overlays     = {};
+let polylines    = {};
+let trailLines   = {};
+let animFrameIds = {};
+let speedMult    = 3;
+let animRunning  = false;
+let routesLoaded = 0;
+const TOTAL_ROUTES = GROUPS.length + 2;
 
-// ─────────────────────────────────────────────────────────────────
-// PHOTO OVERLAY CLASS — assigned at runtime inside initMap()
-// ─────────────────────────────────────────────────────────────────
-let PhotoOverlay;
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+function initMap() {
 
-function definePhotoOverlay() {
+  // ── PHOTO OVERLAY CLASS ─────────────────────────────────────
   PhotoOverlay = class extends google.maps.OverlayView {
-  constructor(position, members, color, title) {
-    super();
-    this.pos     = position;
-    this.members = members; // array of name strings
-    this.color   = color;
-    this.title   = title;
-    this.div     = null;
-    this._clickCb = null;
-  }
-
-  onAdd() {
-    const div = document.createElement('div');
-    div.style.cssText = 'position:absolute; cursor:pointer; user-select:none;';
-
-    if (this.members.length === 1) {
-      // Single circular photo
-      const outer = document.createElement('div');
-      outer.style.cssText = `width:42px;height:42px;border-radius:50%;border:3px solid ${this.color};box-shadow:0 2px 8px rgba(0,0,0,0.3);overflow:hidden;background:#eee;transition:transform 0.2s;`;
-      const img = document.createElement('img');
-      img.src = imgUrl(this.members[0]);
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
-      img.onerror = () => { img.src = ''; outer.style.background = this.color; outer.style.display = 'flex'; outer.style.alignItems = 'center'; outer.style.justifyContent = 'center'; outer.innerHTML += `<span style="color:#fff;font-size:14px;font-weight:700;">${this.members[0].split(' ').map(n=>n[0]).join('').slice(0,2)}</span>`; };
-      outer.appendChild(img);
-      outer.addEventListener('mouseenter', () => outer.style.transform = 'scale(1.12)');
-      outer.addEventListener('mouseleave', () => outer.style.transform = 'scale(1)');
-      div.appendChild(outer);
-    } else {
-      // Stacked group photos
+    constructor(pos, members, color) {
+      super();
+      this.pos = typeof pos.lat === 'function' ? pos : new google.maps.LatLng(pos.lat, pos.lng);
+      this.members = members;
+      this.color   = color;
+      this.div     = null;
+      this._cb     = null;
+    }
+    onAdd() {
+      const div = document.createElement('div');
+      div.style.cssText = 'position:absolute;cursor:pointer;user-select:none;';
       const wrap = document.createElement('div');
-      wrap.style.cssText = 'display:flex;align-items:center;';
+      wrap.style.cssText = 'display:flex;align-items:center;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.35));';
       this.members.forEach((name, i) => {
-        const outer = document.createElement('div');
-        outer.style.cssText = `width:34px;height:34px;border-radius:50%;border:2.5px solid ${this.color};box-shadow:0 2px 6px rgba(0,0,0,0.25);overflow:hidden;background:#eee;margin-left:${i===0?'0':'-8px'};z-index:${10-i};position:relative;`;
+        const circle = document.createElement('div');
+        const size = this.members.length === 1 ? 42 : 34;
+        circle.style.cssText = `width:${size}px;height:${size}px;border-radius:50%;border:3px solid ${this.color};overflow:hidden;background:#eee;flex-shrink:0;${i>0?`margin-left:-9px;`:''}z-index:${20-i};position:relative;transition:transform 0.2s;`;
         const img = document.createElement('img');
         img.src = imgUrl(name);
-        img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
-        img.onerror = () => { outer.style.background = this.color; };
-        outer.appendChild(img);
-        wrap.appendChild(outer);
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+        img.onerror = () => {
+          img.remove();
+          circle.style.background = this.color;
+          circle.style.display = 'flex'; circle.style.alignItems = 'center'; circle.style.justifyContent = 'center';
+          const init = document.createElement('span');
+          init.textContent = name.split(' ').map(w=>w[0]).join('').slice(0,2);
+          init.style.cssText = 'color:#fff;font-size:13px;font-weight:700;';
+          circle.appendChild(init);
+        };
+        circle.appendChild(img);
+        wrap.appendChild(circle);
       });
+      wrap.addEventListener('mouseenter', () => wrap.style.transform = 'scale(1.1)');
+      wrap.addEventListener('mouseleave', () => wrap.style.transform = 'scale(1)');
+      div.addEventListener('click', () => this._cb && this._cb());
       div.appendChild(wrap);
+      this.div = div;
+      this.getPanes().overlayMouseTarget.appendChild(div);
     }
-
-    div.title = this.title;
-    div.addEventListener('click', () => { if (this._clickCb) this._clickCb(); });
-    this.div = div;
-    const panes = this.getPanes();
-    panes.overlayMouseTarget.appendChild(div);
-  }
-
-  draw() {
-    if (!this.div) return;
-    const proj = this.getProjection();
-    const pt   = proj.fromLatLngToDivPixel(this.pos);
-    const w    = this.members.length === 1 ? 42 : (34 + (this.members.length - 1) * 26);
-    const h    = this.members.length === 1 ? 42 : 34;
-    this.div.style.left = (pt.x - w / 2) + 'px';
-    this.div.style.top  = (pt.y - h / 2) + 'px';
-  }
-
-  setPosition(latLng) {
-    this.pos = latLng;
-    this.draw();
-  }
-
-  setBorderColor(color) {
-    this.color = color;
-    if (this.div) {
-      this.div.querySelectorAll('div').forEach(d => {
-        if (d.style.borderRadius === '50%') d.style.borderColor = color;
-      });
+    draw() {
+      if (!this.div) return;
+      const proj = this.getProjection();
+      const pt   = proj.fromLatLngToDivPixel(this.pos);
+      const n    = this.members.length;
+      const size = n === 1 ? 42 : 34;
+      const w    = size + Math.max(0, n-1) * (size - 9);
+      const h    = n === 1 ? 42 : 34;
+      this.div.style.left = (pt.x - w/2) + 'px';
+      this.div.style.top  = (pt.y - h/2) + 'px';
     }
-  }
-
-  onRemove() {
-    if (this.div) { this.div.parentNode?.removeChild(this.div); this.div = null; }
-  }
-
-    onClick(cb) { this._clickCb = cb; }
+    setPosition(latLng) {
+      this.pos = latLng;
+      this.draw();
+    }
+    setBorderColor(color) {
+      this.color = color;
+      if (this.div) this.div.querySelectorAll('div[style*="border-radius:50%"]').forEach(d => d.style.borderColor = color);
+    }
+    setVisible(v) { if (this.div) this.div.style.display = v ? '' : 'none'; }
+    onClick(cb) { this._cb = cb; }
+    onRemove() { this.div?.parentNode?.removeChild(this.div); this.div = null; }
   };
-}
 
-// ─────────────────────────────────────────────────────────────────
-// MAP INIT
-// ─────────────────────────────────────────────────────────────────
-function initMap() {
-  definePhotoOverlay();
+  // ── MAP ─────────────────────────────────────────────────────
   map = new google.maps.Map(document.getElementById('map'), {
-    center: { lat: 50.52, lng: -3.72 },
-    zoom: 11,
-    mapTypeId: 'roadmap',
-    mapTypeControl: true,
-    streetViewControl: false,
-    mapTypeControlOptions: {
-      style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
-      position: google.maps.ControlPosition.TOP_RIGHT,
-    },
+    center: { lat: 50.52, lng: -3.71 },
+    zoom: 11, mapTypeId: 'roadmap',
+    mapTypeControl: false, streetViewControl: false,
+    fullscreenControl: false,
   });
-
   dirSvc = new google.maps.DirectionsService();
 
-  // Place group photo overlays at start positions
+  // Group start markers (all dimmed initially)
   GROUPS.forEach(g => {
-    const overlay = new PhotoOverlay(
-      new google.maps.LatLng(g.start.lat, g.start.lng),
-      g.members, g.color, g.label
-    );
-    overlay.setMap(map);
-    const iw = new google.maps.InfoWindow({
-      content: buildIW(g.members, g.label, g.from)
-    });
-    overlay.onClick(() => iw.open(map));
-    overlays[g.id] = overlay;
+    const ov = new PhotoOverlay(g.start, g.members, '#ccc');
+    ov.setMap(map);
+    const iw = new google.maps.InfoWindow({ content: buildIW(g) });
+    ov.onClick(() => iw.open(map));
+    overlays[g.id] = ov;
   });
 
   // Jenna waiting at Buckfastleigh
-  const jennaOverlay = new PhotoOverlay(
-    new google.maps.LatLng(BUCKFASTLEIGH_POS.lat, BUCKFASTLEIGH_POS.lng),
-    JENNA.members, JENNA.color, 'Jenna — waiting at Buckfastleigh'
-  );
-  jennaOverlay.setMap(map);
-  const jennaIW = new google.maps.InfoWindow({
-    content: buildIW(JENNA.members, 'Jenna Turvey', 'Waiting at Buckfastleigh (TQ11 0DD)')
-  });
-  jennaOverlay.onClick(() => jennaIW.open(map));
-  overlays['jen'] = jennaOverlay;
+  const jenOv = new PhotoOverlay(BUCKFASTLEIGH_POS, JENNA.members, JENNA.color);
+  jenOv.setMap(map);
+  const jenIW = new google.maps.InfoWindow({ content: buildIW(JENNA) });
+  jenOv.onClick(() => jenIW.open(map));
+  overlays['jen'] = jenOv;
 
-  // Blackpool School pin
-  placeFlagPin(BLACKPOOL_POS, 'Blackpool Primary School',
-    '<div class="iw-wrap"><div class="iw-title">&#127983; Blackpool Primary School</div><div class="iw-body">TQ12 6JB — First meeting point<br>4 groups converge here</div></div>');
-
-  // JHB finish pin
-  placeFlagPin(JHB_POS, 'JHB UK Ltd — Finish',
-    '<div class="iw-wrap"><div class="iw-title">&#127937; JHB UK Ltd — Finish Line</div><div class="iw-body">The Roadhouse, Marley Head<br>South Brent, TQ10 9FQ<br><span style="color:#999;font-size:11px">01626 830014 · jhbukltd.co.uk</span></div></div>');
+  // Waypoint pins
+  placePin(BLACKPOOL_POS, '#cc2222',
+    '<div class="iw"><div class="iw-title">&#127983; Blackpool Primary School</div><div class="iw-body">TQ12 6JB — Meeting point<br><span class="iw-dist">All 8 walkers converge here</span></div></div>');
+  placePin(JHB_POS, '#cc2222',
+    '<div class="iw"><div class="iw-title">&#127937; JHB UK Ltd — Finish</div><div class="iw-body">The Roadhouse, Marley Head, South Brent TQ10 9FQ<br><span class="iw-dist">01626 830014 · jhbukltd.co.uk</span></div></div>');
 
   fetchRoutes();
 }
 
-function buildIW(members, label, from) {
-  const photos = members.map(n =>
-    `<img src="${imgUrl(n)}" onerror="this.style.display='none'" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #eee;margin-left:${members.indexOf(n)===0?'0':'-8px'}">`
-  ).join('');
-  return `<div class="iw-wrap">
-    <div class="iw-head">
-      <div style="display:flex">${photos}</div>
-      <div><div class="iw-title">&#127939; ${label}</div></div>
-    </div>
-    <div class="iw-body">${members.join(', ')}</div>
-    <div class="iw-dist">Starting from: ${from}</div>
-  </div>`;
-}
-
-function placeFlagPin(pos, title, iwContent) {
-  const marker = new google.maps.Marker({
-    position: pos, map, zIndex: 10, title,
-    icon: {
-      path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
-      fillColor: '#cc2222', fillOpacity: 1,
-      strokeColor: '#fff', strokeWeight: 1.5,
-      scale: 1.8, anchor: new google.maps.Point(12, 22),
-    }
-  });
-  const iw = new google.maps.InfoWindow({ content: iwContent });
-  marker.addListener('click', () => iw.open(map, marker));
-}
-
-// ─────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
 // ROUTE FETCHING
-// ─────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
 function fetchRoutes() {
-  // Individual: start → Blackpool School
   GROUPS.forEach(g => {
-    dirSvc.route({
-      origin: g.start,
-      destination: BLACKPOOL_POS,
-      travelMode: google.maps.TravelMode.WALKING,
-    }, (res, status) => {
-      if (status === 'OK') {
-        routePaths[g.id] = decodePath(res);
-        const leg = res.routes[0].legs[0];
-        g.distance = leg.distance.text;
-        g.duration  = leg.duration.text;
-      } else {
-        routePaths[g.id] = interpolate(g.start, BLACKPOOL_POS, 100);
-        g.distance = '—'; g.duration = '—';
-      }
+    dirSvc.route({ origin: g.start, destination: BLACKPOOL_POS, travelMode: google.maps.TravelMode.WALKING },
+      (res, status) => {
+        routePaths[g.id] = status === 'OK' ? decodePath(res) : interpolate(g.start, BLACKPOOL_POS, 100);
+        if (status === 'OK') { const l = res.routes[0].legs[0]; g.distance = l.distance.text; g.duration = l.duration.text; }
+        onRouteLoaded();
+      });
+  });
+  dirSvc.route({ origin: BLACKPOOL_POS, destination: BUCKFASTLEIGH_POS, travelMode: google.maps.TravelMode.WALKING },
+    (res, status) => {
+      legBuckPath = status === 'OK' ? decodePath(res) : interpolate(BLACKPOOL_POS, BUCKFASTLEIGH_POS, 120);
+      if (status === 'OK') window._buckDist = res.routes[0].legs[0].distance.text;
       onRouteLoaded();
     });
-  });
-
-  // Collective leg 1: Blackpool → Buckfastleigh
-  dirSvc.route({
-    origin: BLACKPOOL_POS,
-    destination: BUCKFASTLEIGH_POS,
-    travelMode: google.maps.TravelMode.WALKING,
-  }, (res, status) => {
-    legBuckPath = status === 'OK' ? decodePath(res) : interpolate(BLACKPOOL_POS, BUCKFASTLEIGH_POS, 120);
-    if (status === 'OK') {
-      const leg = res.routes[0].legs[0];
-      window._buckDist = leg.distance.text;
-    }
-    onRouteLoaded();
-  });
-
-  // Collective leg 2: Buckfastleigh → JHB
-  dirSvc.route({
-    origin: BUCKFASTLEIGH_POS,
-    destination: JHB_POS,
-    travelMode: google.maps.TravelMode.WALKING,
-  }, (res, status) => {
-    legJHBPath = status === 'OK' ? decodePath(res) : interpolate(BUCKFASTLEIGH_POS, JHB_POS, 100);
-    if (status === 'OK') {
-      const leg = res.routes[0].legs[0];
-      window._jhbDist = leg.distance.text;
-    }
-    onRouteLoaded();
-  });
-}
-
-function decodePath(res) {
-  const pts = [];
-  res.routes[0].legs.forEach(leg =>
-    leg.steps.forEach(step =>
-      google.maps.geometry.encoding.decodePath(step.polyline.points).forEach(p => pts.push(p))
-    )
-  );
-  return pts;
-}
-
-function interpolate(a, b, n) {
-  const pts = [];
-  for (let i = 0; i <= n; i++)
-    pts.push(new google.maps.LatLng(
-      a.lat + (b.lat - a.lat) * i / n,
-      a.lng + (b.lng - a.lng) * i / n
-    ));
-  return pts;
+  dirSvc.route({ origin: BUCKFASTLEIGH_POS, destination: JHB_POS, travelMode: google.maps.TravelMode.WALKING },
+    (res, status) => {
+      legJHBPath = status === 'OK' ? decodePath(res) : interpolate(BUCKFASTLEIGH_POS, JHB_POS, 100);
+      if (status === 'OK') window._jhbDist = res.routes[0].legs[0].distance.text;
+      onRouteLoaded();
+    });
 }
 
 function onRouteLoaded() {
   routesLoaded++;
-  const pct = Math.round((routesLoaded / TOTAL_ROUTES) * 40);
-  setStatus(`Calculating walking routes… ${routesLoaded} of ${TOTAL_ROUTES}`, pct);
+  setStatus(`Calculating walking routes… ${routesLoaded} of ${TOTAL_ROUTES}`, (routesLoaded/TOTAL_ROUTES)*40);
   if (routesLoaded < TOTAL_ROUTES) return;
 
-  // Ghost paths
-  GROUPS.forEach(g => new google.maps.Polyline({
-    path: routePaths[g.id], map,
-    strokeColor: g.color, strokeOpacity: 0.12, strokeWeight: 3,
-  }));
-  new google.maps.Polyline({ path: legBuckPath, map, strokeColor: '#cc2222', strokeOpacity: 0.1, strokeWeight: 4 });
-  new google.maps.Polyline({ path: legJHBPath,  map, strokeColor: '#cc2222', strokeOpacity: 0.1, strokeWeight: 4 });
+  // Faint ghost paths
+  GROUPS.forEach(g => new google.maps.Polyline({ path: routePaths[g.id], map, strokeColor: g.color, strokeOpacity: 0.1, strokeWeight: 3 }));
+  new google.maps.Polyline({ path: legBuckPath, map, strokeColor: '#cc2222', strokeOpacity: 0.08, strokeWeight: 4 });
+  new google.maps.Polyline({ path: legJHBPath,  map, strokeColor: '#cc2222', strokeOpacity: 0.08, strokeWeight: 4 });
 
   document.getElementById('playBtn').disabled = false;
-  document.getElementById('playBtn').textContent = '▶ Play Routes';
-  document.getElementById('phaseTag').textContent = 'Ready to Walk';
+  document.getElementById('playBtn').textContent = '▶ Play Walk';
+  document.getElementById('phaseTag').textContent = 'Ready';
   setStatus('All routes ready — press Play to begin!', 0);
+
+  // Mark all leg items as waiting
+  [...document.querySelectorAll('.leg')].forEach(el => el.classList.add('waiting'));
 }
 
-// ─────────────────────────────────────────────────────────────────
-// PHASE 1 — individual walks to Blackpool School
-// ─────────────────────────────────────────────────────────────────
-function startAnimation() {
+// ═══════════════════════════════════════════════════════════════
+// MAIN ENTRY POINT
+// ═══════════════════════════════════════════════════════════════
+function startWalk() {
   if (animRunning || routesLoaded < TOTAL_ROUTES) return;
   animRunning = true;
-  arrivedBlackpool = 0;
-
   document.getElementById('playBtn').disabled = true;
-  document.getElementById('phaseTag').textContent = 'Phase 1 — Walking to Blackpool School';
-  setStatus('All 8 walkers setting off from their starting points…', 5);
-
-  GROUPS.forEach(g => {
-    document.getElementById(g.legId).classList.add('active');
-    animateGroup(g);
-  });
+  document.getElementById('donScreen').classList.remove('show');
+  runSequentialGroups(0);
 }
 
-function animateGroup(g) {
+// ═══════════════════════════════════════════════════════════════
+// PHASE 1 — each group walks one at a time, camera follows
+// ═══════════════════════════════════════════════════════════════
+function runSequentialGroups(index) {
+  if (index >= GROUPS.length) {
+    setTimeout(startCollectiveToBuckfastleigh, 800);
+    return;
+  }
+  const g = GROUPS[index];
   const path = routePaths[g.id];
-  if (!path?.length) { onArrivedBlackpool(g); return; }
 
-  polylines[g.id]  = new google.maps.Polyline({ path:[], map, strokeColor:g.color, strokeOpacity:0.85, strokeWeight:4, zIndex:3 });
-  trailLines[g.id] = new google.maps.Polyline({ path:[], map, strokeColor:g.color, strokeOpacity:0.2,  strokeWeight:9, zIndex:2 });
+  // Update phase tag and legend
+  document.getElementById('phaseTag').textContent = `Phase 1 · ${g.label} walking`;
+  const legEl = document.getElementById(g.legId);
+  legEl.classList.remove('waiting');
+  legEl.classList.add('current');
+
+  // Activate this group's overlay colour
+  overlays[g.id].setBorderColor(g.color);
+
+  // Zoom map to fit start → school
+  fitBounds([g.start, BLACKPOOL_POS]);
+
+  setStatus(`${g.label} setting off from ${g.from}…`, 40 + index * 10);
+
+  // Draw the line ahead (ghost for this group's leg)
+  const activeLine = new google.maps.Polyline({ path, map, strokeColor: g.color, strokeOpacity: 0.25, strokeWeight: 3 });
+
+  // Animated trail + progress line
+  polylines[g.id]  = new google.maps.Polyline({ path:[], map, strokeColor: g.color, strokeOpacity: 0.9, strokeWeight: 5, zIndex:4 });
+  trailLines[g.id] = new google.maps.Polyline({ path:[], map, strokeColor: g.color, strokeOpacity: 0.2, strokeWeight:10, zIndex:3 });
 
   let step = 0;
-  const TRAIL = 18;
+  const TRAIL = 20;
+  const CAMERA_LEAD = 8; // points ahead of marker to pan to
 
   function tick() {
     if (!animRunning) return;
-    const stride = Math.max(1, Math.floor(speedMult * 0.75));
+    const stride = Math.max(1, Math.floor(speedMult * 0.8));
     for (let s = 0; s < stride && step < path.length; s++, step++) {
       const pos = path[step];
       overlays[g.id].setPosition(pos);
-      polylines[g.id].setPath(path.slice(0, step + 1));
-      trailLines[g.id].setPath(path.slice(Math.max(0, step - TRAIL), step + 1));
+      polylines[g.id].setPath(path.slice(0, step+1));
+      trailLines[g.id].setPath(path.slice(Math.max(0, step-TRAIL), step+1));
+      // Smooth camera follow — pan towards a point slightly ahead
+      const lookAhead = path[Math.min(step + CAMERA_LEAD, path.length-1)];
+      map.panTo(lookAhead);
     }
-    const total = GROUPS.reduce((s, gr) => s + (routePaths[gr.id]?.length || 0), 0);
-    const done  = GROUPS.reduce((s, gr) => s + (polylines[gr.id]?.getPath().getLength() || 0), 0);
-    setStatus(`Walking to Blackpool School… ${arrivedBlackpool} of ${GROUPS.length} arrived`, 5 + (done/total)*50);
+    const pct = 40 + index*10 + (step/path.length)*9;
+    setStatus(`${g.label} walking to Blackpool School (${g.distance || '…'})…`, pct);
 
     if (step >= path.length) {
       trailLines[g.id].setMap(null);
-      onArrivedBlackpool(g);
+      activeLine.setMap(null);
+      // Mark arrived
+      overlays[g.id].setPosition(new google.maps.LatLng(BLACKPOOL_POS.lat, BLACKPOOL_POS.lng));
+      overlays[g.id].setBorderColor('#cc2222');
+      legEl.classList.remove('current');
+      legEl.classList.add('arrived');
+      // Small pause then next group
+      setTimeout(() => runSequentialGroups(index + 1), 600);
     } else {
       animFrameIds[g.id] = requestAnimationFrame(tick);
     }
@@ -589,95 +448,79 @@ function animateGroup(g) {
   animFrameIds[g.id] = requestAnimationFrame(tick);
 }
 
-function onArrivedBlackpool(g) {
-  arrivedBlackpool++;
-  overlays[g.id].setPosition(new google.maps.LatLng(BLACKPOOL_POS.lat, BLACKPOOL_POS.lng));
-  overlays[g.id].setBorderColor('#cc2222');
-  document.getElementById(g.legId).classList.remove('active');
-  document.getElementById(g.legId).classList.add('arrived');
-  setStatus(`${arrivedBlackpool} of ${GROUPS.length} groups at Blackpool School!`, 55 + arrivedBlackpool * 3);
-  if (arrivedBlackpool === GROUPS.length) setTimeout(startLegToBuckfastleigh, 1200);
-}
+// ═══════════════════════════════════════════════════════════════
+// PHASE 2 — all 8 together to Buckfastleigh
+// ═══════════════════════════════════════════════════════════════
+function startCollectiveToBuckfastleigh() {
+  document.getElementById('phaseTag').textContent = 'Phase 2 · All 8 → Buckfastleigh';
+  setStatus(`All 8 walkers together — heading to Buckfastleigh to meet Jenna${window._buckDist ? ' (' + window._buckDist + ')' : ''}…`, 82);
 
-// ─────────────────────────────────────────────────────────────────
-// PHASE 2 — 8 together to Buckfastleigh
-// ─────────────────────────────────────────────────────────────────
-function startLegToBuckfastleigh() {
-  document.getElementById('phaseTag').textContent = 'Phase 2 — Walking to Buckfastleigh';
-  setStatus(`8 walkers united! Heading to Buckfastleigh to meet Jenna${window._buckDist ? ' (' + window._buckDist + ')' : ''}…`, 68);
+  // Hide individual overlays, show merged group
+  GROUPS.forEach(g => overlays[g.id].setVisible(false));
 
-  // Merge all individual overlays into one big group overlay
-  GROUPS.forEach(g => overlays[g.id].setMap(null));
+  // Spread the faces out slightly so none overlap — offset them in a tight arc around Blackpool
+  const offsets = [
+    { lat:  0.001, lng: -0.002 },
+    { lat:  0.002, lng:  0.000 },
+    { lat:  0.001, lng:  0.002 },
+    { lat: -0.001, lng:  0.002 },
+    { lat: -0.002, lng:  0.000 },
+    { lat: -0.001, lng: -0.002 },
+    { lat:  0.000, lng: -0.003 },
+    { lat:  0.000, lng:  0.003 },
+  ];
 
+  // One overlay per person, spread around Blackpool
   const allMembers = GROUPS.flatMap(g => g.members);
-  const groupOverlay = new PhotoOverlay(
-    new google.maps.LatLng(BLACKPOOL_POS.lat, BLACKPOOL_POS.lng),
-    allMembers.slice(0, 4), // show first 4 faces stacked
-    '#cc2222', 'The JHB team — walking to Buckfastleigh'
-  );
-  groupOverlay.setMap(map);
-  overlays['group'] = groupOverlay;
-
-  // Count badge alongside
-  animateCollective(groupOverlay, legBuckPath, '8', 68, 80, () => {
-    document.getElementById('leg-jen').classList.add('active');
-    setStatus('8 walkers arrived at Buckfastleigh — picking up Jenna!', 80);
-    setTimeout(startLegToJHB, 1400);
+  const memberColors = GROUPS.flatMap(g => g.members.map(() => g.color));
+  const memberOverlays = allMembers.map((name, i) => {
+    const pos = {
+      lat: BLACKPOOL_POS.lat + offsets[i].lat,
+      lng: BLACKPOOL_POS.lng + offsets[i].lng,
+    };
+    const ov = new PhotoOverlay(pos, [name], memberColors[i]);
+    ov.setMap(map);
+    return ov;
   });
-}
 
-// ─────────────────────────────────────────────────────────────────
-// PHASE 3 — all 9 to JHB South Brent
-// ─────────────────────────────────────────────────────────────────
-function startLegToJHB() {
-  document.getElementById('phaseTag').textContent = 'Phase 3 — All 9 Together → South Brent';
-  document.getElementById('leg-all').style.display = 'flex';
-  document.getElementById('leg-all').classList.add('active');
-  document.getElementById('leg-jen').classList.remove('active');
-  document.getElementById('leg-jen').classList.add('arrived');
+  // Zoom to fit Blackpool → Buckfastleigh
+  fitBounds([BLACKPOOL_POS, BUCKFASTLEIGH_POS]);
 
-  // Hide Jenna's waiting marker, add her to the group
-  overlays['jen'].setMap(null);
-
-  // New overlay with all 9 (show 4 faces + badge)
-  overlays['group'].setMap(null);
-  const allMembers = GROUPS.flatMap(g => g.members).concat(JENNA.members);
-  const finalOverlay = new PhotoOverlay(
-    new google.maps.LatLng(BUCKFASTLEIGH_POS.lat, BUCKFASTLEIGH_POS.lng),
-    allMembers.slice(0, 4),
-    '#cc2222', 'All 9 — JHB Charity Walk Team'
-  );
-  finalOverlay.setMap(map);
-  overlays['final'] = finalOverlay;
-
-  setStatus(`All 9 together! Final leg to JHB UK Ltd, South Brent${window._jhbDist ? ' (' + window._jhbDist + ')' : ''}…`, 82);
-
-  animateCollective(finalOverlay, legJHBPath, '9', 82, 98, onFinish);
-}
-
-// ─────────────────────────────────────────────────────────────────
-// GENERIC COLLECTIVE ANIMATOR
-// ─────────────────────────────────────────────────────────────────
-function animateCollective(overlay, path, countLabel, startPct, endPct, onDone) {
-  const poly  = new google.maps.Polyline({ path:[], map, strokeColor:'#cc2222', strokeOpacity:0.85, strokeWeight:6, zIndex:5 });
-  const trail = new google.maps.Polyline({ path:[], map, strokeColor:'#cc2222', strokeOpacity:0.2, strokeWeight:14, zIndex:4 });
+  const collPoly  = new google.maps.Polyline({ path:[], map, strokeColor:'#cc2222', strokeOpacity:0.85, strokeWeight:6, zIndex:5 });
+  const collTrail = new google.maps.Polyline({ path:[], map, strokeColor:'#cc2222', strokeOpacity:0.2, strokeWeight:14, zIndex:4 });
   const TRAIL = 22;
-  let step = 0;
+  const CAMERA_LEAD = 10;
 
+  let step = 0;
   function tick() {
     if (!animRunning) return;
     const stride = Math.max(1, Math.floor(speedMult));
-    for (let s = 0; s < stride && step < path.length; s++, step++) {
-      const pos = path[step];
-      overlay.setPosition(pos);
-      poly.setPath(path.slice(0, step + 1));
-      trail.setPath(path.slice(Math.max(0, step - TRAIL), step + 1));
+    for (let s = 0; s < stride && step < legBuckPath.length; s++, step++) {
+      const pos = legBuckPath[step];
+      // Move all individual member overlays together, keep slight offsets
+      memberOverlays.forEach((ov, i) => {
+        ov.setPosition(new google.maps.LatLng(
+          pos.lat() + offsets[i].lat * 0.3,
+          pos.lng() + offsets[i].lng * 0.3
+        ));
+      });
+      collPoly.setPath(legBuckPath.slice(0, step+1));
+      collTrail.setPath(legBuckPath.slice(Math.max(0, step-TRAIL), step+1));
+      const lookAhead = legBuckPath[Math.min(step + CAMERA_LEAD, legBuckPath.length-1)];
+      map.panTo(lookAhead);
     }
-    const pct = startPct + (step / path.length) * (endPct - startPct);
-    setStatus(document.getElementById('statusTxt').textContent.split('…')[0] + '…', pct);
-    if (step >= path.length) {
-      trail.setMap(null);
-      onDone();
+    setStatus(`Walking to Buckfastleigh to meet Jenna…`, 82 + (step/legBuckPath.length)*8);
+    if (step >= legBuckPath.length) {
+      collTrail.setMap(null);
+      // Position everyone at Buckfastleigh
+      memberOverlays.forEach((ov, i) => ov.setPosition(new google.maps.LatLng(
+        BUCKFASTLEIGH_POS.lat + offsets[i].lat * 0.3,
+        BUCKFASTLEIGH_POS.lng + offsets[i].lng * 0.3
+      )));
+      document.getElementById('leg-jen').classList.remove('waiting');
+      document.getElementById('leg-jen').classList.add('arrived');
+      setStatus('All 8 walkers meet Jenna at Buckfastleigh! All 9 together now!', 90);
+      setTimeout(() => startFinalLeg(memberOverlays, offsets), 1200);
     } else {
       requestAnimationFrame(tick);
     }
@@ -685,109 +528,171 @@ function animateCollective(overlay, path, countLabel, startPct, endPct, onDone) 
   requestAnimationFrame(tick);
 }
 
-// ─────────────────────────────────────────────────────────────────
-// FINISH
-// ─────────────────────────────────────────────────────────────────
-function onFinish() {
-  animRunning = false;
-  document.getElementById('phaseTag').textContent = '🎉 Walk Complete!';
-  const allEl = document.getElementById('leg-all');
-  allEl.classList.remove('active');
-  allEl.classList.add('arrived');
-  allEl.childNodes[allEl.childNodes.length - 1].textContent = ' Walk Complete — All at JHB! 🎉';
+// ═══════════════════════════════════════════════════════════════
+// PHASE 3 — all 9 together to JHB
+// ═══════════════════════════════════════════════════════════════
+function startFinalLeg(memberOverlays, offsets) {
+  document.getElementById('phaseTag').textContent = 'Phase 3 · All 9 → JHB South Brent';
+  document.getElementById('leg-all').style.display = 'flex';
+  document.getElementById('leg-all').classList.add('walking');
 
-  setStatus('🎉 All 9 walkers have arrived at JHB UK Ltd, South Brent! Incredible effort from everyone!', 100);
-  map.panTo(JHB_POS);
-  setTimeout(() => map.setZoom(15), 700);
+  // Add Jenna's overlay at Buckfastleigh with a slight offset
+  overlays['jen'].setVisible(false);
+  const jenOv = new PhotoOverlay(
+    { lat: BUCKFASTLEIGH_POS.lat + 0.001, lng: BUCKFASTLEIGH_POS.lng + 0.001 },
+    JENNA.members, JENNA.color
+  );
+  jenOv.setMap(map);
+  memberOverlays.push(jenOv);
 
-  document.getElementById('playBtn').disabled = false;
-  document.getElementById('playBtn').textContent = '✓ Walk Complete';
+  // 9 offsets
+  const offsets9 = [
+    { lat:  0.0012, lng: -0.0022 }, { lat:  0.0022, lng:  0.0000 },
+    { lat:  0.0012, lng:  0.0022 }, { lat: -0.0012, lng:  0.0022 },
+    { lat: -0.0022, lng:  0.0000 }, { lat: -0.0012, lng: -0.0022 },
+    { lat:  0.0000, lng: -0.0032 }, { lat:  0.0000, lng:  0.0032 },
+    { lat:  0.0000, lng:  0.0000 },
+  ];
 
-  // Pulse the finish overlay
-  if (overlays['final']) {
-    let p = 0;
-    const fn = () => {
-      p++;
-      if (overlays['final'].div) {
-        overlays['final'].div.style.transform = p % 2 === 0 ? 'scale(1.15)' : 'scale(1)';
-      }
-      if (p < 10) setTimeout(fn, 250);
-    };
-    fn();
+  setStatus(`All 9 together! Final leg to JHB UK Ltd, South Brent${window._jhbDist ? ' (' + window._jhbDist + ')' : ''}…`, 90);
+
+  fitBounds([BUCKFASTLEIGH_POS, JHB_POS]);
+
+  const finalPoly  = new google.maps.Polyline({ path:[], map, strokeColor:'#cc2222', strokeOpacity:0.9, strokeWeight:6, zIndex:5 });
+  const finalTrail = new google.maps.Polyline({ path:[], map, strokeColor:'#cc2222', strokeOpacity:0.2, strokeWeight:14, zIndex:4 });
+  const TRAIL = 22;
+  const CAMERA_LEAD = 10;
+
+  let step = 0;
+  function tick() {
+    if (!animRunning) return;
+    const stride = Math.max(1, Math.floor(speedMult));
+    for (let s = 0; s < stride && step < legJHBPath.length; s++, step++) {
+      const pos = legJHBPath[step];
+      memberOverlays.forEach((ov, i) => {
+        const off = offsets9[i] || { lat:0, lng:0 };
+        ov.setPosition(new google.maps.LatLng(pos.lat() + off.lat * 0.3, pos.lng() + off.lng * 0.3));
+      });
+      finalPoly.setPath(legJHBPath.slice(0, step+1));
+      finalTrail.setPath(legJHBPath.slice(Math.max(0, step-TRAIL), step+1));
+      const lookAhead = legJHBPath[Math.min(step + CAMERA_LEAD, legJHBPath.length-1)];
+      map.panTo(lookAhead);
+    }
+    setStatus(`All 9 walking to JHB UK Ltd, South Brent…`, 90 + (step/legJHBPath.length)*9);
+    if (step >= legJHBPath.length) {
+      finalTrail.setMap(null);
+      memberOverlays.forEach((ov, i) => {
+        const off = offsets9[i] || { lat:0, lng:0 };
+        ov.setPosition(new google.maps.LatLng(JHB_POS.lat + off.lat * 0.3, JHB_POS.lng + off.lng * 0.3));
+      });
+      document.getElementById('leg-all').classList.remove('walking');
+      document.getElementById('leg-all').classList.add('arrived');
+      setStatus('🎉 All 9 walkers have arrived at JHB UK Ltd! Amazing effort!', 100);
+      document.getElementById('phaseTag').textContent = '🎉 Walk Complete!';
+      map.setZoom(15); map.panTo(JHB_POS);
+      animRunning = false;
+      setTimeout(showDonationScreen, 2500);
+    } else {
+      requestAnimationFrame(tick);
+    }
   }
+  requestAnimationFrame(tick);
 }
 
-// ─────────────────────────────────────────────────────────────────
-// RESET
-// ─────────────────────────────────────────────────────────────────
-function resetAll() {
-  animRunning = false;
-  arrivedBlackpool = 0;
+// ═══════════════════════════════════════════════════════════════
+// DONATION SCREEN
+// ═══════════════════════════════════════════════════════════════
+function showDonationScreen() {
+  document.getElementById('donScreen').classList.add('show');
+}
 
+function replayWalk() {
+  document.getElementById('donScreen').classList.remove('show');
+  resetWalk();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RESET
+// ═══════════════════════════════════════════════════════════════
+function resetWalk() {
+  animRunning = false;
+  document.getElementById('donScreen').classList.remove('show');
   Object.values(animFrameIds).forEach(id => cancelAnimationFrame(id));
   animFrameIds = {};
   Object.values(polylines).forEach(p => p?.setMap(null));
   Object.values(trailLines).forEach(p => p?.setMap(null));
   polylines = {}; trailLines = {};
 
-  // Remove merged overlays
-  ['group','final'].forEach(k => { if (overlays[k]) { overlays[k].setMap(null); delete overlays[k]; } });
-
-  // Restore individual overlays at start positions
-  GROUPS.forEach(g => {
-    if (!overlays[g.id] || !overlays[g.id].div) {
-      const ov = new PhotoOverlay(
-        new google.maps.LatLng(g.start.lat, g.start.lng),
-        g.members, g.color, g.label
-      );
-      ov.setMap(map);
-      const iw = new google.maps.InfoWindow({ content: buildIW(g.members, g.label, g.from) });
-      ov.onClick(() => iw.open(map));
-      overlays[g.id] = ov;
-    } else {
-      overlays[g.id].setPosition(new google.maps.LatLng(g.start.lat, g.start.lng));
-      overlays[g.id].setBorderColor(g.color);
-      overlays[g.id].setMap(map);
+  // Remove any dynamically-created overlays except originals
+  Object.entries(overlays).forEach(([id, ov]) => {
+    if (id === 'jen') { ov.setMap(map); ov.setVisible(true); ov.setBorderColor(JENNA.color); }
+    else {
+      const g = GROUPS.find(g => g.id === id);
+      if (g) { ov.setMap(map); ov.setVisible(true); ov.setPosition(new google.maps.LatLng(g.start.lat, g.start.lng)); ov.setBorderColor('#ccc'); }
     }
-    const el = document.getElementById(g.legId);
-    el.classList.remove('active','arrived');
   });
 
-  // Restore Jenna
-  if (!overlays['jen'] || !overlays['jen'].div) {
-    const jov = new PhotoOverlay(
-      new google.maps.LatLng(BUCKFASTLEIGH_POS.lat, BUCKFASTLEIGH_POS.lng),
-      JENNA.members, JENNA.color, 'Jenna — waiting at Buckfastleigh'
-    );
-    jov.setMap(map);
-    overlays['jen'] = jov;
-  } else {
-    overlays['jen'].setMap(map);
-  }
-
-  ['leg-jen','leg-all'].forEach(id => {
-    const el = document.getElementById(id);
-    el.classList.remove('active','arrived');
+  document.querySelectorAll('.leg').forEach(el => {
+    el.classList.remove('current','walking','arrived');
+    if (el.id !== 'leg-all') el.classList.add('waiting');
   });
   document.getElementById('leg-all').style.display = 'none';
-
-  document.getElementById('phaseTag').textContent = 'Ready to Walk';
+  document.getElementById('leg-all').classList.remove('waiting');
+  document.getElementById('phaseTag').textContent = 'Ready';
   document.getElementById('playBtn').disabled = false;
-  document.getElementById('playBtn').textContent = '▶ Play Routes';
+  document.getElementById('playBtn').textContent = '▶ Play Walk';
   setStatus('Press Play to start the walk', 0);
-  map.setCenter({ lat: 50.52, lng: -3.72 });
+  map.setCenter({ lat: 50.52, lng: -3.71 });
   map.setZoom(11);
 }
 
-// ─────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
 // HELPERS
-// ─────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+function fitBounds(positions) {
+  const bounds = new google.maps.LatLngBounds();
+  positions.forEach(p => bounds.extend(p));
+  map.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
+}
+
+function decodePath(res) {
+  const pts = [];
+  res.routes[0].legs.forEach(leg => leg.steps.forEach(step =>
+    google.maps.geometry.encoding.decodePath(step.polyline.points).forEach(p => pts.push(p))
+  ));
+  return pts;
+}
+
+function interpolate(a, b, n) {
+  const pts = [];
+  for (let i = 0; i <= n; i++)
+    pts.push(new google.maps.LatLng(a.lat + (b.lat-a.lat)*i/n, a.lng + (b.lng-a.lng)*i/n));
+  return pts;
+}
+
+function placePin(pos, color, iwHTML) {
+  const m = new google.maps.Marker({
+    position: pos, map, zIndex: 10,
+    icon: { path:'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+      fillColor: color, fillOpacity: 1, strokeColor: '#fff', strokeWeight: 1.5,
+      scale: 1.8, anchor: new google.maps.Point(12, 22) }
+  });
+  const iw = new google.maps.InfoWindow({ content: iwHTML });
+  m.addListener('click', () => iw.open(map, m));
+}
+
+function buildIW(g) {
+  const faces = g.members.map(n => `<img src="${imgUrl(n)}" onerror="this.style.display='none'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid #fff;margin-left:${g.members.indexOf(n)?'-6px':'0'}">`).join('');
+  return `<div class="iw"><div class="iw-head"><div class="iw-faces">${faces}</div><div class="iw-title">${g.label}</div></div><div class="iw-body">${g.members.join(', ')}</div><div class="iw-dist">From: ${g.from}${g.distance?' · '+g.distance:''}</div></div>`;
+}
+
 function setStatus(msg, pct) {
   document.getElementById('statusTxt').textContent = msg;
   const p = Math.min(100, Math.round(pct));
   document.getElementById('progFill').style.width = p + '%';
-  document.getElementById('progPct').textContent  = p + '%';
+  document.getElementById('progPct').textContent = p + '%';
 }
+
 function updateSpeed(v) {
   speedMult = parseInt(v);
   document.getElementById('spdVal').textContent = v + '×';
@@ -795,8 +700,7 @@ function updateSpeed(v) {
 </script>
 
 <script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap">
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&libraries=geometry&callback=initMap">
 </script>
-
 </body>
 </html>
