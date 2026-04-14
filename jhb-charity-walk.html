@@ -437,8 +437,11 @@ function runSequentialGroups(index) {
           trailLines[g.id].setPath(path.slice(Math.max(0, step - TRAIL), step + 1));
         }
 
-        // Keep marker centred — pan to current position every frame
-        if (path[step]) map.panTo(path[step]);
+        // Centre map on marker — use setCenter every 6 steps to avoid
+        // queuing up transitions that cause the map to lag behind
+        if (step % 6 === 0 && path[step]) {
+          map.setCenter(path[step]);
+        }
 
         const pct = 42 + index * 12 + (step / path.length) * 11;
         setStatus(`${g.label} walking to Blackpool School (${g.distance || '…'})…`, pct);
@@ -518,8 +521,8 @@ function startCollectiveToBuckfastleigh() {
       });
       collPoly.setPath(legBuckPath.slice(0, step+1));
       collTrail.setPath(legBuckPath.slice(Math.max(0, step-TRAIL), step+1));
-      // Centre on the group's actual current position (not a lookahead offset)
-      map.panTo(pos);
+      // Centre on the group every 6 steps using setCenter (instant, no queue)
+      if (step % 6 === 0) map.setCenter(pos);
     }
     setStatus(`Walking to Buckfastleigh to meet Jenna…`, 82 + (step/legBuckPath.length)*8);
     if (step >= legBuckPath.length) {
@@ -585,8 +588,8 @@ function startFinalLeg(memberOverlays, offsets) {
       });
       finalPoly.setPath(legJHBPath.slice(0, step+1));
       finalTrail.setPath(legJHBPath.slice(Math.max(0, step-TRAIL), step+1));
-      // Centre on the group's actual current position
-      map.panTo(pos);
+      // Centre on the group every 6 steps using setCenter
+      if (step % 6 === 0) map.setCenter(pos);
     }
     setStatus(`All 9 walking to JHB UK Ltd, South Brent…`, 90 + (step/legJHBPath.length)*9);
     if (step >= legJHBPath.length) {
@@ -609,11 +612,9 @@ function startFinalLeg(memberOverlays, offsets) {
 // ARRIVAL CELEBRATION — flags then cut to QR
 // ═══════════════════════════════════════════════════════════════
 function showArrivalCelebration(memberOverlays, offsets9) {
-  // Zoom into JHB
+  // Zoom into JHB and position all faces
   map.setZoom(15);
   map.panTo(JHB_POS);
-
-  // Position all faces at JHB with offsets
   memberOverlays.forEach((ov, i) => {
     const off = offsets9[i] || { lat:0, lng:0 };
     ov.setPosition(new google.maps.LatLng(
@@ -621,36 +622,8 @@ function showArrivalCelebration(memberOverlays, offsets9) {
       JHB_POS.lng + off.lng * 0.3
     ));
   });
-
-  // Place animated flag markers at JHB
-  const flagEmojis = ['🏁', '🎉', '🏁'];
-  const flagOffsets = [
-    { lat:  0.0005, lng: -0.0006 },
-    { lat:  0.0006, lng:  0.0000 },
-    { lat:  0.0005, lng:  0.0006 },
-  ];
-  const flagMarkers = flagEmojis.map((emoji, i) => {
-    return new google.maps.Marker({
-      position: {
-        lat: JHB_POS.lat + flagOffsets[i].lat,
-        lng: JHB_POS.lng + flagOffsets[i].lng,
-      },
-      map,
-      label: { text: emoji, fontSize: '28px' },
-      icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0, fillOpacity: 0, strokeOpacity: 0 },
-      zIndex: 30,
-      animation: google.maps.Animation.DROP,
-    });
-  });
-
-  // Stagger the flag drops
-  flagMarkers.forEach((m, i) => {
-    m.setMap(null);
-    setTimeout(() => m.setMap(map), i * 400);
-  });
-
-  // Cut to donation page after flags have landed
-  setTimeout(showDonationScreen, 3000);
+  // Short pause then straight to donation page
+  setTimeout(showDonationScreen, 2000);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -754,7 +727,7 @@ function updateSpeed(v) {
 </script>
 
 <script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap">
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&libraries=geometry&callback=initMap">
 </script>
 </body>
 </html>
