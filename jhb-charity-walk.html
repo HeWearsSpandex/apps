@@ -660,19 +660,69 @@ function startMarkJBToSchool() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// COLLECTIVE WALK HELPER
+// Animates a group of overlays along a path at consistent speed.
+// stepMs is computed from path length so all legs feel the same pace.
+// ═══════════════════════════════════════════════════════════════
+function runCollectiveLeg(path, memberOverlays, offsets, polyColor, onDone) {
+  // Target ~30 seconds at speed 1x regardless of path length
+  // So stepMs = (30000ms / path.length) / speedMult, clamped
+  function getStepMs() {
+    return Math.max(8, Math.round(30000 / path.length / speedMult));
+  }
+
+  const mvcPath = new google.maps.MVCArray([]);
+  const poly = new google.maps.Polyline({
+    path: mvcPath, map,
+    strokeColor: polyColor, strokeOpacity: 0.9, strokeWeight: 6, zIndex: 5,
+  });
+
+  let step = 0;
+  function tick() {
+    if (!animRunning) { poly.setMap(null); return; }
+    if (step >= path.length) {
+      // Snap everyone to final position cleanly
+      memberOverlays.forEach((ov, i) => {
+        const off = offsets[i] || { lat:0, lng:0 };
+        const last = path[path.length - 1];
+        ov.setPosition(new google.maps.LatLng(
+          last.lat() + off.lat * 0.3,
+          last.lng() + off.lng * 0.3
+        ));
+      });
+      onDone(poly);
+      return;
+    }
+    const pos = path[step];
+    memberOverlays.forEach((ov, i) => {
+      const off = offsets[i] || { lat:0, lng:0 };
+      ov.setPosition(new google.maps.LatLng(
+        pos.lat() + off.lat * 0.3,
+        pos.lng() + off.lng * 0.3
+      ));
+    });
+    mvcPath.push(pos);
+    if (step % 15 === 0) map.setCenter(pos);
+    step++;
+    setTimeout(tick, getStepMs());
+  }
+  setTimeout(tick, getStepMs());
+}
+
+// ═══════════════════════════════════════════════════════════════
 // PHASE 3 — all 8 together to Buckfastleigh
 // ═══════════════════════════════════════════════════════════════
 function startCollectiveToBuckfastleigh() {
-  document.getElementById('phaseTag').textContent = 'Phase 2 · All 8 → Buckfastleigh';
+  document.getElementById('phaseTag').textContent = 'All 8 → Buckfastleigh';
   setStatus(`All 8 walkers together — heading to Buckfastleigh to meet Jenna${window._buckDist ? ' (' + window._buckDist + ')' : ''}…`, 82);
 
-  // Hide individual overlays, show merged group
-  GROUPS.forEach(g => overlays[g.id].setVisible(false));
+  // Hide all individual overlays
+  [...GROUPS.map(g => g.id), 'mark', 'jb'].forEach(id => {
+    if (overlays[id]) overlays[id].setVisible(false);
+  });
 
-  // Spread the faces out slightly so none overlap — offset them in a tight arc around Blackpool
-  // Offsets sized so 44px faces don't overlap at zoom ~12-13
-  // At zoom 12, ~0.0005 deg lat ≈ 55px separation
-  const offsets = [
+  // 8 offsets — circular arrangement, faces won't overlap
+  const offsets8 = [
     { lat:  0.0000, lng: -0.0008 },
     { lat:  0.0006, lng: -0.0004 },
     { lat:  0.0006, lng:  0.0004 },
@@ -683,78 +733,61 @@ function startCollectiveToBuckfastleigh() {
     { lat: -0.0012, lng:  0.0000 },
   ];
 
-  // One overlay per person, spread around Blackpool
-  const allMembers = ALL_EIGHT.flatMap(g => g.members);
+  const allMembers   = ALL_EIGHT.flatMap(g => g.members);
   const memberColors = ALL_EIGHT.flatMap(g => g.members.map(() => g.color));
   const memberOverlays = allMembers.map((name, i) => {
-    const pos = {
-      lat: BLACKPOOL_POS.lat + offsets[i].lat,
-      lng: BLACKPOOL_POS.lng + offsets[i].lng,
-    };
-    const ov = new PhotoOverlay(pos, [name], memberColors[i]);
+    const ov = new PhotoOverlay(
+      { lat: BLACKPOOL_POS.lat + offsets8[i].lat, lng: BLACKPOOL_POS.lng + offsets8[i].lng },
+      [name], memberColors[i]
+    );
     ov.setMap(map);
     return ov;
   });
 
-  // Zoom to fit Blackpool → Buckfastleigh
   fitBounds([BLACKPOOL_POS, BUCKFASTLEIGH_POS]);
 
-  const buckMVC = new google.maps.MVCArray([]);
-  const collPoly = new google.maps.Polyline({
-    path: buckMVC, map,
-    strokeColor:'#cc2222', strokeOpacity:0.85, strokeWeight:6, zIndex:5,
-  });
-  let step = 0;
-  function getStepMs() { return Math.max(10, 90 - (speedMult - 1) * 11); }
-  function tick() {
-    if (!animRunning) return;
-    if (step >= legBuckPath.length) {
-      collTrail.setMap(null);
-      // Position everyone at Buckfastleigh
-      memberOverlays.forEach((ov, i) => ov.setPosition(new google.maps.LatLng(
-        BUCKFASTLEIGH_POS.lat + offsets[i].lat * 0.3,
-        BUCKFASTLEIGH_POS.lng + offsets[i].lng * 0.3
-      )));
-      document.getElementById('leg-jen').classList.remove('waiting');
-      document.getElementById('leg-jen').classList.add('arrived');
-      setStatus('All 8 walkers meet Jenna at Buckfastleigh! All 9 together now!', 90);
-      setTimeout(() => startFinalLeg(memberOverlays, offsets), 1200);
-      return;
-    }
-    const pos = legBuckPath[step];
+  runCollectiveLeg(legBuckPath, memberOverlays, offsets8, '#cc2222', (poly) => {
+    poly.setMap(null);
+    // Snap all faces to Buckfastleigh spread
     memberOverlays.forEach((ov, i) => {
       ov.setPosition(new google.maps.LatLng(
-        pos.lat() + offsets[i].lat * 0.3,
-        pos.lng() + offsets[i].lng * 0.3
+        BUCKFASTLEIGH_POS.lat + offsets8[i].lat * 0.3,
+        BUCKFASTLEIGH_POS.lng + offsets8[i].lng * 0.3
       ));
     });
-    buckMVC.push(pos);
-    if (step % 20 === 0) map.panTo(pos);
-    setStatus(`Walking to Buckfastleigh to meet Jenna…`, 82 + (step/legBuckPath.length)*8);
-    step++;
-    setTimeout(tick, getStepMs());
-  }
-  setTimeout(tick, getStepMs());
+    document.getElementById('leg-jen').classList.remove('waiting');
+    document.getElementById('leg-jen').classList.add('arrived');
+    setStatus('All 8 meet Jenna at Buckfastleigh! All 9 together now!', 90);
+    setTimeout(() => startFinalLeg(memberOverlays, offsets8), 1200);
+  });
+
+  // Update progress while walking
+  (function progressTick() {
+    const buckEl = document.getElementById('progFill');
+    if (!buckEl) return;
+    const cur = parseFloat(buckEl.style.width) || 82;
+    if (cur < 89 && animRunning) { setTimeout(progressTick, 500); }
+  })();
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PHASE 3 — all 9 together to JHB
+// PHASE 4 — all 9 together to JHB South Brent
 // ═══════════════════════════════════════════════════════════════
-function startFinalLeg(memberOverlays, offsets) {
-  document.getElementById('phaseTag').textContent = 'Phase 3 · All 9 → JHB South Brent';
+function startFinalLeg(memberOverlays, offsets8) {
+  document.getElementById('phaseTag').textContent = 'All 9 → JHB South Brent';
   document.getElementById('leg-all').style.display = 'flex';
   document.getElementById('leg-all').classList.add('walking');
+  document.getElementById('leg-jen').classList.add('arrived');
 
-  // Add Jenna's overlay at Buckfastleigh with a slight offset
-  overlays['jen'].setVisible(false);
+  // Hide Jenna's static waiting overlay and add her to the moving group
+  if (overlays['jen']) overlays['jen'].setVisible(false);
   const jenOv = new PhotoOverlay(
-    { lat: BUCKFASTLEIGH_POS.lat + 0.001, lng: BUCKFASTLEIGH_POS.lng + 0.001 },
+    { lat: BUCKFASTLEIGH_POS.lat + 0.0000, lng: BUCKFASTLEIGH_POS.lng + 0.0000 },
     JENNA.members, JENNA.color
   );
   jenOv.setMap(map);
   memberOverlays.push(jenOv);
 
-  // 9 offsets
   const offsets9 = [
     { lat:  0.0000, lng: -0.0010 }, { lat:  0.0007, lng: -0.0007 },
     { lat:  0.0010, lng:  0.0000 }, { lat:  0.0007, lng:  0.0007 },
@@ -764,39 +797,25 @@ function startFinalLeg(memberOverlays, offsets) {
   ];
 
   setStatus(`All 9 together! Final leg to JHB UK Ltd, South Brent${window._jhbDist ? ' (' + window._jhbDist + ')' : ''}…`, 90);
-
   fitBounds([BUCKFASTLEIGH_POS, JHB_POS]);
 
-  const jhbMVC = new google.maps.MVCArray([]);
-  const finalPoly = new google.maps.Polyline({
-    path: jhbMVC, map,
-    strokeColor:'#cc2222', strokeOpacity:0.9, strokeWeight:6, zIndex:5,
-  });
-  let step = 0;
-  function getStepMs() { return Math.max(10, 90 - (speedMult - 1) * 11); }
-  function tick() {
-    if (!animRunning) return;
-    if (step >= legJHBPath.length) {
-      document.getElementById('leg-all').classList.remove('walking');
-      document.getElementById('leg-all').classList.add('arrived');
-      setStatus('All 9 walkers have arrived at JHB UK Ltd, South Brent!', 100);
-      document.getElementById('phaseTag').textContent = '🎉 They made it!';
-      animRunning = false;
-      showArrivalCelebration(memberOverlays, offsets9);
-      return;
-    }
-    const pos = legJHBPath[step];
+  runCollectiveLeg(legJHBPath, memberOverlays, offsets9, '#cc2222', (poly) => {
+    poly.setMap(null);
+    // Snap all 9 to JHB
     memberOverlays.forEach((ov, i) => {
       const off = offsets9[i] || { lat:0, lng:0 };
-      ov.setPosition(new google.maps.LatLng(pos.lat() + off.lat * 0.3, pos.lng() + off.lng * 0.3));
+      ov.setPosition(new google.maps.LatLng(
+        JHB_POS.lat + off.lat * 0.3,
+        JHB_POS.lng + off.lng * 0.3
+      ));
     });
-    jhbMVC.push(pos);
-    if (step % 20 === 0) map.panTo(pos);
-    setStatus(`All 9 walking to JHB UK Ltd, South Brent…`, 90 + (step/legJHBPath.length)*9);
-    step++;
-    setTimeout(tick, getStepMs());
-  }
-  setTimeout(tick, getStepMs());
+    document.getElementById('leg-all').classList.remove('walking');
+    document.getElementById('leg-all').classList.add('arrived');
+    setStatus('All 9 walkers have arrived at JHB UK Ltd, South Brent!', 100);
+    document.getElementById('phaseTag').textContent = '🎉 They made it!';
+    animRunning = false;
+    showArrivalCelebration(memberOverlays, offsets9);
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -919,7 +938,7 @@ function updateSpeed(v) {
 </script>
 
 <script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap">
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&libraries=geometry&callback=initMap">
 </script>
 </body>
 </html>
