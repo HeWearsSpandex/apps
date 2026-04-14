@@ -410,57 +410,60 @@ function runSequentialGroups(index) {
     path, map, strokeColor: g.color, strokeOpacity: 0.18, strokeWeight: 3
   });
 
-  polylines[g.id]  = new google.maps.Polyline({ path:[], map, strokeColor: g.color, strokeOpacity: 0.9, strokeWeight: 5, zIndex:4 });
-  trailLines[g.id] = new google.maps.Polyline({ path:[], map, strokeColor: g.color, strokeOpacity: 0.25, strokeWeight:10, zIndex:3 });
+  // Use MVCArray so we push() one point at a time — no full array rebuild
+  const routeMVCPath = new google.maps.MVCArray([]);
+  polylines[g.id] = new google.maps.Polyline({
+    path: routeMVCPath, map,
+    strokeColor: g.color, strokeOpacity: 0.9, strokeWeight: 5, zIndex: 4,
+  });
 
   // Zoom tightly to start — wait for map to fully settle before animating
   map.setZoom(14);
   map.panTo(new google.maps.LatLng(g.start.lat, g.start.lng));
 
   let step = 0;
-  const TRAIL = 24;
 
-  // Wait for map idle event so the pan/zoom is fully complete before we start moving
+  // Wait for map idle so pan/zoom is fully complete before moving
   google.maps.event.addListenerOnce(map, 'idle', () => {
     if (!animRunning) return;
-    // Extra short pause so the user can see the start position
+    // Short pause so the user sees the start position
     setTimeout(() => {
+      // Use setTimeout-based loop instead of requestAnimationFrame
+      // so we can directly control milliseconds-per-step and avoid 60fps flicker.
+      // STEP_MS: how many ms between each point advance.
+      // speedMult 1 = 80ms/pt (leisurely), 8 = 10ms/pt (fast)
+      function getStepMs() { return Math.max(10, 90 - (speedMult - 1) * 11); }
+
       function tick() {
         if (!animRunning) return;
-
-        // Single unified stride — same as collective phases
-        const stride = Math.max(1, Math.round(speedMult));
-        for (let s = 0; s < stride && step < path.length; s++, step++) {
-          const pos = path[step];
-          overlays[g.id].setPosition(pos);
-          polylines[g.id].setPath(path.slice(0, step + 1));
-          trailLines[g.id].setPath(path.slice(Math.max(0, step - TRAIL), step + 1));
-        }
-
-        // Centre map on marker — use setCenter every 6 steps to avoid
-        // queuing up transitions that cause the map to lag behind
-        if (step % 6 === 0 && path[step]) {
-          map.setCenter(path[step]);
-        }
-
-        const pct = 42 + index * 12 + (step / path.length) * 11;
-        setStatus(`${g.label} walking to Blackpool School (${g.distance || '…'})…`, pct);
-
         if (step >= path.length) {
-          trailLines[g.id].setMap(null);
           ghostLine.setMap(null);
           overlays[g.id].setPosition(new google.maps.LatLng(BLACKPOOL_POS.lat, BLACKPOOL_POS.lng));
           overlays[g.id].setBorderColor('#157a15');
           legEl.classList.remove('current');
           legEl.classList.add('arrived');
+          const pct = 42 + index * 12 + 11;
           setStatus(`${g.label} arrived at Blackpool School! ✓`, pct);
           setTimeout(() => runSequentialGroups(index + 1), 900);
-        } else {
-          animFrameIds[g.id] = requestAnimationFrame(tick);
+          return;
         }
+
+        const pos = path[step];
+        overlays[g.id].setPosition(pos);
+        routeMVCPath.push(pos);  // push one point — no array rebuild
+
+        // Re-centre every 8 steps so map tracks the marker smoothly
+        if (step % 8 === 0) map.setCenter(pos);
+
+        const pct = 42 + index * 12 + (step / path.length) * 11;
+        setStatus(`${g.label} walking to Blackpool School (${g.distance || '…'})…`, pct);
+
+        step++;
+        animFrameIds[g.id] = setTimeout(tick, getStepMs());
       }
-      animFrameIds[g.id] = requestAnimationFrame(tick);
-    }, 600);
+
+      animFrameIds[g.id] = setTimeout(tick, getStepMs());
+    }, 700);
   });
 }
 
@@ -504,27 +507,15 @@ function startCollectiveToBuckfastleigh() {
   // Zoom to fit Blackpool → Buckfastleigh
   fitBounds([BLACKPOOL_POS, BUCKFASTLEIGH_POS]);
 
-  const collPoly  = new google.maps.Polyline({ path:[], map, strokeColor:'#cc2222', strokeOpacity:0.85, strokeWeight:6, zIndex:5 });
-  const collTrail = new google.maps.Polyline({ path:[], map, strokeColor:'#cc2222', strokeOpacity:0.2, strokeWeight:14, zIndex:4 });
-  const TRAIL = 22;
+  const buckMVC = new google.maps.MVCArray([]);
+  const collPoly = new google.maps.Polyline({
+    path: buckMVC, map,
+    strokeColor:'#cc2222', strokeOpacity:0.85, strokeWeight:6, zIndex:5,
+  });
   let step = 0;
+  function getStepMs() { return Math.max(10, 90 - (speedMult - 1) * 11); }
   function tick() {
     if (!animRunning) return;
-    const stride = Math.max(1, Math.round(speedMult));
-    for (let s = 0; s < stride && step < legBuckPath.length; s++, step++) {
-      const pos = legBuckPath[step];
-      memberOverlays.forEach((ov, i) => {
-        ov.setPosition(new google.maps.LatLng(
-          pos.lat() + offsets[i].lat * 0.3,
-          pos.lng() + offsets[i].lng * 0.3
-        ));
-      });
-      collPoly.setPath(legBuckPath.slice(0, step+1));
-      collTrail.setPath(legBuckPath.slice(Math.max(0, step-TRAIL), step+1));
-      // Centre on the group every 6 steps using setCenter (instant, no queue)
-      if (step % 6 === 0) map.setCenter(pos);
-    }
-    setStatus(`Walking to Buckfastleigh to meet Jenna…`, 82 + (step/legBuckPath.length)*8);
     if (step >= legBuckPath.length) {
       collTrail.setMap(null);
       // Position everyone at Buckfastleigh
@@ -536,11 +527,22 @@ function startCollectiveToBuckfastleigh() {
       document.getElementById('leg-jen').classList.add('arrived');
       setStatus('All 8 walkers meet Jenna at Buckfastleigh! All 9 together now!', 90);
       setTimeout(() => startFinalLeg(memberOverlays, offsets), 1200);
-    } else {
-      requestAnimationFrame(tick);
+      return;
     }
+    const pos = legBuckPath[step];
+    memberOverlays.forEach((ov, i) => {
+      ov.setPosition(new google.maps.LatLng(
+        pos.lat() + offsets[i].lat * 0.3,
+        pos.lng() + offsets[i].lng * 0.3
+      ));
+    });
+    buckMVC.push(pos);
+    if (step % 8 === 0) map.setCenter(pos);
+    setStatus(`Walking to Buckfastleigh to meet Jenna…`, 82 + (step/legBuckPath.length)*8);
+    step++;
+    setTimeout(tick, getStepMs());
   }
-  requestAnimationFrame(tick);
+  setTimeout(tick, getStepMs());
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -573,39 +575,36 @@ function startFinalLeg(memberOverlays, offsets) {
 
   fitBounds([BUCKFASTLEIGH_POS, JHB_POS]);
 
-  const finalPoly  = new google.maps.Polyline({ path:[], map, strokeColor:'#cc2222', strokeOpacity:0.9, strokeWeight:6, zIndex:5 });
-  const finalTrail = new google.maps.Polyline({ path:[], map, strokeColor:'#cc2222', strokeOpacity:0.2, strokeWeight:14, zIndex:4 });
-  const TRAIL = 22;
+  const jhbMVC = new google.maps.MVCArray([]);
+  const finalPoly = new google.maps.Polyline({
+    path: jhbMVC, map,
+    strokeColor:'#cc2222', strokeOpacity:0.9, strokeWeight:6, zIndex:5,
+  });
   let step = 0;
+  function getStepMs() { return Math.max(10, 90 - (speedMult - 1) * 11); }
   function tick() {
     if (!animRunning) return;
-    const stride = Math.max(1, Math.round(speedMult));
-    for (let s = 0; s < stride && step < legJHBPath.length; s++, step++) {
-      const pos = legJHBPath[step];
-      memberOverlays.forEach((ov, i) => {
-        const off = offsets9[i] || { lat:0, lng:0 };
-        ov.setPosition(new google.maps.LatLng(pos.lat() + off.lat * 0.3, pos.lng() + off.lng * 0.3));
-      });
-      finalPoly.setPath(legJHBPath.slice(0, step+1));
-      finalTrail.setPath(legJHBPath.slice(Math.max(0, step-TRAIL), step+1));
-      // Centre on the group every 6 steps using setCenter
-      if (step % 6 === 0) map.setCenter(pos);
-    }
-    setStatus(`All 9 walking to JHB UK Ltd, South Brent…`, 90 + (step/legJHBPath.length)*9);
     if (step >= legJHBPath.length) {
-      finalTrail.setMap(null);
       document.getElementById('leg-all').classList.remove('walking');
       document.getElementById('leg-all').classList.add('arrived');
       setStatus('All 9 walkers have arrived at JHB UK Ltd, South Brent!', 100);
       document.getElementById('phaseTag').textContent = '🎉 They made it!';
       animRunning = false;
-      // Zoom into JHB and show celebration flags before QR
       showArrivalCelebration(memberOverlays, offsets9);
-    } else {
-      requestAnimationFrame(tick);
+      return;
     }
+    const pos = legJHBPath[step];
+    memberOverlays.forEach((ov, i) => {
+      const off = offsets9[i] || { lat:0, lng:0 };
+      ov.setPosition(new google.maps.LatLng(pos.lat() + off.lat * 0.3, pos.lng() + off.lng * 0.3));
+    });
+    jhbMVC.push(pos);
+    if (step % 8 === 0) map.setCenter(pos);
+    setStatus(`All 9 walking to JHB UK Ltd, South Brent…`, 90 + (step/legJHBPath.length)*9);
+    step++;
+    setTimeout(tick, getStepMs());
   }
-  requestAnimationFrame(tick);
+  setTimeout(tick, getStepMs());
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -644,7 +643,7 @@ function replayWalk() {
 function resetWalk() {
   animRunning = false;
   document.getElementById('donScreen').classList.remove('show');
-  Object.values(animFrameIds).forEach(id => cancelAnimationFrame(id));
+  Object.values(animFrameIds).forEach(id => { cancelAnimationFrame(id); clearTimeout(id); });
   animFrameIds = {};
   Object.values(polylines).forEach(p => p?.setMap(null));
   Object.values(trailLines).forEach(p => p?.setMap(null));
@@ -727,7 +726,7 @@ function updateSpeed(v) {
 </script>
 
 <script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap">
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&libraries=geometry&callback=initMap">
 </script>
 </body>
 </html>
