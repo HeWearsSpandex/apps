@@ -99,7 +99,7 @@ input[type=range] { width: 80px; accent-color: var(--red); }
   <img class="logo-img" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/JHB%20Logo.png" alt="JHB UK Ltd" onerror="this.outerHTML='<span style=\'font-size:22px;font-weight:900;color:#cc2222;font-style:italic\'>JHB</span>'">
   <div class="header-centre">
     <div class="walk-title">Charity Walk 2026</div>
-    <div class="walk-sub">9 walkers · Blackpool School → Buckfastleigh → South Brent</div>
+    <div class="walk-sub">9 walkers · Blackpool School → Bickington → South Brent</div>
   </div>
   <div class="charity-badge"><span class="heart">&#10084;</span> Raising Money for Charity</div>
 </header>
@@ -158,7 +158,7 @@ input[type=range] { width: 80px; accent-color: var(--red); }
     </div>
     <div class="leg" id="leg-jen">
       <img class="leg-av" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/Jenna%20Turvey_cvface1.jpg" onerror="this.style.display='none'">
-      Jenna (waiting at Buckfastleigh)
+      Jenna (waiting at Bickington)
     </div>
     <div class="leg" id="leg-all" style="display:none">
       <img class="leg-av" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/James%20Hodge-Brooks_cvface1.jpg" onerror="this.style.display='none'">
@@ -181,7 +181,8 @@ const IMG = 'https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/i
 const imgUrl = n => IMG + encodeURIComponent(n) + '_cvface1.jpg';
 
 const BLACKPOOL_POS     = { lat: 50.5544255, lng: -3.6777171 };
-const BUCKFASTLEIGH_POS = { lat: 50.480587,  lng: -3.780076  };
+const BICKINGTON_POS    = { lat: 50.5388293, lng: -3.7023778 }; // Jenna — all 8 meet her here
+const BUCKFASTLEIGH_POS = { lat: 50.480587,  lng: -3.780076  }; // kept for distance table only
 const JHB_POS           = { lat: 50.432484,  lng: -3.803917  };
 
 // Groups walk sequentially (in order) to Blackpool School
@@ -213,7 +214,7 @@ const FORCHES_CROSS   = { lat:50.5482,   lng:-3.6503   }; // Forches Cross, Bove
 const ALL_EIGHT = [GROUPS[0], GROUPS[1], MARK_GROUP, JB_GROUP];
 const JENNA = {
   id:'jen', label:'Jenna', color:'#c2185b', legId:'leg-jen',
-  members:['Jenna Turvey'], from:'Buckfastleigh (TQ11 0DD)'
+  members:['Jenna Turvey'], from:'Bickington (TQ12)'
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -224,8 +225,8 @@ let routePaths   = {};  // individual group routes to Blackpool
 let fourchesMeetPath = []; // Forches Cross → Blackpool School (ttz + aj together)
 let markToJBPath = [];  // Mark's route to James & Beth pickup
 let markJBPath   = [];  // Mark + JB together route to Blackpool
-let legBuckPath  = [];  // Blackpool → Buckfastleigh
-let legJHBPath   = [];  // Buckfastleigh → JHB
+let legBuckPath  = [];  // Blackpool → Bickington (to collect Jenna)
+let legJHBPath   = [];  // Bickington → JHB South Brent
 let overlays     = {};
 let polylines    = {};
 let trailLines   = {};
@@ -324,7 +325,7 @@ function initMap() {
   });
 
   // Jenna waiting at Buckfastleigh
-  const jenOv = new PhotoOverlay(BUCKFASTLEIGH_POS, JENNA.members, JENNA.color);
+  const jenOv = new PhotoOverlay(BICKINGTON_POS, JENNA.members, JENNA.color);
   jenOv.setMap(map);
   const jenIW = new google.maps.InfoWindow({ content: buildIW(JENNA) });
   jenOv.onClick(() => jenIW.open(map));
@@ -380,15 +381,15 @@ function fetchRoutes() {
     });
 
   // Collective legs
-  dirSvc.route({ origin: BLACKPOOL_POS, destination: BUCKFASTLEIGH_POS, travelMode: google.maps.TravelMode.WALKING },
+  dirSvc.route({ origin: BLACKPOOL_POS, destination: BICKINGTON_POS, travelMode: google.maps.TravelMode.WALKING },
     (res, status) => {
-      legBuckPath = status === 'OK' ? decodePath(res) : interpolate(BLACKPOOL_POS, BUCKFASTLEIGH_POS, 120);
+      legBuckPath = status === 'OK' ? decodePath(res) : interpolate(BLACKPOOL_POS, BICKINGTON_POS, 100);
       if (status === 'OK') { window._buckDist = res.routes[0].legs[0].distance.text; window._buckDistM = res.routes[0].legs[0].distance.value; }
       onRouteLoaded();
     });
-  dirSvc.route({ origin: BUCKFASTLEIGH_POS, destination: JHB_POS, travelMode: google.maps.TravelMode.WALKING },
+  dirSvc.route({ origin: BICKINGTON_POS, destination: JHB_POS, travelMode: google.maps.TravelMode.WALKING },
     (res, status) => {
-      legJHBPath = status === 'OK' ? decodePath(res) : interpolate(BUCKFASTLEIGH_POS, JHB_POS, 100);
+      legJHBPath = status === 'OK' ? decodePath(res) : interpolate(BICKINGTON_POS, JHB_POS, 100);
       if (status === 'OK') { window._jhbDist = res.routes[0].legs[0].distance.text; window._jhbDistM = res.routes[0].legs[0].distance.value; }
       onRouteLoaded();
     });
@@ -445,7 +446,7 @@ function startWalk() {
 
   // Show full overview for 2 seconds first
   const allPoints = GROUPS.map(g => g.start)
-    .concat([FORCHES_CROSS, MARK_GROUP.start, JB_GROUP.start, BLACKPOOL_POS, BUCKFASTLEIGH_POS, JHB_POS]);
+    .concat([FORCHES_CROSS, MARK_GROUP.start, JB_GROUP.start, BLACKPOOL_POS, BICKINGTON_POS, JHB_POS]);
   fitBounds(allPoints);
   document.getElementById('phaseTag').textContent = 'The full route…';
   setStatus('Here is the full charity walk route across Devon…', 42);
@@ -787,8 +788,8 @@ function runCollectiveLeg(path, memberOverlays, offsets, polyColor, onDone) {
 // PHASE 3 — all 8 together to Buckfastleigh
 // ═══════════════════════════════════════════════════════════════
 function startCollectiveToBuckfastleigh() {
-  document.getElementById('phaseTag').textContent = 'All 8 → Buckfastleigh';
-  setStatus(`All 8 walkers together — heading to Buckfastleigh to meet Jenna${window._buckDist ? ' (' + window._buckDist + ')' : ''}…`, 82);
+  document.getElementById('phaseTag').textContent = 'All 8 → Bickington';
+  setStatus(`All 8 walkers together — heading to Bickington to meet Jenna${window._buckDist ? ' (' + window._buckDist + ')' : ''}…`, 82);
 
   // Hide all individual overlays
   [...GROUPS.map(g => g.id), 'mark', 'jb'].forEach(id => {
@@ -827,13 +828,13 @@ function startCollectiveToBuckfastleigh() {
     // Snap all faces to Buckfastleigh spread
     memberOverlays.forEach((ov, i) => {
       ov.setPosition(new google.maps.LatLng(
-        BUCKFASTLEIGH_POS.lat + offsets8[i].lat * 0.3,
-        BUCKFASTLEIGH_POS.lng + offsets8[i].lng * 0.3
+        BICKINGTON_POS.lat + offsets8[i].lat * 0.3,
+        BICKINGTON_POS.lng + offsets8[i].lng * 0.3
       ));
     });
     document.getElementById('leg-jen').classList.remove('waiting');
     document.getElementById('leg-jen').classList.add('arrived');
-    setStatus('All 8 meet Jenna at Buckfastleigh! All 9 together now!', 90);
+    setStatus('All 8 meet Jenna at Bickington! All 9 together now!', 90);
     setTimeout(() => startFinalLeg(memberOverlays, offsets8), 1200);
   });
 
@@ -852,7 +853,7 @@ function startFinalLeg(memberOverlays, offsets8) {
   // Hide Jenna's static waiting overlay and add her to the moving group
   if (overlays['jen']) overlays['jen'].setVisible(false);
   const jenOv = new PhotoOverlay(
-    { lat: BUCKFASTLEIGH_POS.lat + 0.0000, lng: BUCKFASTLEIGH_POS.lng + 0.0000 },
+    { lat: BICKINGTON_POS.lat + 0.0000, lng: BICKINGTON_POS.lng + 0.0000 },
     JENNA.members, JENNA.color
   );
   jenOv.setMap(map);
@@ -867,7 +868,7 @@ function startFinalLeg(memberOverlays, offsets8) {
   ];
 
   setStatus(`All 9 together! Final leg to JHB UK Ltd, South Brent${window._jhbDist ? ' (' + window._jhbDist + ')' : ''}…`, 90);
-  fitBounds([BUCKFASTLEIGH_POS, JHB_POS]);
+  fitBounds([BICKINGTON_POS, JHB_POS]);
 
   runCollectiveLeg(legJHBPath, memberOverlays, offsets9, '#cc2222', (poly) => {
     // Trail kept visible as route breadcrumb
@@ -1090,7 +1091,7 @@ function updateSpeed(v) {
 </script>
 
 <script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap">
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&libraries=geometry&callback=initMap">
 </script>
 </body>
 </html>
