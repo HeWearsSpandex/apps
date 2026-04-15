@@ -129,8 +129,8 @@ input[type=range] { width: 80px; accent-color: var(--red); }
     <button class="btn btn-grey" onclick="resetWalk()">&#8635; Reset</button>
     <div class="speed-row">
       <label>SPEED</label>
-      <input type="range" id="spd" min="1" max="8" value="3" oninput="updateSpeed(this.value)">
-      <span class="speed-val" id="spdVal">3&#215;</span>
+      <input type="range" id="spd" min="1" max="8" value="8" oninput="updateSpeed(this.value)">
+      <span class="speed-val" id="spdVal">8&#215;</span>
     </div>
     <div class="phase-tag" id="phaseTag">Loading routes…</div>
   </div>
@@ -226,7 +226,7 @@ let overlays     = {};
 let polylines    = {};
 let trailLines   = {};
 let animFrameIds = {};
-let speedMult    = 3;
+let speedMult    = 8;
 let animRunning  = false;
 let routesLoaded = 0;
 const TOTAL_ROUTES = 6; // ttz, aj, mark→JB, markJB→school, school→buck, buck→JHB
@@ -253,7 +253,7 @@ function initMap() {
       wrap.style.cssText = 'display:flex;align-items:center;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.35));';
       this.members.forEach((name, i) => {
         const circle = document.createElement('div');
-        const size = this.members.length === 1 ? 54 : 44;
+        const size = 44;
         circle.style.cssText = `width:${size}px;height:${size}px;border-radius:50%;border:3px solid ${this.color};overflow:hidden;background:#eee;flex-shrink:0;${i>0?`margin-left:-9px;`:''}z-index:${20-i};position:relative;transition:transform 0.2s;`;
         const img = document.createElement('img');
         img.src = imgUrl(name);
@@ -282,8 +282,8 @@ function initMap() {
       const proj = this.getProjection();
       const pt   = proj.fromLatLngToDivPixel(this.pos);
       const n    = this.members.length;
-      const size = n === 1 ? 54 : 44;
-      const w    = size + Math.max(0, n-1) * (size - 10);
+      const size = 44;
+      const w    = size + Math.max(0, n-1) * (size - 12);
       const h    = size;
       this.div.style.left = (pt.x - w/2) + 'px';
       this.div.style.top  = (pt.y - h/2) + 'px';
@@ -395,7 +395,8 @@ function onRouteLoaded() {
   document.getElementById('playBtn').disabled = false;
   document.getElementById('playBtn').textContent = '▶ Play Walk';
   document.getElementById('phaseTag').textContent = 'Ready';
-  setStatus('All routes ready — press Play to begin!', 0);
+  setStatus('All routes ready — starting in a moment…', 0);
+  setTimeout(startWalk, 1500);
 
   // Mark all leg items as waiting
   [...document.querySelectorAll('.leg')].forEach(el => el.classList.add('waiting'));
@@ -747,7 +748,7 @@ function startCollectiveToBuckfastleigh() {
   fitBounds([BLACKPOOL_POS, BUCKFASTLEIGH_POS]);
 
   runCollectiveLeg(legBuckPath, memberOverlays, offsets8, '#cc2222', (poly) => {
-    poly.setMap(null);
+    // Trail kept visible as route breadcrumb
     // Snap all faces to Buckfastleigh spread
     memberOverlays.forEach((ov, i) => {
       ov.setPosition(new google.maps.LatLng(
@@ -761,13 +762,7 @@ function startCollectiveToBuckfastleigh() {
     setTimeout(() => startFinalLeg(memberOverlays, offsets8), 1200);
   });
 
-  // Update progress while walking
-  (function progressTick() {
-    const buckEl = document.getElementById('progFill');
-    if (!buckEl) return;
-    const cur = parseFloat(buckEl.style.width) || 82;
-    if (cur < 89 && animRunning) { setTimeout(progressTick, 500); }
-  })();
+
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -800,7 +795,7 @@ function startFinalLeg(memberOverlays, offsets8) {
   fitBounds([BUCKFASTLEIGH_POS, JHB_POS]);
 
   runCollectiveLeg(legJHBPath, memberOverlays, offsets9, '#cc2222', (poly) => {
-    poly.setMap(null);
+    // Trail kept visible as route breadcrumb
     // Snap all 9 to JHB
     memberOverlays.forEach((ov, i) => {
       const off = offsets9[i] || { lat:0, lng:0 };
@@ -938,7 +933,7 @@ function updateSpeed(v) {
 </script>
 
 <script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap">
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&libraries=geometry&callback=initMap">
 </script>
 </body>
 </html>
