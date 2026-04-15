@@ -204,7 +204,8 @@ const JB_GROUP = {
   start:{ lat:50.5826722, lng:-3.6834438 },
   members:['James Hodge-Brooks','Beth Hodge-Brooks'], from:'Bovey Tracey (TQ13 9DN)'
 };
-const JB_POS_START = { lat:50.5826722, lng:-3.6834438 }; // James & Beth pickup point
+const JB_POS_START    = { lat:50.5826722, lng:-3.6834438 }; // James & Beth pickup point
+const FORCHES_CROSS   = { lat:50.5482,   lng:-3.6503   }; // Forches Cross, Bovey Tracey Rd TQ12 6QB
 
 // All 8 non-Jenna walkers for collective phases (used for offset arrays)
 const ALL_EIGHT = [GROUPS[0], GROUPS[1], MARK_GROUP, JB_GROUP];
@@ -218,6 +219,7 @@ const JENNA = {
 // ═══════════════════════════════════════════════════════════════
 let map, dirSvc, PhotoOverlay;
 let routePaths   = {};  // individual group routes to Blackpool
+let fourchesMeetPath = []; // Forches Cross → Blackpool School (ttz + aj together)
 let markToJBPath = [];  // Mark's route to James & Beth pickup
 let markJBPath   = [];  // Mark + JB together route to Blackpool
 let legBuckPath  = [];  // Blackpool → Buckfastleigh
@@ -229,7 +231,7 @@ let animFrameIds = {};
 let speedMult    = 8;
 let animRunning  = false;
 let routesLoaded = 0;
-const TOTAL_ROUTES = 6; // ttz, aj, mark→JB, markJB→school, school→buck, buck→JHB
+const TOTAL_ROUTES = 7; // ttz→forches, aj→forches, forches→blackpool, mark→JB, JB→school, school→buck, buck→JHB
 
 // ═══════════════════════════════════════════════════════════════
 // INIT
@@ -329,6 +331,8 @@ function initMap() {
   // Waypoint pins
   placePin(BLACKPOOL_POS, '#cc2222',
     '<div class="iw"><div class="iw-title">&#127983; Blackpool Primary School</div><div class="iw-body">TQ12 6JB — Meeting point<br><span class="iw-dist">All 8 walkers converge here</span></div></div>');
+  placePin(FORCHES_CROSS, '#8e44ad',
+    '<div class="iw"><div class="iw-title">&#128205; Forches Cross</div><div class="iw-body">Meeting point for Tom, Tristan &amp; Zak with Alex &amp; Joe<br><span class="iw-dist">Bovey Tracey Rd, Newton Abbot TQ12 6QB</span></div></div>');
   placePin(JHB_POS, '#cc2222',
     '<div class="iw"><div class="iw-title">&#127937; JHB UK Ltd — Finish</div><div class="iw-body">The Roadhouse, Marley Head, South Brent TQ10 9FQ<br><span class="iw-dist">01626 830014 · jhbukltd.co.uk</span></div></div>');
 
@@ -339,15 +343,23 @@ function initMap() {
 // ROUTE FETCHING
 // ═══════════════════════════════════════════════════════════════
 function fetchRoutes() {
-  // Independent groups: ttz and aj → Blackpool
+  // ttz and aj walk individually to Forches Cross first
   GROUPS.forEach(g => {
-    dirSvc.route({ origin: g.start, destination: BLACKPOOL_POS, travelMode: google.maps.TravelMode.WALKING },
+    dirSvc.route({ origin: g.start, destination: FORCHES_CROSS, travelMode: google.maps.TravelMode.WALKING },
       (res, status) => {
-        routePaths[g.id] = status === 'OK' ? decodePath(res) : interpolate(g.start, BLACKPOOL_POS, 100);
+        routePaths[g.id] = status === 'OK' ? decodePath(res) : interpolate(g.start, FORCHES_CROSS, 80);
         if (status === 'OK') { const l = res.routes[0].legs[0]; g.distance = l.distance.text; }
         onRouteLoaded();
       });
   });
+
+  // Forches Cross → Blackpool School (ttz + aj together)
+  dirSvc.route({ origin: FORCHES_CROSS, destination: BLACKPOOL_POS, travelMode: google.maps.TravelMode.WALKING },
+    (res, status) => {
+      fourchesMeetPath = status === 'OK' ? decodePath(res) : interpolate(FORCHES_CROSS, BLACKPOOL_POS, 80);
+      if (status === 'OK') window._forchDist = res.routes[0].legs[0].distance.text;
+      onRouteLoaded();
+    });
 
   // Mark → James & Beth pickup point
   dirSvc.route({ origin: MARK_GROUP.start, destination: JB_POS_START, travelMode: google.maps.TravelMode.WALKING },
@@ -387,6 +399,7 @@ function onRouteLoaded() {
 
   // Faint ghost paths
   GROUPS.forEach(g => new google.maps.Polyline({ path: routePaths[g.id], map, strokeColor: g.color, strokeOpacity: 0.1, strokeWeight: 3 }));
+  new google.maps.Polyline({ path: fourchesMeetPath, map, strokeColor: '#555', strokeOpacity: 0.08, strokeWeight: 3 });
   new google.maps.Polyline({ path: markToJBPath, map, strokeColor: MARK_GROUP.color, strokeOpacity: 0.1, strokeWeight: 3 });
   new google.maps.Polyline({ path: markJBPath,   map, strokeColor: '#8B4513', strokeOpacity: 0.1, strokeWeight: 3 });
   new google.maps.Polyline({ path: legBuckPath,  map, strokeColor: '#cc2222', strokeOpacity: 0.08, strokeWeight: 4 });
@@ -394,6 +407,7 @@ function onRouteLoaded() {
 
   document.getElementById('playBtn').disabled = false;
   document.getElementById('playBtn').textContent = '▶ Play Walk';
+  window._fiveOverlays = null;
   document.getElementById('phaseTag').textContent = 'Ready';
   setStatus('All routes ready — starting in a moment…', 0);
   setTimeout(startWalk, 1500);
@@ -429,7 +443,7 @@ function startWalk() {
 
   // Show full overview for 2 seconds first
   const allPoints = GROUPS.map(g => g.start)
-    .concat([MARK_GROUP.start, JB_GROUP.start, BLACKPOOL_POS, BUCKFASTLEIGH_POS, JHB_POS]);
+    .concat([FORCHES_CROSS, MARK_GROUP.start, JB_GROUP.start, BLACKPOOL_POS, BUCKFASTLEIGH_POS, JHB_POS]);
   fitBounds(allPoints);
   document.getElementById('phaseTag').textContent = 'The full route…';
   setStatus('Here is the full charity walk route across Devon…', 42);
@@ -441,8 +455,8 @@ function startWalk() {
 // ═══════════════════════════════════════════════════════════════
 function runSequentialGroups(index) {
   if (index >= GROUPS.length) {
-    // Both independent groups done — now Mark walks to pick up James & Beth
-    setTimeout(startMarkToJB, 800);
+    // ttz and aj both at Forches Cross — walk together to Blackpool School
+    setTimeout(startForchesMeetup, 800);
     return;
   }
   const g = GROUPS[index];
@@ -489,12 +503,12 @@ function runSequentialGroups(index) {
         if (!animRunning) return;
         if (step >= path.length) {
           ghostLine.setMap(null);
-          overlays[g.id].setPosition(new google.maps.LatLng(BLACKPOOL_POS.lat, BLACKPOOL_POS.lng));
+          overlays[g.id].setPosition(new google.maps.LatLng(FORCHES_CROSS.lat, FORCHES_CROSS.lng));
           overlays[g.id].setBorderColor('#157a15');
           legEl.classList.remove('current');
           legEl.classList.add('arrived');
           const pct = 42 + index * 12 + 11;
-          setStatus(`${g.label} arrived at Blackpool School! ✓`, pct);
+          setStatus(`${g.label} arrived at Forches Cross! ✓`, pct);
           setTimeout(() => runSequentialGroups(index + 1), 900);
           return;
         }
@@ -507,7 +521,7 @@ function runSequentialGroups(index) {
         if (step % 20 === 0) map.panTo(pos);
 
         const pct = 42 + index * 12 + (step / path.length) * 11;
-        setStatus(`${g.label} walking to Blackpool School (${g.distance || '…'})…`, pct);
+        setStatus(`${g.label} walking to Forches Cross (${g.distance || '…'})…`, pct);
 
         step++;
         animFrameIds[g.id] = setTimeout(tick, getStepMs());
@@ -519,7 +533,64 @@ function runSequentialGroups(index) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PHASE 2a — Mark walks solo to James & Beth's start
+// PHASE 2 — ttz + aj walk together from Forches Cross → Blackpool School
+// ═══════════════════════════════════════════════════════════════
+function startForchesMeetup() {
+  document.getElementById('phaseTag').textContent = 'All 5 → Blackpool School';
+  setStatus(`Tom, Tristan, Zak, Alex & Joe walking together to Blackpool School${window._forchDist ? ' (' + window._forchDist + ')' : ''}…`, 56);
+
+  // Hide individual ttz and aj overlays
+  ['ttz', 'aj'].forEach(id => { if (overlays[id]) overlays[id].setVisible(false); });
+
+  // 5 offsets — tight cluster, all faces visible
+  const offsets5 = [
+    { lat:  0.0000, lng: -0.0007 },
+    { lat:  0.0005, lng: -0.0003 },
+    { lat:  0.0005, lng:  0.0003 },
+    { lat:  0.0000, lng:  0.0007 },
+    { lat: -0.0005, lng:  0.0000 },
+  ];
+
+  // One overlay per person — ttz members then aj members
+  const fiveMembers   = [...GROUPS[0].members, ...GROUPS[1].members];
+  const fiveColors    = [
+    ...GROUPS[0].members.map(() => GROUPS[0].color),
+    ...GROUPS[1].members.map(() => GROUPS[1].color),
+  ];
+  const fiveOverlays = fiveMembers.map((name, i) => {
+    const ov = new PhotoOverlay(
+      { lat: FORCHES_CROSS.lat + offsets5[i].lat, lng: FORCHES_CROSS.lng + offsets5[i].lng },
+      [name], fiveColors[i]
+    );
+    ov.setMap(map);
+    return ov;
+  });
+
+  // Store for later use in collective phase
+  window._fiveOverlays = fiveOverlays;
+  window._fiveColors   = fiveColors;
+
+  fitBounds([FORCHES_CROSS, BLACKPOOL_POS]);
+
+  runCollectiveLeg(fourchesMeetPath, fiveOverlays, offsets5, '#555555', (poly) => {
+    // Snap to Blackpool, mark both groups arrived
+    fiveOverlays.forEach((ov, i) => {
+      ov.setPosition(new google.maps.LatLng(
+        BLACKPOOL_POS.lat + offsets5[i].lat * 0.3,
+        BLACKPOOL_POS.lng + offsets5[i].lng * 0.3
+      ));
+    });
+    document.getElementById('leg-ttz').classList.remove('waiting');
+    document.getElementById('leg-ttz').classList.add('arrived');
+    document.getElementById('leg-aj').classList.remove('waiting');
+    document.getElementById('leg-aj').classList.add('arrived');
+    setStatus('Tom, Tristan, Zak, Alex & Joe at Blackpool School! Now waiting for Mark, James & Beth…', 62);
+    setTimeout(startMarkToJB, 900);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 3a — Mark walks solo to James & Beth's start
 // ═══════════════════════════════════════════════════════════════
 function startMarkToJB() {
   const path = markToJBPath;
@@ -529,7 +600,7 @@ function startMarkToJB() {
   document.getElementById('leg-mark').classList.add('current');
   overlays['mark'].setBorderColor(MARK_GROUP.color);
 
-  setStatus(`Mark setting off from ${MARK_GROUP.from} to collect James & Beth…`, 66);
+  setStatus(`Mark setting off from ${MARK_GROUP.from} to collect James & Beth…`, 64);
 
   // Ghost route Mark → JB
   const ghostLine = new google.maps.Polyline({
@@ -565,7 +636,7 @@ function startMarkToJB() {
           document.getElementById('leg-jb').classList.remove('waiting');
           document.getElementById('leg-jb').classList.add('current');
           overlays['jb'].setBorderColor(JB_GROUP.color);
-          setStatus('Mark has reached James & Beth! Walking together to Blackpool School…', 70);
+          setStatus('Mark has reached James & Beth! Walking together to Blackpool School…', 68);
           setTimeout(startMarkJBToSchool, 1000);
           return;
         }
@@ -573,7 +644,7 @@ function startMarkToJB() {
         overlays['mark'].setPosition(pos);
         markMVC.push(pos);
         if (step % 8 === 0) map.setCenter(pos);
-        setStatus(`Mark walking to collect James & Beth…`, 66 + (step / path.length) * 4);
+        setStatus(`Mark walking to collect James & Beth…`, 64 + (step / path.length) * 4);
         step++;
         animFrameIds['mark'] = setTimeout(tick, getStepMs());
       }
@@ -721,6 +792,8 @@ function startCollectiveToBuckfastleigh() {
   [...GROUPS.map(g => g.id), 'mark', 'jb'].forEach(id => {
     if (overlays[id]) overlays[id].setVisible(false);
   });
+  // Hide the 5-person Forches group overlays if still on map
+  if (window._fiveOverlays) window._fiveOverlays.forEach(ov => ov.setMap(null));
 
   // 8 offsets — circular arrangement, faces won't overlap
   const offsets8 = [
@@ -933,7 +1006,7 @@ function updateSpeed(v) {
 </script>
 
 <script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap">
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&libraries=geometry&callback=initMap">
 </script>
 </body>
 </html>
