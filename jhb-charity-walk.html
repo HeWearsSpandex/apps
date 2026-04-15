@@ -210,6 +210,7 @@ const IMG = 'https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/i
 const imgUrl = n => IMG + encodeURIComponent(n) + '_cvface1.jpg';
 
 const BLACKPOOL_POS     = { lat: 50.5544255, lng: -3.6777171 };
+const MCDONALDS_POS     = { lat: 50.524451,  lng: -3.5947155 }; // McDonald's Penn Inn, Newton Abbot TQ12 1BN
 const BICKINGTON_POS    = { lat: 50.5388293, lng: -3.7023778 }; // Jenna — all 8 meet her here
 const BUCKFASTLEIGH_POS = { lat: 50.480587,  lng: -3.780076  }; // kept for distance table only
 const JHB_POS           = { lat: 50.432484,  lng: -3.803917  };
@@ -254,6 +255,7 @@ let routePaths   = {};  // individual group routes to Blackpool
 let fourchesMeetPath = []; // Forches Cross → Blackpool School (ttz + aj together)
 let markToJBPath = [];  // Mark's route to James & Beth pickup
 let markJBPath   = [];  // Mark + JB together route to Blackpool
+let lewisPath    = [];  // McDonald's → JHB intercept (DRIVING)
 let legBuckPath  = [];  // Blackpool → Bickington (to collect Jenna)
 let legJHBPath   = [];  // Bickington → JHB South Brent
 let overlays     = {};
@@ -263,7 +265,7 @@ let animFrameIds = {};
 let speedMult    = 8;
 let animRunning  = false;
 let routesLoaded = 0;
-const TOTAL_ROUTES = 7; // ttz→forches, aj→forches, forches→blackpool, mark→JB, JB→school, school→buck, buck→JHB
+const TOTAL_ROUTES = 8; // +lewis driving route
 
 // ═══════════════════════════════════════════════════════════════
 // LEWIS VAN OVERLAY
@@ -465,6 +467,13 @@ function fetchRoutes() {
       if (status === 'OK') { window._jhbDist = res.routes[0].legs[0].distance.text; window._jhbDistM = res.routes[0].legs[0].distance.value; }
       onRouteLoaded();
     });
+
+  // Lewis drives from McDonald's Newton Abbot → JHB (DRIVING mode)
+  dirSvc.route({ origin: MCDONALDS_POS, destination: JHB_POS, travelMode: google.maps.TravelMode.DRIVING },
+    (res, status) => {
+      lewisPath = status === 'OK' ? decodePath(res) : interpolate(MCDONALDS_POS, JHB_POS, 80);
+      onRouteLoaded();
+    });
 }
 
 function onRouteLoaded() {
@@ -479,10 +488,15 @@ function onRouteLoaded() {
   new google.maps.Polyline({ path: markJBPath,   map, strokeColor: '#8B4513', strokeOpacity: 0.1, strokeWeight: 3 });
   new google.maps.Polyline({ path: legBuckPath,  map, strokeColor: '#cc2222', strokeOpacity: 0.08, strokeWeight: 4 });
   new google.maps.Polyline({ path: legJHBPath,   map, strokeColor: '#cc2222', strokeOpacity: 0.08, strokeWeight: 4 });
+  if (lewisPath.length) new google.maps.Polyline({ path: lewisPath, map, strokeColor: '#ffbc0d', strokeOpacity: 0.1, strokeWeight: 3 });
 
   document.getElementById('playBtn').disabled = false;
   document.getElementById('playBtn').textContent = '▶ Play Walk';
-  window._fiveOverlays = null;
+  window._fiveOverlays     = null;
+  window._lewisDriveOv    = null;
+  window._lewisAtIntercept = false;
+  window._lewisCurrentStep = 0;
+  window._lewisResume      = null;
   document.getElementById('phaseTag').textContent = 'Ready';
   setStatus('All routes ready — starting in a moment…', 0);
   setTimeout(startWalk, 1500);
@@ -518,10 +532,11 @@ function startWalk() {
 
   // Show full overview for 2 seconds first
   const allPoints = GROUPS.map(g => g.start)
-    .concat([FORCHES_CROSS, MARK_GROUP.start, JB_GROUP.start, BLACKPOOL_POS, BICKINGTON_POS, JHB_POS]);
+    .concat([FORCHES_CROSS, MARK_GROUP.start, JB_GROUP.start, BLACKPOOL_POS, BICKINGTON_POS, JHB_POS, MCDONALDS_POS]);
   fitBounds(allPoints);
   document.getElementById('phaseTag').textContent = 'The full route…';
   setStatus('Here is the full charity walk route across Devon…', 42);
+  setTimeout(startLewisDriving, 2000);
   setTimeout(() => runSequentialGroups(0), 2000);
 }
 
@@ -605,6 +620,79 @@ function runSequentialGroups(index) {
       animFrameIds[g.id] = setTimeout(tick, getStepMs());
     }, 700);
   });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LEWIS — drives in background from McDonald's Newton Abbot
+// Runs in parallel throughout the entire walk sequence
+// ═══════════════════════════════════════════════════════════════
+function startLewisDriving() {
+  if (!lewisPath || !lewisPath.length) return;
+
+  const lewisOv = new LewisOverlay(MCDONALDS_POS);
+  lewisOv.setMap(map);
+  window._lewisDriveOv = lewisOv;
+
+  // Find the halfway point on the JHB walking route — that's where Lewis intercepts
+  const halfIntercept = legJHBPath[Math.floor(legJHBPath.length * 0.5)];
+
+  // Find closest point on Lewis's driving path to that intercept
+  let closestIdx = 0, closestDist = Infinity;
+  if (halfIntercept) {
+    lewisPath.forEach((pt, i) => {
+      const d = Math.abs(pt.lat() - halfIntercept.lat()) + Math.abs(pt.lng() - halfIntercept.lng());
+      if (d < closestDist) { closestDist = d; closestIdx = i; }
+    });
+  } else {
+    closestIdx = Math.floor(lewisPath.length * 0.75);
+  }
+
+  const lewisMVC = new google.maps.MVCArray([]);
+  new google.maps.Polyline({
+    path: lewisMVC, map,
+    strokeColor: '#ffbc0d', strokeOpacity: 0.65, strokeWeight: 4, zIndex: 3,
+  });
+
+  let step = 0;
+
+  // Lewis drives to the intercept point — timed to arrive as walkers hit halfway
+  // His step rate is tuned so he covers his route in roughly the same wall-clock
+  // time as all the walking phases combined
+  function getLewisStepMs() {
+    return Math.max(4, Math.round(30000 / lewisPath.length / speedMult / 1.2));
+  }
+
+  function driveTick() {
+    if (!animRunning) return;
+    if (step >= closestIdx) {
+      // Arrived at intercept — hold here and wait for walkers to reach halfway
+      window._lewisAtIntercept = true;
+      window._lewisCurrentStep = step;
+      return;
+    }
+    const pos = lewisPath[step];
+    lewisOv.setPosition(pos);
+    lewisMVC.push(pos);
+    step++;
+    window._lewisCurrentStep = step;
+    setTimeout(driveTick, getLewisStepMs());
+  }
+  setTimeout(driveTick, getLewisStepMs());
+
+  // Resume function — called by onHalfway to race Lewis to JHB
+  window._lewisResume = (onFinish) => {
+    let s = window._lewisCurrentStep || closestIdx;
+    function raceTick() {
+      if (!animRunning) return;
+      if (s >= lewisPath.length) { onFinish && onFinish(); return; }
+      const pos = lewisPath[s];
+      lewisOv.setPosition(pos);
+      lewisMVC.push(pos);
+      s++;
+      setTimeout(raceTick, Math.max(3, Math.round(30000 / lewisPath.length / speedMult / 4)));
+    }
+    raceTick();
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -964,7 +1052,9 @@ function startFinalLeg(memberOverlays, offsets8) {
         ));
       });
       // Lewis already at JHB — show him waiting there
-      lewisOv.setPosition(new google.maps.LatLng(JHB_POS.lat + 0.0015, JHB_POS.lng - 0.001));
+      const finalLewisOv = window._lewisDriveOv || lewisOv;
+      finalLewisOv.setPosition(new google.maps.LatLng(JHB_POS.lat + 0.0015, JHB_POS.lng - 0.001));
+      finalLewisOv.setMap(map);
       document.getElementById('leg-lewis').classList.remove('current');
       document.getElementById('leg-lewis').classList.add('arrived');
       document.getElementById('leg-all').classList.remove('walking');
@@ -974,49 +1064,33 @@ function startFinalLeg(memberOverlays, offsets8) {
       animRunning = false;
       showArrivalCelebration(memberOverlays, offsets9);
     },
-    // onHalfway — Lewis appears and races past
+    // onHalfway — Lewis has been driving in background, now he catches up
     () => {
       if (lewisTriggered) return;
       lewisTriggered = true;
 
-      // Show Lewis legend
       document.getElementById('leg-lewis').style.display = 'flex';
       document.getElementById('leg-lewis').classList.add('current');
-      setStatus('🚐 Lewis has shown up with the McDonalds!! 🍟 He\'s catching up fast…', 91);
+      setStatus('🚐 Lewis has arrived with the McDonalds!! 🍟 He\'s racing past…', 91);
       document.getElementById('phaseTag').textContent = '🍟 Lewis on the move!';
 
-      // Lewis races along the same path at driving speed (much faster)
-      // Start him a bit behind the walkers
-      const halfIdx  = Math.floor(legJHBPath.length * 0.5);
-      const startIdx = Math.max(0, halfIdx - 15);
-      lewisStep = startIdx;
+      // Use the overlay that has been driving in the background
+      const activeOv = window._lewisDriveOv || lewisOv;
 
-      function getLewisMsPerStep() {
-        // Drive at ~8× the walking speed
-        return Math.max(3, Math.round(30000 / legJHBPath.length / speedMult / 6));
-      }
-
-      function lewisTick() {
-        if (!animRunning && lewisStep < legJHBPath.length) return;
-        if (lewisStep >= legJHBPath.length) {
-          // Lewis has zoomed off to JHB — hide him until walkers arrive
-          lewisOv.setMap(null);
+      // Resume Lewis from his current position on his driving route to JHB
+      if (window._lewisResume) {
+        const currentStep = window._lewisStepRef ? window._lewisStepRef() : 0;
+        window._lewisResume(currentStep, () => {
+          activeOv.setMap(null);
           document.getElementById('leg-lewis').classList.remove('current');
           setStatus('All 9 walking to JHB UK Ltd, South Brent… (Lewis is already there)', 93);
           document.getElementById('phaseTag').textContent = 'All 9 → JHB South Brent';
-          // Re-add Lewis at JHB ready for arrival
           setTimeout(() => {
-            lewisOv.setPosition(new google.maps.LatLng(JHB_POS.lat + 0.0015, JHB_POS.lng - 0.001));
-            lewisOv.setMap(map);
-          }, 500);
-          return;
-        }
-        const pos = legJHBPath[lewisStep];
-        lewisOv.setPosition(pos);
-        lewisStep++;
-        setTimeout(lewisTick, getLewisMsPerStep());
+            activeOv.setPosition(new google.maps.LatLng(JHB_POS.lat + 0.0015, JHB_POS.lng - 0.001));
+            activeOv.setMap(map);
+          }, 400);
+        });
       }
-      setTimeout(lewisTick, getLewisMsPerStep());
     }
   );
 }
@@ -1223,7 +1297,7 @@ function updateSpeed(v) {
 </script>
 
 <script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap">
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&libraries=geometry&callback=initMap">
 </script>
 </body>
 </html>
