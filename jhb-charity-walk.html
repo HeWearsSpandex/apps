@@ -982,7 +982,7 @@ function startFinalLeg(memberOverlays, offsets8) {
       // Show Lewis legend
       document.getElementById('leg-lewis').style.display = 'flex';
       document.getElementById('leg-lewis').classList.add('current');
-      setStatus('🚐 Lewis has shown up with the McDonalds!! 🍟  He's catching up fast…', 91);
+      setStatus('🚐 Lewis has shown up with the McDonalds!! 🍟 He\'s catching up fast…', 91);
       document.getElementById('phaseTag').textContent = '🍟 Lewis on the move!';
 
       // Lewis races along the same path at driving speed (much faster)
@@ -1002,7 +1002,7 @@ function startFinalLeg(memberOverlays, offsets8) {
           // Lewis has zoomed off to JHB — hide him until walkers arrive
           lewisOv.setMap(null);
           document.getElementById('leg-lewis').classList.remove('current');
-          setStatus(`All 9 walking to JHB UK Ltd, South Brent… (Lewis is already there)`, 93);
+          setStatus('All 9 walking to JHB UK Ltd, South Brent… (Lewis is already there)', 93);
           document.getElementById('phaseTag').textContent = 'All 9 → JHB South Brent';
           // Re-add Lewis at JHB ready for arrival
           setTimeout(() => {
@@ -1223,7 +1223,7 @@ function updateSpeed(v) {
 </script>
 
 <script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap">
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&libraries=geometry&callback=initMap">
 </script>
 </body>
 </html>
