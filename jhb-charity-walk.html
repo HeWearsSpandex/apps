@@ -63,19 +63,20 @@ input[type=range] { width: 80px; accent-color: var(--red); }
 
 /* ── DONATION SCREEN ── */
 #donScreen {
-  display: none; position: absolute; inset: 0; z-index: 200;
+  display: none; position: fixed; inset: 0; z-index: 1000;
   background: var(--white); flex-direction: column;
   align-items: center; justify-content: center;
   text-align: center; padding: 32px 24px;
+  overflow-y: auto;
 }
 #donScreen.show { display: flex; animation: fadeUp 0.7s ease; }
 @keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
-.don-logo  { height: 64px; margin-bottom: 18px; }
-.don-title { font-size: 28px; font-weight: 900; color: var(--red); letter-spacing: -1px; line-height: 1.1; margin-bottom: 8px; }
-.don-sub   { font-size: 15px; color: var(--mid); margin-bottom: 24px; max-width: 460px; line-height: 1.55; }
-.don-qr    { width: 210px; height: 210px; border: 5px solid var(--red); border-radius: 12px; object-fit: contain; margin-bottom: 16px; background: #fff; }
-.don-scan  { font-size: 14px; font-weight: 600; color: var(--dark); margin-bottom: 6px; }
-.don-url   { font-size: 12px; color: #aaa; margin-bottom: 18px; }
+.don-logo  { height: 48px; margin-bottom: 12px; }
+.don-title { font-size: 26px; font-weight: 900; color: var(--red); letter-spacing: -1px; line-height: 1.1; margin-bottom: 6px; }
+.don-sub   { font-size: 14px; color: var(--mid); margin-bottom: 14px; max-width: 480px; line-height: 1.5; }
+.don-qr    { width: 190px; height: 190px; border: 4px solid var(--red); border-radius: 10px; object-fit: contain; margin-bottom: 12px; background: #fff; }
+.don-scan  { font-size: 13px; font-weight: 600; color: var(--dark); margin-bottom: 4px; }
+.don-url   { font-size: 12px; color: #aaa; margin-bottom: 12px; }
 .don-walkers { font-size: 12px; color: #bbb; max-width: 520px; line-height: 1.8; }
 .don-walkers strong { color: var(--mid); }
 
@@ -120,7 +121,7 @@ input[type=range] { width: 80px; accent-color: var(--red); }
       James Hodge-Brooks · Beth Hodge-Brooks · Tom Brooks · Tristan Allen · Zak Carnell<br>
       Mark Stafford · Alex Nita · Joe Nixon · Jenna Turvey
     </div>
-    <button class="btn btn-grey" style="margin-top:24px" onclick="replayWalk()">&#8635; Replay the walk</button>
+    <button class="btn btn-grey" style="margin-top:14px" onclick="replayWalk()">&#8635; Replay the walk</button>
   </div>
 </div>
 
@@ -1089,7 +1090,7 @@ function updateSpeed(v) {
 </script>
 
 <script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap">
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&libraries=geometry&callback=initMap">
 </script>
 </body>
 </html>
