@@ -111,6 +111,7 @@ input[type=range] { width: 80px; accent-color: var(--red); }
     <img class="don-logo" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/JHB%20Logo.png" alt="JHB UK Ltd">
     <div class="don-title">The team is walking — support them! &#127939;</div>
     <div class="don-sub">The JHB team are walking across Devon to raise money for charity. Every pound counts — scan the QR code or visit our JustGiving page to donate and cheer them on!</div>
+    <div id="don-total-dist" style="font-size:19px;font-weight:700;color:var(--red);letter-spacing:-0.3px;margin-bottom:20px;line-height:1.45;text-align:center;max-width:520px;"></div>
     <img class="don-qr" src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/justgiving-qr-code.png" alt="JustGiving QR Code">
     <div class="don-scan">Scan to donate</div>
     <div class="don-url">or visit our JustGiving page</div>
@@ -348,7 +349,7 @@ function fetchRoutes() {
     dirSvc.route({ origin: g.start, destination: FORCHES_CROSS, travelMode: google.maps.TravelMode.WALKING },
       (res, status) => {
         routePaths[g.id] = status === 'OK' ? decodePath(res) : interpolate(g.start, FORCHES_CROSS, 80);
-        if (status === 'OK') { const l = res.routes[0].legs[0]; g.distance = l.distance.text; }
+        if (status === 'OK') { const l = res.routes[0].legs[0]; g.distance = l.distance.text; g.distanceM = l.distance.value; }
         onRouteLoaded();
       });
   });
@@ -357,7 +358,7 @@ function fetchRoutes() {
   dirSvc.route({ origin: FORCHES_CROSS, destination: BLACKPOOL_POS, travelMode: google.maps.TravelMode.WALKING },
     (res, status) => {
       fourchesMeetPath = status === 'OK' ? decodePath(res) : interpolate(FORCHES_CROSS, BLACKPOOL_POS, 80);
-      if (status === 'OK') window._forchDist = res.routes[0].legs[0].distance.text;
+      if (status === 'OK') { window._forchDist = res.routes[0].legs[0].distance.text; window._forchDistM = res.routes[0].legs[0].distance.value; }
       onRouteLoaded();
     });
 
@@ -365,7 +366,7 @@ function fetchRoutes() {
   dirSvc.route({ origin: MARK_GROUP.start, destination: JB_POS_START, travelMode: google.maps.TravelMode.WALKING },
     (res, status) => {
       markToJBPath = status === 'OK' ? decodePath(res) : interpolate(MARK_GROUP.start, JB_POS_START, 60);
-      if (status === 'OK') MARK_GROUP.distToJB = res.routes[0].legs[0].distance.text;
+      if (status === 'OK') { MARK_GROUP.distToJB = res.routes[0].legs[0].distance.text; MARK_GROUP.distToJBM = res.routes[0].legs[0].distance.value; }
       onRouteLoaded();
     });
 
@@ -373,7 +374,7 @@ function fetchRoutes() {
   dirSvc.route({ origin: JB_POS_START, destination: BLACKPOOL_POS, travelMode: google.maps.TravelMode.WALKING },
     (res, status) => {
       markJBPath = status === 'OK' ? decodePath(res) : interpolate(JB_POS_START, BLACKPOOL_POS, 100);
-      if (status === 'OK') JB_GROUP.distance = res.routes[0].legs[0].distance.text;
+      if (status === 'OK') { JB_GROUP.distance = res.routes[0].legs[0].distance.text; JB_GROUP.distanceM = res.routes[0].legs[0].distance.value; }
       onRouteLoaded();
     });
 
@@ -381,13 +382,13 @@ function fetchRoutes() {
   dirSvc.route({ origin: BLACKPOOL_POS, destination: BUCKFASTLEIGH_POS, travelMode: google.maps.TravelMode.WALKING },
     (res, status) => {
       legBuckPath = status === 'OK' ? decodePath(res) : interpolate(BLACKPOOL_POS, BUCKFASTLEIGH_POS, 120);
-      if (status === 'OK') window._buckDist = res.routes[0].legs[0].distance.text;
+      if (status === 'OK') { window._buckDist = res.routes[0].legs[0].distance.text; window._buckDistM = res.routes[0].legs[0].distance.value; }
       onRouteLoaded();
     });
   dirSvc.route({ origin: BUCKFASTLEIGH_POS, destination: JHB_POS, travelMode: google.maps.TravelMode.WALKING },
     (res, status) => {
       legJHBPath = status === 'OK' ? decodePath(res) : interpolate(BUCKFASTLEIGH_POS, JHB_POS, 100);
-      if (status === 'OK') window._jhbDist = res.routes[0].legs[0].distance.text;
+      if (status === 'OK') { window._jhbDist = res.routes[0].legs[0].distance.text; window._jhbDistM = res.routes[0].legs[0].distance.value; }
       onRouteLoaded();
     });
 }
@@ -887,7 +888,80 @@ function startFinalLeg(memberOverlays, offsets8) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ARRIVAL CELEBRATION — flags then cut to QR
+// TOTAL DISTANCE CALCULATION
+// Each leg multiplied by the number of people walking it
+// ═══════════════════════════════════════════════════════════════
+// Straight-line distances from JHB South Brent to notable places
+const PLACE_DISTANCES = [
+  { name: "Newton Abbot", km: 16.9 },
+  { name: "Dartmouth", km: 18.3 },
+  { name: "Torquay", km: 20.0 },
+  { name: "Salcombe", km: 21.7 },
+  { name: "Plymouth", km: 24.8 },
+  { name: "Okehampton", km: 36.9 },
+  { name: "Exeter", km: 37.1 },
+  { name: "Crediton", km: 41.4 },
+  { name: "Launceston", km: 45.3 },
+  { name: "Liskeard", km: 46.9 },
+  { name: "Looe", km: 47.1 },
+  { name: "Sidmouth", km: 48.6 },
+  { name: "Tiverton", km: 56.8 },
+  { name: "Honiton", km: 59.4 },
+  { name: "Fowey", km: 60.0 },
+  { name: "South Molton", km: 64.6 },
+  { name: "Bodmin", km: 64.9 },
+  { name: "Bude", km: 68.2 },
+  { name: "Axminster", km: 68.6 },
+  { name: "Bideford", km: 70.7 },
+  { name: "St Austell", km: 70.8 },
+  { name: "Wadebridge", km: 73.5 },
+  { name: "Barnstaple", km: 74.5 },
+  { name: "Padstow", km: 80.8 },
+  { name: "Bridport", km: 80.9 },
+  { name: "Taunton", km: 81.4 },
+  { name: "Minehead", km: 88.8 },
+  { name: "Newquay", km: 90.1 },
+  { name: "Truro", km: 90.5 },
+  { name: "Weymouth", km: 97.2 },
+  { name: "Dorchester", km: 101.5 },
+  { name: "Glastonbury", km: 110.2 },
+  { name: "Wells", km: 118.6 },
+  { name: "Cardiff", km: 124.6 },
+  { name: "Penzance", km: 128.0 },
+  { name: "Bournemouth", km: 139.5 },
+  { name: "Land's End", km: 141.8 },
+  { name: "Bristol", km: 142.0 },
+  { name: "Bath", km: 145.8 },
+  { name: "London", km: 283.8 },
+  { name: "Dublin", km: 365.5 },
+  { name: "Paris", km: 476.4 },
+  { name: "Brussels", km: 576.7 },
+  { name: "Amsterdam", km: 640.8 },
+];
+
+function getNearestPlace(km) {
+  // Find the closest named place to the given distance
+  return PLACE_DISTANCES.reduce((best, p) =>
+    Math.abs(p.km - km) < Math.abs(best.km - km) ? p : best
+  );
+}
+
+function computeTotalDistanceKm() {
+  const legs = [
+    { m: GROUPS[0].distanceM || 0,   people: 3 }, // ttz → Forches Cross
+    { m: GROUPS[1].distanceM || 0,   people: 2 }, // aj → Forches Cross
+    { m: window._forchDistM  || 0,   people: 5 }, // all 5 → Blackpool School
+    { m: MARK_GROUP.distToJBM || 0,  people: 1 }, // Mark → JB pickup
+    { m: JB_GROUP.distanceM  || 0,   people: 3 }, // Mark + JB → Blackpool School
+    { m: window._buckDistM   || 0,   people: 8 }, // all 8 → Buckfastleigh
+    { m: window._jhbDistM    || 0,   people: 9 }, // all 9 → JHB South Brent
+  ];
+  const totalMetres = legs.reduce((sum, leg) => sum + (leg.m * leg.people), 0);
+  return (totalMetres / 1000).toFixed(1);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ARRIVAL CELEBRATION — cut to QR
 // ═══════════════════════════════════════════════════════════════
 function showArrivalCelebration(memberOverlays, offsets9) {
   // Zoom into JHB and position all faces
@@ -908,6 +982,15 @@ function showArrivalCelebration(memberOverlays, offsets9) {
 // DONATION SCREEN
 // ═══════════════════════════════════════════════════════════════
 function showDonationScreen() {
+  const km = computeTotalDistanceKm();
+  const place = getNearestPlace(parseFloat(km));
+  const diff = parseFloat(km) - place.km;
+  const comparison = diff >= 0
+    ? `past ${place.name}`
+    : `almost to ${place.name}`;
+  document.getElementById('don-total-dist').innerHTML =
+    `Together, the team are walking over <strong>${km} km</strong> for charity —` +
+    `<br>that's enough to reach <strong>${comparison}</strong> in a straight line from our South Brent HQ!`;
   document.getElementById('donScreen').classList.add('show');
 }
 
@@ -1006,7 +1089,7 @@ function updateSpeed(v) {
 </script>
 
 <script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA23ORAayerNpeDh8WhQkwsv0ZNAon41FI&libraries=geometry&callback=initMap">
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&libraries=geometry&callback=initMap">
 </script>
 </body>
 </html>
