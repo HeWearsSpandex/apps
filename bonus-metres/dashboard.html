@@ -19,7 +19,6 @@
     }
     body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--grey); color: var(--text); min-height: 100vh; }
 
-    /* Login */
     .login-screen { min-height:100vh; display:none; align-items:center; justify-content:center; background:linear-gradient(135deg,#1a1a2e 0%,#c00 100%); padding:20px; }
     .login-card { background:var(--white); border-radius:16px; box-shadow:var(--shadow-lg); padding:40px 36px; width:100%; max-width:400px; text-align:center; }
     .login-card img { max-width:120px; margin-bottom:24px; }
@@ -34,16 +33,13 @@
     .login-msg.success { color:var(--green); }
     .login-msg.error   { color:var(--red); }
 
-    /* App */
     .app  { display:none; }
     .main { padding:24px; }
 
-    /* Page header */
     .page-header { margin-bottom:24px; }
     .page-header h2 { font-size:22px; font-weight:700; }
     .page-header p  { font-size:13px; color:var(--muted); margin-top:3px; }
 
-    /* Stats */
     .stats-row { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px; margin-bottom:24px; }
     .stat-card { background:var(--white); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:4px; }
     .stat-card .stat-icon { font-size:22px; margin-bottom:4px; }
@@ -55,7 +51,6 @@
     .stat-card.gold  .stat-val { color:var(--gold); }
     .stat-card.blue  .stat-val { color:var(--blue); }
 
-    /* Grid */
     .dashboard-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
     .panel { background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
     .stat-mini { background:var(--grey); border-radius:8px; padding:12px 14px; }
@@ -77,7 +72,6 @@
     .panel-header h3 { font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px; }
     .panel-body { padding:16px 18px; }
 
-    /* Tasks */
     .task-item { display:flex; align-items:flex-start; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
     .task-item:last-child { border-bottom:none; }
     .task-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
@@ -90,7 +84,6 @@
     .all-clear  { text-align:center; padding:24px; color:var(--green); font-size:14px; }
     .all-clear .icon { font-size:36px; margin-bottom:8px; }
 
-    /* People */
     .people-item { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
     .people-item:last-child { border-bottom:none; }
     .people-avatar { width:36px; height:36px; border-radius:50%; object-fit:cover; flex-shrink:0; border:2px solid var(--border); }
@@ -101,14 +94,12 @@
     .days-badge.soon   { background:var(--orange-lt); color:var(--orange); }
     .days-badge.future { background:var(--blue-lt);   color:var(--blue); }
 
-    /* Actions */
     .actions-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; }
     .action-btn { display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px 12px; background:var(--grey); border:1.5px solid var(--border); border-radius:var(--radius); cursor:pointer; text-decoration:none; transition:all 0.15s; color:var(--text); }
     .action-btn:hover { border-color:var(--red); background:var(--red-lt); }
     .action-btn .action-icon  { font-size:24px; }
     .action-btn .action-label { font-size:12px; font-weight:600; text-align:center; }
 
-    /* Spinner */
     .spin-wrap { display:flex; justify-content:center; padding:30px; }
     .spinner   { width:28px; height:28px; border:3px solid var(--border); border-top-color:var(--red); border-radius:50%; animation:spin 0.8s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
@@ -209,7 +200,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="admin.js"></script>
   <script>
-    const IMG_PATH_WEB   = '/img/';
+    const IMG_PATH_WEB = '/img/';
     let allEmployees = [];
 
     async function signInWithMicrosoft() {
@@ -234,45 +225,26 @@
     }
 
     async function init() {
-      console.log('init() called');
-      console.log('URL hash:', location.hash);
-      console.log('URL search:', location.search);
-
       if (location.hash && location.hash.includes('access_token')) {
-        console.log('Found access_token in hash');
         const params       = new URLSearchParams(location.hash.replace('#', ''));
         const accessToken  = params.get('access_token');
         const refreshToken = params.get('refresh_token');
-        console.log('access_token found:', !!accessToken);
-
         if (accessToken) {
           try {
-            const { data, error } = await sb.auth.setSession({
-              access_token:  accessToken,
-              refresh_token: refreshToken || ''
-            });
-            console.log('setSession result — user:', data?.session?.user?.email ?? 'none', '| error:', error?.message ?? 'none');
+            await sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken || '' });
           } catch (err) {
             console.log('setSession failed:', err.message);
           }
           history.replaceState(null, '', location.pathname);
         }
-      } else {
-        console.log('No access_token in hash');
       }
 
-      console.log('Checking getSession...');
-      const { data, error } = await sb.auth.getSession();
-      const session = data?.session;
-      console.log('Session result:', session ? 'found' : 'null', '| User:', session?.user?.email ?? 'none', '| Error:', error);
-
+      const { data } = await sb.auth.getSession();
+      const session  = data?.session;
       if (!session || !session.user) {
-        console.log('No session or no user — showing login screen');
         document.getElementById('loginScreen').style.display = 'flex';
         return;
       }
-
-      console.log('Session found — showing dashboard');
       await showDashboard();
     }
 
@@ -291,7 +263,10 @@
       const { data, error } = await sb.from('employees').select('*').neq('status', 'token').order('full_name');
       if (error) { showToast('Error: ' + error.message, 'error'); return; }
       allEmployees = data;
-      await renderStats(); await renderTasks(); renderLeavers(); renderProbation();
+      await renderStats();
+      await renderTasks();
+      renderLeavers();
+      renderProbation();
       loadMomChart();
       document.getElementById('dashGrid').style.display = 'grid';
     }
@@ -300,7 +275,7 @@
       const today   = new Date().toISOString().split('T')[0];
       const active  = allEmployees.filter(e => e.status === 'active').length;
       const prob    = allEmployees.filter(e => e.status === 'probation').length;
-      const leaving = allEmployees.filter(e => e.leaving_date && e.status!=='token' && e.leaving_date >= today).length;
+      const leaving = allEmployees.filter(e => e.leaving_date && e.status !== 'token' && e.leaving_date >= today).length;
       const month   = new Date().toLocaleDateString('en-GB', { month:'long', year:'numeric' });
 
       // Unpaid transaction shares per employee
@@ -312,7 +287,7 @@
       // Unpaid bonus entries per employee (excluding leavers)
       const { data: unpaidEntries } = await sb
         .from('bonus_entries')
-        .select('employee_id, type, amount, employees(status, leaving_date)')
+        .select('employee_id, type, amount, reason, employees(status, leaving_date)')
         .is('date_paid', null);
 
       const perPerson = {};
@@ -324,9 +299,11 @@
         const emp = e.employees;
         const hasLeft = emp && emp.status === 'inactive' && emp.leaving_date && emp.leaving_date < today;
         if (hasLeft) return;
+        // Exclude carry-over entries — these are internal accounting, not payable deductions
+        const isCarryOver = e.reason && e.reason.toLowerCase().includes('carry');
         if (!perPerson[e.employee_id]) perPerson[e.employee_id] = { earned: 0, ded: 0 };
         if (e.type === 'special_bonus') perPerson[e.employee_id].earned += parseFloat(e.amount);
-        if (e.type === 'deduction')     perPerson[e.employee_id].ded    += parseFloat(e.amount);
+        if (e.type === 'deduction' && !isCarryOver) perPerson[e.employee_id].ded += parseFloat(e.amount);
       });
 
       // Sum per-person net floored at zero
@@ -340,11 +317,10 @@
         .order('payment_date', { ascending: false })
         .limit(1);
 
-      const lastPaid    = lastRun?.[0]?.total_paid ?? null;
-      const lastPeriod  = lastRun?.[0]?.period_name ?? null;
+      const lastPaid   = lastRun?.[0]?.total_paid ?? null;
+      const lastPeriod = lastRun?.[0]?.period_name ?? null;
 
-      const potVal     = `£${outstandingPot.toFixed(2)}`;
-      const potSub     = lastPaid
+      const potSub = lastPaid
         ? `Last paid: £${parseFloat(lastPaid).toFixed(2)} (${lastPeriod})`
         : 'No month end run yet';
 
@@ -352,7 +328,7 @@
         <div class="stat-card green"><div class="stat-icon">👥</div><div class="stat-val">${active}</div><div class="stat-lbl">Active Staff</div><div class="stat-sub">${prob} on probation</div></div>
         <div class="stat-card blue"><div class="stat-icon">📅</div><div class="stat-val" style="font-size:16px;padding-top:4px;">${month}</div><div class="stat-lbl">Current Month</div><div class="stat-sub">${lastPeriod ? `Last run: ${lastPeriod}` : 'Month end not yet run'}</div></div>
         <div class="stat-card ${leaving > 0 ? 'red' : 'green'}"><div class="stat-icon">🚪</div><div class="stat-val">${leaving}</div><div class="stat-lbl">Upcoming Leavers</div><div class="stat-sub">Next 30 days</div></div>
-        <div class="stat-card gold"><div class="stat-icon">💷</div><div class="stat-val" style="font-size:18px;padding-top:4px">${potVal}</div><div class="stat-lbl">Outstanding Bonus Pot</div><div class="stat-sub">${potSub}</div></div>`;
+        <div class="stat-card gold"><div class="stat-icon">💷</div><div class="stat-val" style="font-size:18px;padding-top:4px">£${outstandingPot.toFixed(2)}</div><div class="stat-lbl">Outstanding Bonus Pot</div><div class="stat-sub">${potSub}</div></div>`;
     }
 
     async function renderTasks() {
@@ -425,11 +401,9 @@
     }
 
     async function loadMomChart() {
-      const now        = new Date();
-      const fyYear     = getFYYear();
-
-      const pendingMD      = new Date(now.getFullYear(), now.getMonth(), 1);
-      const pendingMonthStr = `${pendingMD.getFullYear()}-${String(pendingMD.getMonth() + 1).padStart(2,'0')}`;
+      const now    = new Date();
+      const fyYear = getFYYear();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 
       document.getElementById('fy0-tab').textContent = `Apr ${fyYear} – Mar ${fyYear+1}`;
       document.getElementById('fy1-tab').textContent = `Apr ${fyYear+1} – Mar ${fyYear+2}`;
@@ -437,63 +411,83 @@
       let months = [];
 
       if (currentChartTab === 'rolling') {
-        for (let i = 11; i >= 1; i--) {
+        // Rolling 12 months: 11 complete months + current month
+        for (let i = 11; i >= 0; i--) {
           const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
           const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-          months.push({ label: d.toLocaleDateString('en-GB',{month:'short',year:'2-digit'}), dateStr, paid:0, unpaid:0, jobs:0 });
+          const isCurrent = dateStr === todayStr;
+          months.push({
+            label:     d.toLocaleDateString('en-GB', { month:'short', year:'2-digit' }) + (isCurrent ? ' ⟳' : ''),
+            dateStr,
+            paid:      0,
+            unpaid:    0,
+            jobs:      0,
+            isCurrent
+          });
         }
-        months.push({ label: pendingMD.toLocaleDateString('en-GB',{month:'short',year:'2-digit'})+' ⟳', dateStr: pendingMonthStr, paid:0, unpaid:0, jobs:0, isPending:true });
       } else {
+        // Financial year view
         const fy = currentChartTab === 'fy0' ? fyYear : fyYear + 1;
         for (let m = 0; m < 12; m++) {
           const month   = (m + 3) % 12;
           const year    = month >= 3 ? fy : fy + 1;
           const dateStr = `${year}-${String(month+1).padStart(2,'0')}`;
-          months.push({ label: new Date(`${dateStr}-01`).toLocaleDateString('en-GB',{month:'short',year:'2-digit'}), dateStr, paid:0, unpaid:0, jobs:0 });
+          const isCurrent = dateStr === todayStr;
+          months.push({
+            label:     new Date(`${dateStr}-01`).toLocaleDateString('en-GB', { month:'short', year:'2-digit' }) + (isCurrent ? ' ⟳' : ''),
+            dateStr,
+            paid:      0,
+            unpaid:    0,
+            jobs:      0,
+            isCurrent
+          });
         }
       }
 
-      // Fetch paid transactions using total_value
-      const { data: txData } = await sb.from('transactions')
-        .select('date, total_value, date_paid')
-        .not('date_paid', 'is', null);
+      // Fetch ALL transactions — bucket by transaction date
+      // Paid = has date_paid, shown in the month of date_paid
+      // Unpaid = no date_paid, shown as pending in their transaction date month
+      const { data: allTx } = await sb
+        .from('transactions')
+        .select('date, total_value, date_paid');
 
-      // Fetch unpaid transactions using total_value
-      const { data: unpaidData } = await sb.from('transactions')
-        .select('date, total_value, date_paid')
-        .is('date_paid', null);
+      (allTx || []).forEach(tx => {
+        const val = parseFloat(tx.total_value || 0);
+        if (tx.date_paid) {
+          // Paid — bucket by date_paid month
+          const bucket = months.find(m => m.dateStr === tx.date_paid.slice(0, 7));
+          if (!bucket) return;
+          bucket.jobs++;
+          bucket.paid += val;
+        } else {
+          // Unpaid — bucket by transaction date month
+          const bucket = months.find(m => m.dateStr === tx.date.slice(0, 7));
+          if (!bucket) return;
+          bucket.jobs++;
+          bucket.unpaid += val;
+        }
+      });
 
-      // Fetch unpaid deductions to subtract from outstanding
-      const { data: deductionData } = await sb.from('bonus_entries')
-        .select('amount')
+      // Fetch unpaid deductions (excluding carry-overs) to subtract from outstanding stat
+      const { data: deductionData } = await sb
+        .from('bonus_entries')
+        .select('amount, reason')
         .eq('type', 'deduction')
         .is('date_paid', null);
 
       const totalDeductions = (deductionData || [])
+        .filter(d => !d.reason || !d.reason.toLowerCase().includes('carry'))
         .reduce((sum, d) => sum + parseFloat(d.amount || 0), 0);
 
-      (txData || []).forEach(tx => {
-        const val    = parseFloat(tx.total_value || 0);
-        const bucket = months.find(m => m.dateStr === tx.date_paid.slice(0,7));
-        if (!bucket) return;
-        bucket.jobs++; bucket.paid += val;
-      });
-
-      (unpaidData || []).forEach(tx => {
-        const val    = parseFloat(tx.total_value || 0);
-        const bucket = months.find(m => m.dateStr === pendingMonthStr);
-        if (!bucket) return;
-        bucket.jobs++; bucket.unpaid += val;
-      });
-
-      const totalEarned  = months.reduce((s,m) => s + m.paid + m.unpaid, 0);
-      const totalPaid    = months.reduce((s,m) => s + m.paid, 0);
-      const totalUnpaid  = months.reduce((s,m) => s + m.unpaid, 0);
-      const totalJobs    = months.reduce((s,m) => s + m.jobs, 0);
+      const totalEarned     = months.reduce((s, m) => s + m.paid + m.unpaid, 0);
+      const totalPaid       = months.reduce((s, m) => s + m.paid, 0);
+      const totalUnpaid     = months.reduce((s, m) => s + m.unpaid, 0);
+      const totalJobs       = months.reduce((s, m) => s + m.jobs, 0);
+      const totalOutstanding = totalUnpaid - totalDeductions;
 
       document.getElementById('fy-total').textContent       = `£${totalEarned.toFixed(2)}`;
       document.getElementById('fy-paid').textContent        = `£${totalPaid.toFixed(2)}`;
-      document.getElementById('fy-outstanding').textContent = `£${(totalUnpaid - totalDeductions).toFixed(2)}`;
+      document.getElementById('fy-outstanding').textContent = `£${totalOutstanding.toFixed(2)}`;
       document.getElementById('fy-jobs').textContent        = totalJobs;
 
       if (momChartInstance) momChartInstance.destroy();
@@ -506,16 +500,16 @@
             {
               label: 'Paid',
               data:  months.map(m => parseFloat(m.paid.toFixed(2))),
-              backgroundColor: months.map(m => m.isPending ? 'rgba(42,157,42,0.15)' : 'rgba(42,157,42,0.75)'),
+              backgroundColor: 'rgba(42,157,42,0.75)',
               borderRadius: 4,
-              stack: 'bonus',
+              stack: 'bonus'
             },
             {
               label: 'Pending',
               data:  months.map(m => parseFloat(m.unpaid.toFixed(2))),
-              backgroundColor: months.map(m => m.isPending ? 'rgba(204,0,0,0.75)' : 'rgba(230,81,0,0.5)'),
+              backgroundColor: months.map(m => m.isCurrent ? 'rgba(204,0,0,0.75)' : 'rgba(230,81,0,0.5)'),
               borderRadius: 4,
-              stack: 'bonus',
+              stack: 'bonus'
             }
           ]
         },
@@ -524,12 +518,12 @@
           maintainAspectRatio: false,
           interaction: { mode: 'index', intersect: false },
           plugins: {
-            legend: { position: 'top', labels: { boxWidth: 12, font:{ size:11 } } },
+            legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } },
             tooltip: { callbacks: { label: c => ` ${c.dataset.label}: £${c.parsed.y.toFixed(2)}` } }
           },
           scales: {
-            x: { grid:{ display:false }, ticks:{ font:{ size:11 } } },
-            y: { stacked:true, ticks:{ callback: v=>`£${v}`, font:{ size:11 } }, grid:{ color:'#f0f0f0' } }
+            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+            y: { stacked: true, ticks: { callback: v => `£${v}`, font: { size: 11 } }, grid: { color: '#f0f0f0' } }
           }
         }
       });
