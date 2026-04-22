@@ -238,10 +238,6 @@
       console.log('URL hash:', location.hash);
       console.log('URL search:', location.search);
 
-      // Handle OAuth callback — extract tokens from URL hash and let Supabase
-      // set the full session (including fetching the user object) via setSession()
-      // Note: manual cookieStorage writes omitted — setSession() writes via the
-      // adapter automatically, including the user object that getSession() needs.
       if (location.hash && location.hash.includes('access_token')) {
         console.log('Found access_token in hash');
         const params       = new URLSearchParams(location.hash.replace('#', ''));
@@ -270,7 +266,6 @@
       const session = data?.session;
       console.log('Session result:', session ? 'found' : 'null', '| User:', session?.user?.email ?? 'none', '| Error:', error);
 
-      // FIX: guard on session.user — a session without a user object cannot proceed
       if (!session || !session.user) {
         console.log('No session or no user — showing login screen');
         document.getElementById('loginScreen').style.display = 'flex';
@@ -307,9 +302,6 @@
       const prob    = allEmployees.filter(e => e.status === 'probation').length;
       const leaving = allEmployees.filter(e => e.leaving_date && e.status!=='token' && e.leaving_date >= today).length;
       const month   = new Date().toLocaleDateString('en-GB', { month:'long', year:'numeric' });
-
-      // Calculate outstanding pot per-person, floored at zero each
-      // so someone in debt doesn't reduce the pot for everyone else
 
       // Unpaid transaction shares per employee
       const { data: unpaidTx } = await sb
@@ -436,27 +428,22 @@
       const now        = new Date();
       const fyYear     = getFYYear();
 
-      // Pending goes into the CURRENT month until a month-end run closes it
-      const pendingMD     = new Date(now.getFullYear(), now.getMonth(), 1);
+      const pendingMD      = new Date(now.getFullYear(), now.getMonth(), 1);
       const pendingMonthStr = `${pendingMD.getFullYear()}-${String(pendingMD.getMonth() + 1).padStart(2,'0')}`;
 
-      // Set tab labels
       document.getElementById('fy0-tab').textContent = `Apr ${fyYear} – Mar ${fyYear+1}`;
       document.getElementById('fy1-tab').textContent = `Apr ${fyYear+1} – Mar ${fyYear+2}`;
 
       let months = [];
 
       if (currentChartTab === 'rolling') {
-        // Last 12 months including current month as pending
         for (let i = 11; i >= 1; i--) {
           const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
           const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
           months.push({ label: d.toLocaleDateString('en-GB',{month:'short',year:'2-digit'}), dateStr, paid:0, unpaid:0, jobs:0 });
         }
-        // Current month — pending until month-end is run
         months.push({ label: pendingMD.toLocaleDateString('en-GB',{month:'short',year:'2-digit'})+' ⟳', dateStr: pendingMonthStr, paid:0, unpaid:0, jobs:0, isPending:true });
       } else {
-        // Financial year view
         const fy = currentChartTab === 'fy0' ? fyYear : fyYear + 1;
         for (let m = 0; m < 12; m++) {
           const month   = (m + 3) % 12;
@@ -466,25 +453,34 @@
         }
       }
 
-      // Fetch paid transactions
+      // Fetch paid transactions using total_value
       const { data: txData } = await sb.from('transactions')
-        .select('date, bonus_metres, rate, date_paid')
+        .select('date, total_value, date_paid')
         .not('date_paid', 'is', null);
 
-      // Fetch all unpaid
+      // Fetch unpaid transactions using total_value
       const { data: unpaidData } = await sb.from('transactions')
-        .select('date, bonus_metres, rate, date_paid')
+        .select('date, total_value, date_paid')
         .is('date_paid', null);
 
+      // Fetch unpaid deductions to subtract from outstanding
+      const { data: deductionData } = await sb.from('bonus_entries')
+        .select('amount')
+        .eq('type', 'deduction')
+        .is('date_paid', null);
+
+      const totalDeductions = (deductionData || [])
+        .reduce((sum, d) => sum + parseFloat(d.amount || 0), 0);
+
       (txData || []).forEach(tx => {
-        const val    = parseFloat(tx.bonus_metres||0) * parseFloat(tx.rate||0.03);
+        const val    = parseFloat(tx.total_value || 0);
         const bucket = months.find(m => m.dateStr === tx.date_paid.slice(0,7));
         if (!bucket) return;
         bucket.jobs++; bucket.paid += val;
       });
 
       (unpaidData || []).forEach(tx => {
-        const val    = parseFloat(tx.bonus_metres||0) * parseFloat(tx.rate||0.03);
+        const val    = parseFloat(tx.total_value || 0);
         const bucket = months.find(m => m.dateStr === pendingMonthStr);
         if (!bucket) return;
         bucket.jobs++; bucket.unpaid += val;
@@ -497,11 +493,8 @@
 
       document.getElementById('fy-total').textContent       = `£${totalEarned.toFixed(2)}`;
       document.getElementById('fy-paid').textContent        = `£${totalPaid.toFixed(2)}`;
-      document.getElementById('fy-outstanding').textContent = `£${totalUnpaid.toFixed(2)}`;
+      document.getElementById('fy-outstanding').textContent = `£${(totalUnpaid - totalDeductions).toFixed(2)}`;
       document.getElementById('fy-jobs').textContent        = totalJobs;
-
-      let running = 0;
-      const runningData = months.map(m => { running += m.paid + m.unpaid; return parseFloat(running.toFixed(2)); });
 
       if (momChartInstance) momChartInstance.destroy();
       const ctx = document.getElementById('momChart').getContext('2d');
@@ -523,18 +516,6 @@
               backgroundColor: months.map(m => m.isPending ? 'rgba(204,0,0,0.75)' : 'rgba(230,81,0,0.5)'),
               borderRadius: 4,
               stack: 'bonus',
-            },
-            {
-              label: 'Running Total',
-              data:  runningData,
-              type:  'line',
-              borderColor: '#1a73e8',
-              backgroundColor: 'rgba(26,115,232,0.06)',
-              borderWidth: 2,
-              pointRadius: 3,
-              fill: true,
-              tension: 0.3,
-              yAxisID: 'y2',
             }
           ]
         },
@@ -548,8 +529,7 @@
           },
           scales: {
             x: { grid:{ display:false }, ticks:{ font:{ size:11 } } },
-            y: { stacked:true, ticks:{ callback: v=>`£${v}`, font:{ size:11 } }, grid:{ color:'#f0f0f0' } },
-            y2: { position:'right', ticks:{ callback: v=>`£${v}`, font:{ size:11 } }, grid:{ display:false } }
+            y: { stacked:true, ticks:{ callback: v=>`£${v}`, font:{ size:11 } }, grid:{ color:'#f0f0f0' } }
           }
         }
       });
