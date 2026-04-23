@@ -277,10 +277,11 @@
       const month   = new Date().toLocaleDateString('en-GB', { month:'long', year:'numeric' });
 
       // ── Outstanding pot ───────────────────────────────────────────────────
-      // Fetch unpaid share values per employee (one row per operative per job)
-      const { data: unpaidTx } = await sb
+      // Use total_value directly (not share_value) to avoid rounding drift from division
+      // Fetch unpaid total_value per employee via transaction_operatives
+      const { data: unpaidTxShares } = await sb
         .from('transaction_operatives')
-        .select('employee_id, share_value, transactions!inner(date_paid)')
+        .select('employee_id, transactions!inner(date_paid, total_value)')
         .is('transactions.date_paid', null);
 
       // Fetch unpaid deductions for active/probation employees only
@@ -302,16 +303,33 @@
         .eq('type', 'special_bonus')
         .is('date_paid', null);
 
-      // Build per-person totals using separate Maps — avoids any cross-join multiplication
-      const earned = {};
-      const deds   = {};
+      // Build per-person totals — use share_value proportions of total_value
+      // by counting operatives per transaction then dividing total_value equally
+      // First, count operatives per transaction
+      const txOpCount = {};
+      (unpaidTxShares || []).forEach(r => {
+        txOpCount[r.transactions.total_value + '|' + r.employee_id] = true;
+      });
+      // Group by transaction to get op counts
+      const txOps = {};
+      (unpaidTxShares || []).forEach(r => {
+        const txKey = JSON.stringify(r.transactions);
+        if (!txOps[txKey]) txOps[txKey] = { tv: parseFloat(r.transactions.total_value || 0), emps: [] };
+        txOps[txKey].emps.push(r.employee_id);
+      });
 
-      (unpaidTx || []).forEach(r => {
-        earned[r.employee_id] = (earned[r.employee_id] || 0) + parseFloat(r.share_value || 0);
+      const earned = {};
+      Object.values(txOps).forEach(({ tv, emps }) => {
+        const share = tv / emps.length;
+        emps.forEach(id => {
+          earned[id] = (earned[id] || 0) + share;
+        });
       });
       (unpaidBonuses || []).forEach(r => {
         earned[r.employee_id] = (earned[r.employee_id] || 0) + parseFloat(r.amount || 0);
       });
+
+      const deds = {};
       (unpaidDeds || []).forEach(r => {
         deds[r.employee_id] = (deds[r.employee_id] || 0) + parseFloat(r.amount || 0);
       });
@@ -441,28 +459,20 @@
         }
       }
 
-      // Fetch ALL transactions — paid bucketed by date_paid, unpaid by transaction date
-      const { data: allTx } = await sb
+      // ── Global stats (independent of chart window) ───────────────────────
+      const { data: allTxGlobal } = await sb
         .from('transactions')
-        .select('date, total_value, date_paid');
+        .select('total_value, date_paid');
 
-      (allTx || []).forEach(tx => {
+      let globalEarned = 0, globalPaid = 0, globalJobs = 0;
+      (allTxGlobal || []).forEach(tx => {
         const val = parseFloat(tx.total_value || 0);
-        if (tx.date_paid) {
-          const bucket = months.find(m => m.dateStr === tx.date_paid.slice(0,7));
-          if (!bucket) return;
-          bucket.jobs++;
-          bucket.paid += val;
-        } else {
-          const bucket = months.find(m => m.dateStr === tx.date.slice(0,7));
-          if (!bucket) return;
-          bucket.jobs++;
-          bucket.unpaid += val;
-        }
+        globalEarned += val;
+        globalJobs++;
+        if (tx.date_paid) globalPaid += val;
       });
 
-      // Fetch unpaid deductions for active/probation employees only
-      // Inactive employees who owe money are ignored — we aren't paying them
+      // Active employee deductions for outstanding figure
       const activeEmpIds = allEmployees
         .filter(e => e.status === 'active' || e.status === 'probation')
         .map(e => e.id);
@@ -476,15 +486,35 @@
       const totalDeductions = (deductionData || [])
         .reduce((sum, d) => sum + parseFloat(d.amount || 0), 0);
 
-      const totalEarned     = months.reduce((s,m) => s + m.paid + m.unpaid, 0);
-      const totalPaid       = months.reduce((s,m) => s + m.paid, 0);
-      const totalUnpaid     = months.reduce((s,m) => s + m.unpaid, 0);
-      const totalJobs       = months.reduce((s,m) => s + m.jobs, 0);
+      const globalUnpaid = globalEarned - globalPaid;
+      const globalOutstanding = globalUnpaid - totalDeductions;
 
-      document.getElementById('fy-total').textContent       = `£${totalEarned.toFixed(2)}`;
-      document.getElementById('fy-paid').textContent        = `£${totalPaid.toFixed(2)}`;
-      document.getElementById('fy-outstanding').textContent = `£${(totalUnpaid - totalDeductions).toFixed(2)}`;
-      document.getElementById('fy-jobs').textContent        = totalJobs;
+      document.getElementById('fy-total').textContent       = `£${globalEarned.toFixed(2)}`;
+      document.getElementById('fy-paid').textContent        = `£${globalPaid.toFixed(2)}`;
+      document.getElementById('fy-outstanding').textContent = `£${globalOutstanding.toFixed(2)}`;
+      document.getElementById('fy-jobs').textContent        = globalJobs;
+
+      // ── Chart bucketing — paid by date_paid, unpaid into current month ───
+      // Unpaid work hasn't been assigned a payment month yet so sits in current month
+      const { data: allTx } = await sb
+        .from('transactions')
+        .select('total_value, date_paid');
+
+      (allTx || []).forEach(tx => {
+        const val = parseFloat(tx.total_value || 0);
+        if (tx.date_paid) {
+          const bucket = months.find(m => m.dateStr === tx.date_paid.slice(0,7));
+          if (!bucket) return;
+          bucket.jobs++;
+          bucket.paid += val;
+        } else {
+          // Unpaid — show in current month as pending
+          const bucket = months.find(m => m.isCurrent);
+          if (!bucket) return;
+          bucket.jobs++;
+          bucket.unpaid += val;
+        }
+      });
 
       if (momChartInstance) momChartInstance.destroy();
       const ctx = document.getElementById('momChart').getContext('2d');
