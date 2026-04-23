@@ -281,12 +281,11 @@
       // Stop any running scroll animation
       if (scrollAnim) { cancelAnimationFrame(scrollAnim); scrollAnim = null; }
 
-      // Show spinners
-      document.getElementById('podium-spinner').style.display = 'flex';
-      document.getElementById('list-spinner').style.display   = 'flex';
+      // Show spinners, clear content
+      (document.getElementById('podium-spinner') || {style:{}}).style.display = 'flex';
+      (document.getElementById('list-spinner') || {style:{}}).style.display   = 'flex';
       document.getElementById('podium-places').innerHTML = '';
-      document.getElementById('list-scroll').innerHTML   =
-        '<div class="spinner-overlay" id="list-spinner"><div class="spinner"></div></div>';
+      document.getElementById('list-scroll').innerHTML   = '';
 
       updateNav();
 
@@ -434,12 +433,12 @@
 
     // ── Render podium + list ─────────────────────────────────────────────────
     async function render(ranked, run) {
-      document.getElementById('podium-spinner').style.display = 'none';
+      (document.getElementById('podium-spinner') || {style:{}}).style.display = 'none';
 
       if (!ranked.length) {
         document.getElementById('podium-places').innerHTML = '<div class="empty">No data for this period</div>';
         document.getElementById('list-scroll').innerHTML   = '';
-        document.getElementById('list-spinner').style.display = 'none';
+        (document.getElementById('list-spinner') || {style:{}}).style.display = 'none';
         return;
       }
 
@@ -558,7 +557,7 @@
             </div>`;
           }).join('');
 
-      document.getElementById('list-spinner').style.display = 'none';
+      (document.getElementById('list-spinner') || {style:{}}).style.display = 'none';
     }
 
     // ── Ping-pong scroll (current month TV display) ──────────────────────────
@@ -585,8 +584,8 @@
 
     init().catch(e => {
       console.error(e);
-      document.getElementById('podium-spinner').style.display = 'none';
-      document.getElementById('list-spinner').style.display   = 'none';
+      (document.getElementById('podium-spinner') || {style:{}}).style.display = 'none';
+      (document.getElementById('list-spinner') || {style:{}}).style.display   = 'none';
     });
   </script>
 </body>
