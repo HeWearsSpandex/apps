@@ -43,11 +43,13 @@
       border-radius: 50%;
       background: #fff;
       cursor: pointer;
-      font-size: 16px;
+      font-size: 18px;
+      font-weight: 700;
       display: flex; align-items: center; justify-content: center;
       color: #555;
       transition: all 0.15s;
       line-height: 1;
+      font-family: Arial, sans-serif;
     }
     .month-nav-btn:hover:not(:disabled) { border-color: #c00; color: #c00; }
     .month-nav-btn:disabled { opacity: 0.25; cursor: not-allowed; }
@@ -160,9 +162,9 @@
     <div class="header-title">🏆 Bonus Metres Leaderboard</div>
     <div class="header-right">
       <div class="month-nav">
-        <button class="month-nav-btn" id="btn-prev" onclick="changeMonth(-1)" title="Previous month">&#8249;</button>
+        <button class="month-nav-btn" id="btn-prev" onclick="changeMonth(-1)" title="Previous month">&#60;</button>
         <div class="month-nav-label" id="month-label">Loading…</div>
-        <button class="month-nav-btn" id="btn-next" onclick="changeMonth(1)" title="Next month">&#8250;</button>
+        <button class="month-nav-btn" id="btn-next" onclick="changeMonth(1)" title="Next month">&#62;</button>
       </div>
       <div class="header-updated" id="update-lbl">Loading…</div>
     </div>
