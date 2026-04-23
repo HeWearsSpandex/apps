@@ -460,16 +460,17 @@
       }
 
       // ── Global stats (independent of chart window) ───────────────────────
+      // Use bonus_metres * rate (not total_value) to match transaction search page exactly
       const { data: allTxGlobal } = await sb
         .from('transactions')
-        .select('total_value, date_paid');
+        .select('bonus_metres, rate, date_paid');
 
-      let globalEarned = 0, globalPaid = 0, globalJobs = 0;
+      let globalPaid = 0, globalUnpaidGross = 0, globalJobs = 0;
       (allTxGlobal || []).forEach(tx => {
-        const val = parseFloat(tx.total_value || 0);
-        globalEarned += val;
+        const val = parseFloat(tx.bonus_metres || 0) * parseFloat(tx.rate || 0.03);
         globalJobs++;
         if (tx.date_paid) globalPaid += val;
+        else globalUnpaidGross += val;
       });
 
       // Active employee deductions for outstanding figure
@@ -486,22 +487,24 @@
       const totalDeductions = (deductionData || [])
         .reduce((sum, d) => sum + parseFloat(d.amount || 0), 0);
 
-      const globalUnpaid = globalEarned - globalPaid;
-      const globalOutstanding = globalUnpaid - totalDeductions;
+      const globalOutstanding = globalUnpaidGross - totalDeductions;
+      // Total Earned = what has been paid + what is genuinely outstanding (net of deductions)
+      const globalEarned = globalPaid + globalOutstanding;
 
       document.getElementById('fy-total').textContent       = `£${globalEarned.toFixed(2)}`;
       document.getElementById('fy-paid').textContent        = `£${globalPaid.toFixed(2)}`;
       document.getElementById('fy-outstanding').textContent = `£${globalOutstanding.toFixed(2)}`;
       document.getElementById('fy-jobs').textContent        = globalJobs;
 
-      // ── Chart bucketing — paid by date_paid, unpaid into current month ───
+      // ── Chart bucketing — paid by date_paid, unpaid all into current month ─
+      // Use bonus_metres * rate to stay consistent with transaction search
       // Unpaid work hasn't been assigned a payment month yet so sits in current month
       const { data: allTx } = await sb
         .from('transactions')
-        .select('total_value, date_paid');
+        .select('bonus_metres, rate, date_paid');
 
       (allTx || []).forEach(tx => {
-        const val = parseFloat(tx.total_value || 0);
+        const val = parseFloat(tx.bonus_metres || 0) * parseFloat(tx.rate || 0.03);
         if (tx.date_paid) {
           const bucket = months.find(m => m.dateStr === tx.date_paid.slice(0,7));
           if (!bucket) return;
