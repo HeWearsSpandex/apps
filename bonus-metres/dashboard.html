@@ -276,70 +276,6 @@
       const leaving = allEmployees.filter(e => e.leaving_date && e.status !== 'token' && e.leaving_date >= today).length;
       const month   = new Date().toLocaleDateString('en-GB', { month:'long', year:'numeric' });
 
-      // ── Outstanding pot ───────────────────────────────────────────────────
-      // Use total_value directly (not share_value) to avoid rounding drift from division
-      // Fetch unpaid total_value per employee via transaction_operatives
-      const { data: unpaidTxShares } = await sb
-        .from('transaction_operatives')
-        .select('employee_id, transactions!inner(date_paid, total_value)')
-        .is('transactions.date_paid', null);
-
-      // Fetch unpaid deductions for active/probation employees only
-      // Inactive employees who owe money are ignored — we aren't paying them
-      const activeIds = allEmployees
-        .filter(e => e.status === 'active' || e.status === 'probation')
-        .map(e => e.id);
-      const { data: unpaidDeds } = await sb
-        .from('bonus_entries')
-        .select('employee_id, amount')
-        .eq('type', 'deduction')
-        .is('date_paid', null)
-        .in('employee_id', activeIds);
-
-      // Fetch unpaid special bonuses per employee
-      const { data: unpaidBonuses } = await sb
-        .from('bonus_entries')
-        .select('employee_id, amount')
-        .eq('type', 'special_bonus')
-        .is('date_paid', null);
-
-      // Build per-person totals — use share_value proportions of total_value
-      // by counting operatives per transaction then dividing total_value equally
-      // First, count operatives per transaction
-      const txOpCount = {};
-      (unpaidTxShares || []).forEach(r => {
-        txOpCount[r.transactions.total_value + '|' + r.employee_id] = true;
-      });
-      // Group by transaction to get op counts
-      const txOps = {};
-      (unpaidTxShares || []).forEach(r => {
-        const txKey = JSON.stringify(r.transactions);
-        if (!txOps[txKey]) txOps[txKey] = { tv: parseFloat(r.transactions.total_value || 0), emps: [] };
-        txOps[txKey].emps.push(r.employee_id);
-      });
-
-      const earned = {};
-      Object.values(txOps).forEach(({ tv, emps }) => {
-        const share = tv / emps.length;
-        emps.forEach(id => {
-          earned[id] = (earned[id] || 0) + share;
-        });
-      });
-      (unpaidBonuses || []).forEach(r => {
-        earned[r.employee_id] = (earned[r.employee_id] || 0) + parseFloat(r.amount || 0);
-      });
-
-      const deds = {};
-      (unpaidDeds || []).forEach(r => {
-        deds[r.employee_id] = (deds[r.employee_id] || 0) + parseFloat(r.amount || 0);
-      });
-
-      // Sum per-person net, floored at zero
-      const allIds = new Set([...Object.keys(earned), ...Object.keys(deds)]);
-      let outstandingPot = 0;
-      allIds.forEach(id => {
-        outstandingPot += Math.max(0, (earned[id] || 0) - (deds[id] || 0));
-      });
 
       // Fetch last month-end run
       const { data: lastRun } = await sb
@@ -359,7 +295,7 @@
         <div class="stat-card green"><div class="stat-icon">👥</div><div class="stat-val">${active}</div><div class="stat-lbl">Active Staff</div><div class="stat-sub">${prob} on probation</div></div>
         <div class="stat-card blue"><div class="stat-icon">📅</div><div class="stat-val" style="font-size:16px;padding-top:4px;">${month}</div><div class="stat-lbl">Current Month</div><div class="stat-sub">${lastPeriod ? `Last run: ${lastPeriod}` : 'Month end not yet run'}</div></div>
         <div class="stat-card ${leaving > 0 ? 'red' : 'green'}"><div class="stat-icon">🚪</div><div class="stat-val">${leaving}</div><div class="stat-lbl">Upcoming Leavers</div><div class="stat-sub">Next 30 days</div></div>
-        <div class="stat-card gold"><div class="stat-icon">💷</div><div class="stat-val" style="font-size:18px;padding-top:4px">£${outstandingPot.toFixed(2)}</div><div class="stat-lbl">Outstanding Bonus Pot</div><div class="stat-sub">${potSub}</div></div>`;
+`;
     }
 
     async function renderTasks() {
@@ -496,12 +432,12 @@
       document.getElementById('fy-outstanding').textContent = `£${globalOutstanding.toFixed(2)}`;
       document.getElementById('fy-jobs').textContent        = globalJobs;
 
-      // ── Chart bucketing — paid by date_paid, unpaid all into current month ─
-      // Use bonus_metres * rate to stay consistent with transaction search
-      // Unpaid work hasn't been assigned a payment month yet so sits in current month
+      // ── Chart bucketing ───────────────────────────────────────────────────
+      // Paid: bucket by date_paid (when money went out)
+      // Unpaid: bucket by transaction date (which month the work belongs to)
       const { data: allTx } = await sb
         .from('transactions')
-        .select('bonus_metres, rate, date_paid');
+        .select('date, bonus_metres, rate, date_paid');
 
       (allTx || []).forEach(tx => {
         const val = parseFloat(tx.bonus_metres || 0) * parseFloat(tx.rate || 0.03);
@@ -511,8 +447,7 @@
           bucket.jobs++;
           bucket.paid += val;
         } else {
-          // Unpaid — show in current month as pending
-          const bucket = months.find(m => m.isCurrent);
+          const bucket = months.find(m => m.dateStr === tx.date.slice(0,7));
           if (!bucket) return;
           bucket.jobs++;
           bucket.unpaid += val;
