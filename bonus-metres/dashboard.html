@@ -283,13 +283,17 @@
         .select('employee_id, share_value, transactions!inner(date_paid)')
         .is('transactions.date_paid', null);
 
-      // Fetch unpaid deductions per employee — exclude carry-overs (internal accounting)
+      // Fetch unpaid deductions for active/probation employees only
+      // Inactive employees who owe money are ignored — we aren't paying them
+      const activeIds = allEmployees
+        .filter(e => e.status === 'active' || e.status === 'probation')
+        .map(e => e.id);
       const { data: unpaidDeds } = await sb
         .from('bonus_entries')
         .select('employee_id, amount')
         .eq('type', 'deduction')
         .is('date_paid', null)
-        .not('reason', 'ilike', '%carry%');
+        .in('employee_id', activeIds);
 
       // Fetch unpaid special bonuses per employee
       const { data: unpaidBonuses } = await sb
@@ -457,13 +461,17 @@
         }
       });
 
-      // Fetch unpaid deductions (excluding carry-overs) for the outstanding stat
+      // Fetch unpaid deductions for active/probation employees only
+      // Inactive employees who owe money are ignored — we aren't paying them
+      const activeEmpIds = allEmployees
+        .filter(e => e.status === 'active' || e.status === 'probation')
+        .map(e => e.id);
       const { data: deductionData } = await sb
         .from('bonus_entries')
         .select('amount')
         .eq('type', 'deduction')
         .is('date_paid', null)
-        .not('reason', 'ilike', '%carry%');
+        .in('employee_id', activeEmpIds);
 
       const totalDeductions = (deductionData || [])
         .reduce((sum, d) => sum + parseFloat(d.amount || 0), 0);
