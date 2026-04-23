@@ -24,8 +24,6 @@
     .login-card img { max-width:120px; margin-bottom:24px; }
     .login-card h1  { font-size:22px; font-weight:700; margin-bottom:6px; }
     .login-card p   { font-size:13px; color:var(--muted); margin-bottom:24px; line-height:1.6; }
-    .login-input { width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:14px; outline:none; margin-bottom:12px; transition:border-color 0.15s; }
-    .login-input:focus { border-color:var(--red); }
     .login-btn { width:100%; padding:12px; background:var(--red); color:var(--white); border:none; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; transition:background 0.15s; }
     .login-btn:hover { background:var(--red-dk); }
     .login-btn:disabled { opacity:0.6; cursor:not-allowed; }
@@ -278,37 +276,48 @@
       const leaving = allEmployees.filter(e => e.leaving_date && e.status !== 'token' && e.leaving_date >= today).length;
       const month   = new Date().toLocaleDateString('en-GB', { month:'long', year:'numeric' });
 
-      // Unpaid transaction shares per employee
+      // ── Outstanding pot ───────────────────────────────────────────────────
+      // Fetch unpaid share values per employee (one row per operative per job)
       const { data: unpaidTx } = await sb
         .from('transaction_operatives')
         .select('employee_id, share_value, transactions!inner(date_paid)')
         .is('transactions.date_paid', null);
 
-      // Unpaid bonus entries per employee (excluding leavers)
-      const { data: unpaidEntries } = await sb
+      // Fetch unpaid deductions per employee — exclude carry-overs (internal accounting)
+      const { data: unpaidDeds } = await sb
         .from('bonus_entries')
-        .select('employee_id, type, amount, reason, employees(status, leaving_date)')
+        .select('employee_id, amount')
+        .eq('type', 'deduction')
+        .is('date_paid', null)
+        .not('reason', 'ilike', '%carry%');
+
+      // Fetch unpaid special bonuses per employee
+      const { data: unpaidBonuses } = await sb
+        .from('bonus_entries')
+        .select('employee_id, amount')
+        .eq('type', 'special_bonus')
         .is('date_paid', null);
 
-      const perPerson = {};
+      // Build per-person totals using separate Maps — avoids any cross-join multiplication
+      const earned = {};
+      const deds   = {};
+
       (unpaidTx || []).forEach(r => {
-        if (!perPerson[r.employee_id]) perPerson[r.employee_id] = { earned: 0, ded: 0 };
-        perPerson[r.employee_id].earned += parseFloat(r.share_value);
+        earned[r.employee_id] = (earned[r.employee_id] || 0) + parseFloat(r.share_value || 0);
       });
-      (unpaidEntries || []).forEach(e => {
-        const emp = e.employees;
-        const hasLeft = emp && emp.status === 'inactive' && emp.leaving_date && emp.leaving_date < today;
-        if (hasLeft) return;
-        // Exclude carry-over entries — these are internal accounting, not payable deductions
-        const isCarryOver = e.reason && e.reason.toLowerCase().includes('carry');
-        if (!perPerson[e.employee_id]) perPerson[e.employee_id] = { earned: 0, ded: 0 };
-        if (e.type === 'special_bonus') perPerson[e.employee_id].earned += parseFloat(e.amount);
-        if (e.type === 'deduction' && !isCarryOver) perPerson[e.employee_id].ded += parseFloat(e.amount);
+      (unpaidBonuses || []).forEach(r => {
+        earned[r.employee_id] = (earned[r.employee_id] || 0) + parseFloat(r.amount || 0);
+      });
+      (unpaidDeds || []).forEach(r => {
+        deds[r.employee_id] = (deds[r.employee_id] || 0) + parseFloat(r.amount || 0);
       });
 
-      // Sum per-person net floored at zero
-      let outstandingPot = Object.values(perPerson)
-        .reduce((sum, p) => sum + Math.max(0, p.earned - p.ded), 0);
+      // Sum per-person net, floored at zero
+      const allIds = new Set([...Object.keys(earned), ...Object.keys(deds)]);
+      let outstandingPot = 0;
+      allIds.forEach(id => {
+        outstandingPot += Math.max(0, (earned[id] || 0) - (deds[id] || 0));
+      });
 
       // Fetch last month-end run
       const { data: lastRun } = await sb
@@ -401,8 +410,8 @@
     }
 
     async function loadMomChart() {
-      const now    = new Date();
-      const fyYear = getFYYear();
+      const now      = new Date();
+      const fyYear   = getFYYear();
       const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 
       document.getElementById('fy0-tab').textContent = `Apr ${fyYear} – Mar ${fyYear+1}`;
@@ -411,42 +420,24 @@
       let months = [];
 
       if (currentChartTab === 'rolling') {
-        // Rolling 12 months: 11 complete months + current month
         for (let i = 11; i >= 0; i--) {
           const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
           const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
           const isCurrent = dateStr === todayStr;
-          months.push({
-            label:     d.toLocaleDateString('en-GB', { month:'short', year:'2-digit' }) + (isCurrent ? ' ⟳' : ''),
-            dateStr,
-            paid:      0,
-            unpaid:    0,
-            jobs:      0,
-            isCurrent
-          });
+          months.push({ label: d.toLocaleDateString('en-GB',{month:'short',year:'2-digit'}) + (isCurrent?' ⟳':''), dateStr, paid:0, unpaid:0, jobs:0, isCurrent });
         }
       } else {
-        // Financial year view
         const fy = currentChartTab === 'fy0' ? fyYear : fyYear + 1;
         for (let m = 0; m < 12; m++) {
           const month   = (m + 3) % 12;
           const year    = month >= 3 ? fy : fy + 1;
           const dateStr = `${year}-${String(month+1).padStart(2,'0')}`;
           const isCurrent = dateStr === todayStr;
-          months.push({
-            label:     new Date(`${dateStr}-01`).toLocaleDateString('en-GB', { month:'short', year:'2-digit' }) + (isCurrent ? ' ⟳' : ''),
-            dateStr,
-            paid:      0,
-            unpaid:    0,
-            jobs:      0,
-            isCurrent
-          });
+          months.push({ label: new Date(`${dateStr}-01`).toLocaleDateString('en-GB',{month:'short',year:'2-digit'}) + (isCurrent?' ⟳':''), dateStr, paid:0, unpaid:0, jobs:0, isCurrent });
         }
       }
 
-      // Fetch ALL transactions — bucket by transaction date
-      // Paid = has date_paid, shown in the month of date_paid
-      // Unpaid = no date_paid, shown as pending in their transaction date month
+      // Fetch ALL transactions — paid bucketed by date_paid, unpaid by transaction date
       const { data: allTx } = await sb
         .from('transactions')
         .select('date, total_value, date_paid');
@@ -454,40 +445,37 @@
       (allTx || []).forEach(tx => {
         const val = parseFloat(tx.total_value || 0);
         if (tx.date_paid) {
-          // Paid — bucket by date_paid month
-          const bucket = months.find(m => m.dateStr === tx.date_paid.slice(0, 7));
+          const bucket = months.find(m => m.dateStr === tx.date_paid.slice(0,7));
           if (!bucket) return;
           bucket.jobs++;
           bucket.paid += val;
         } else {
-          // Unpaid — bucket by transaction date month
-          const bucket = months.find(m => m.dateStr === tx.date.slice(0, 7));
+          const bucket = months.find(m => m.dateStr === tx.date.slice(0,7));
           if (!bucket) return;
           bucket.jobs++;
           bucket.unpaid += val;
         }
       });
 
-      // Fetch unpaid deductions (excluding carry-overs) to subtract from outstanding stat
+      // Fetch unpaid deductions (excluding carry-overs) for the outstanding stat
       const { data: deductionData } = await sb
         .from('bonus_entries')
-        .select('amount, reason')
+        .select('amount')
         .eq('type', 'deduction')
-        .is('date_paid', null);
+        .is('date_paid', null)
+        .not('reason', 'ilike', '%carry%');
 
       const totalDeductions = (deductionData || [])
-        .filter(d => !d.reason || !d.reason.toLowerCase().includes('carry'))
         .reduce((sum, d) => sum + parseFloat(d.amount || 0), 0);
 
-      const totalEarned     = months.reduce((s, m) => s + m.paid + m.unpaid, 0);
-      const totalPaid       = months.reduce((s, m) => s + m.paid, 0);
-      const totalUnpaid     = months.reduce((s, m) => s + m.unpaid, 0);
-      const totalJobs       = months.reduce((s, m) => s + m.jobs, 0);
-      const totalOutstanding = totalUnpaid - totalDeductions;
+      const totalEarned     = months.reduce((s,m) => s + m.paid + m.unpaid, 0);
+      const totalPaid       = months.reduce((s,m) => s + m.paid, 0);
+      const totalUnpaid     = months.reduce((s,m) => s + m.unpaid, 0);
+      const totalJobs       = months.reduce((s,m) => s + m.jobs, 0);
 
       document.getElementById('fy-total').textContent       = `£${totalEarned.toFixed(2)}`;
       document.getElementById('fy-paid').textContent        = `£${totalPaid.toFixed(2)}`;
-      document.getElementById('fy-outstanding').textContent = `£${totalOutstanding.toFixed(2)}`;
+      document.getElementById('fy-outstanding').textContent = `£${(totalUnpaid - totalDeductions).toFixed(2)}`;
       document.getElementById('fy-jobs').textContent        = totalJobs;
 
       if (momChartInstance) momChartInstance.destroy();
@@ -516,14 +504,14 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
+          interaction: { mode:'index', intersect:false },
           plugins: {
-            legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } },
-            tooltip: { callbacks: { label: c => ` ${c.dataset.label}: £${c.parsed.y.toFixed(2)}` } }
+            legend: { position:'top', labels:{ boxWidth:12, font:{ size:11 } } },
+            tooltip: { callbacks:{ label: c => ` ${c.dataset.label}: £${c.parsed.y.toFixed(2)}` } }
           },
           scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-            y: { stacked: true, ticks: { callback: v => `£${v}`, font: { size: 11 } }, grid: { color: '#f0f0f0' } }
+            x: { grid:{ display:false }, ticks:{ font:{ size:11 } } },
+            y: { stacked:true, ticks:{ callback: v=>`£${v}`, font:{ size:11 } }, grid:{ color:'#f0f0f0' } }
           }
         }
       });
