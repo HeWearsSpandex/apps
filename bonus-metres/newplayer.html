@@ -61,7 +61,7 @@
     .tab-panel  { display: none; position: absolute; inset: 0; overflow-y: auto; flex-direction: column; }
     .tab-panel.active { display: flex; }
 
-    /* ── Stats tab (original layout) ── */
+    /* ── Stats tab ── */
     .main-grid {
       display: flex; gap: 0;
       margin: 0 8px 6px;
@@ -163,9 +163,7 @@
       font-family: 'Barlow Condensed', 'Segoe UI', sans-serif;
       text-shadow: 1px 1px 2px rgba(0,0,0,0.9), -1px -1px 2px rgba(0,0,0,0.9);
     }
-    .race-player-label {
-      color: #ffe082; font-weight: 900;
-    }
+    .race-player-label { color: #ffe082; font-weight: 900; }
     .race-finish-mini {
       position: absolute; top: 0; bottom: 0; width: 14px; z-index: 4;
       pointer-events: none; opacity: 0; transition: opacity 0.6s;
@@ -190,7 +188,6 @@
     /* ── Bonus tab ── */
     .bonus-tab-inner { padding: 10px 8px 20px; display: flex; flex-direction: column; gap: 10px; }
 
-    /* Summary cards row */
     .bonus-summary-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .bonus-summary-card {
       background: #fff; border-radius: 8px;
@@ -209,7 +206,6 @@
     .bonus-summary-card.gold   .bsc-val { color: #f9a825; }
     .bonus-summary-card.orange .bsc-val { color: #e65100; }
 
-    /* Section */
     .bonus-section { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); overflow: hidden; }
     .bonus-section-header {
       padding: 10px 12px;
@@ -226,17 +222,13 @@
     .bonus-section-header .total-chip.red    { background: #fff0f0; color: #c00; }
     .bonus-section-header .total-chip.orange { background: #fff3e0; color: #e65100; }
 
-    /* Job rows */
     .job-row {
       display: flex; align-items: flex-start;
       padding: 8px 12px; border-bottom: 1px solid #f5f5f5;
       gap: 8px;
     }
     .job-row:last-child { border-bottom: none; }
-    .job-date {
-      font-size: 10px; color: #bbb; flex-shrink: 0;
-      width: 44px; padding-top: 2px; text-align: center;
-    }
+    .job-date { font-size: 10px; color: #bbb; flex-shrink: 0; width: 44px; padding-top: 2px; text-align: center; }
     .job-date .day  { font-size: 14px; font-weight: 700; color: #555; line-height: 1; }
     .job-date .mon  { font-size: 9px; text-transform: uppercase; }
     .job-info { flex: 1; min-width: 0; }
@@ -245,7 +237,6 @@
     .job-meta { font-size: 10px; color: #999; margin-top: 2px; }
     .job-val  { font-size: 13px; font-weight: 700; color: #2a9d2a; flex-shrink: 0; padding-top: 4px; }
 
-    /* Deduction rows */
     .ded-row {
       display: flex; align-items: center;
       padding: 8px 12px; border-bottom: 1px solid #f5f5f5; gap: 8px;
@@ -257,7 +248,6 @@
     .ded-date   { font-size: 10px; color: #bbb; margin-top: 1px; }
     .ded-val    { font-size: 13px; font-weight: 700; color: #c00; flex-shrink: 0; }
 
-    /* History rows */
     .hist-row {
       display: flex; align-items: center;
       padding: 10px 12px; border-bottom: 1px solid #f5f5f5; gap: 8px;
@@ -265,6 +255,7 @@
     }
     .hist-row:last-child { border-bottom: none; }
     .hist-row:hover { background: #fafafa; }
+    .hist-row.highlighted { background: #fff8e1; border-left: 3px solid #f9a825; }
     .hist-period { flex: 1; }
     .hist-period .name { font-size: 13px; font-weight: 600; color: #222; }
     .hist-period .date { font-size: 10px; color: #bbb; margin-top: 1px; }
@@ -272,7 +263,6 @@
     .hist-carry  { font-size: 10px; color: #e65100; font-weight: 600; }
     .hist-chevron { font-size: 14px; color: #ccc; flex-shrink: 0; }
 
-    /* History detail (expanded) */
     .hist-detail {
       display: none;
       background: #fafafa;
@@ -290,11 +280,7 @@
       margin-top: 4px; padding-top: 6px; color: #222;
     }
 
-    /* Scope toggle */
-    .scope-toggle {
-      display: flex; gap: 6px;
-      margin-bottom: 4px;
-    }
+    .scope-toggle { display: flex; gap: 6px; margin-bottom: 4px; }
     .scope-btn {
       flex: 1; padding: 7px 4px;
       font-size: 11px; font-weight: 700;
@@ -306,13 +292,8 @@
     }
     .scope-btn.active { background: #c00; color: #fff; border-color: #c00; }
 
-    /* Empty state */
-    .empty-row {
-      padding: 20px 12px; text-align: center;
-      color: #bbb; font-size: 12px;
-    }
+    .empty-row { padding: 20px 12px; text-align: center; color: #bbb; font-size: 12px; }
 
-    /* Spinner */
     .spinner-overlay {
       position: absolute; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(255,255,255,0.85);
@@ -331,7 +312,6 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Not found */
     .not-found { text-align: center; padding: 40px 20px; color: #666; }
     .not-found h2 { color: #333; margin-bottom: 8px; }
     .error { text-align: center; padding: 40px 20px; color: #c00; font-size: 16px; }
@@ -365,7 +345,6 @@
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
-    // ── Supabase ──────────────────────────────────────────────────────────────
     const SUPABASE_URL = 'https://oxgehlmalbvppjmdaswn.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -374,27 +353,31 @@
     const SILKS = ['#cc0000','#1155cc','#00993d','#cc7700','#7700cc','#cc0077','#00aacc','#884400','#336600','#003366'];
     const CAPS  = ['#ffffff','#ffcc00','#ffffff','#000000','#ffcc00','#ffffff','#000033','#ffffcc','#ffff00','#ff9900'];
 
-    function getPlayerName() {
-      return decodeURIComponent(new URLSearchParams(location.search).get('name') || '').trim();
+    function getParams() {
+      const p = new URLSearchParams(location.search);
+      return {
+        name:    decodeURIComponent(p.get('name') || '').trim(),
+        view:    p.get('view') || '',
+        payment: p.get('payment') || ''
+      };
     }
 
-    // Financial year helper
     function getFYDates() {
       const now = new Date();
       const m   = now.getMonth();
       const y   = now.getFullYear();
       const fyStart = m >= 3 ? y : y - 1;
       return {
-        from:  `${fyStart}-04-01`,
-        to:    `${fyStart + 1}-03-31`,
-        today: `${y}-${String(m+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+        from:  fyStart + '-04-01',
+        to:    (fyStart + 1) + '-03-31',
+        today: y + '-' + String(m+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0')
       };
     }
 
     async function loadImage(src) {
       return new Promise(res => {
         const img = new Image(); img.crossOrigin = 'anonymous';
-        img.onload = () => res(img);
+        img.onload  = () => res(img);
         img.onerror = () => {
           const c = document.createElement('canvas'); c.width = c.height = 64;
           c.getContext('2d').fillStyle = '#ccc'; c.getContext('2d').fillRect(0,0,64,64);
@@ -404,8 +387,10 @@
       });
     }
 
-    async function drawIcon(name, haloColor, faceSize = 64, halo = haloColor ? 10 : 0) {
-      const total = faceSize + halo * 2;
+    async function drawIcon(name, haloColor, faceSize, halo) {
+      faceSize = faceSize || 64;
+      halo = (halo !== undefined) ? halo : (haloColor ? 10 : 0);
+      const total  = faceSize + halo * 2;
       const canvas = document.createElement('canvas');
       canvas.width = canvas.height = total;
       const ctx = canvas.getContext('2d');
@@ -416,7 +401,7 @@
         ctx.arc(total/2, total/2, faceSize/2, 0, 2*Math.PI);
         ctx.fill('evenodd');
       }
-      const img = await loadImage(`${IMG_PATH}${encodeURIComponent(name.trim())}_cvface1.jpg`);
+      const img = await loadImage(IMG_PATH + encodeURIComponent(name.trim()) + '_cvface1.jpg');
       ctx.drawImage(img, halo, halo, faceSize, faceSize);
       return canvas.toDataURL();
     }
@@ -424,26 +409,29 @@
     function fmtDate(str) {
       const d = new Date(str);
       return {
-        day: d.getDate(),
-        mon: d.toLocaleDateString('en-GB', { month: 'short' }),
+        day:  d.getDate(),
+        mon:  d.toLocaleDateString('en-GB', { month: 'short' }),
         full: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
       };
     }
 
-    function fmt(n) {
-      return '£' + parseFloat(n).toFixed(2);
+    function fmt(n) { return '£' + parseFloat(n).toFixed(2); }
+
+    // Format a date string as "23 April 2026" for matching
+    function fmtPaymentDate(dateStr) {
+      if (!dateStr) return '';
+      return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     }
 
-    // ── Bonus tab state ───────────────────────────────────────────────────────
-    let bonusScope    = 'unpaid'; // 'unpaid' | 'all'
-    let employeeId    = null;
-    let bonusLoaded   = false;
+    let bonusScope  = 'unpaid';
+    let employeeId  = null;
+    let bonusLoaded = false;
 
     async function loadBonusTab() {
-      if (!employeeId) { console.warn('loadBonusTab called before employeeId set'); return; }
+      if (!employeeId) return;
       if (bonusLoaded) return;
       bonusLoaded = true;
-      renderBonusTab();
+      await renderBonusTab();
     }
 
     async function renderBonusTab() {
@@ -451,27 +439,20 @@
       container.innerHTML = '<div class="spinner-sm"></div>';
 
       try {
-        // ── Unpaid jobs ──
         const { data: unpaidOps } = await sb
           .from('transaction_operatives')
-          .select(`share_value,
-                   transactions!inner(id, date, job_ref, site_name, bonus_metres, rate, date_paid,
-                     transaction_operatives(employee_id))`)
+          .select('share_value, transactions!inner(id, date, job_ref, site_name, bonus_metres, rate, date_paid, transaction_operatives(employee_id))')
           .eq('employee_id', employeeId)
           .is('transactions.date_paid', null)
           .order('transactions(date)', { ascending: false });
 
-        // ── All paid jobs — full history (no date filter) ──
         const { data: allOps } = await sb
           .from('transaction_operatives')
-          .select(`share_value,
-                   transactions!inner(id, date, job_ref, site_name, bonus_metres, rate, date_paid,
-                     transaction_operatives(employee_id))`)
+          .select('share_value, transactions!inner(id, date, job_ref, site_name, bonus_metres, rate, date_paid, transaction_operatives(employee_id))')
           .eq('employee_id', employeeId)
           .not('transactions.date_paid', 'is', null)
           .order('transactions(date)', { ascending: false });
 
-        // ── FY paid jobs (for Total Paid to Date this FY) ──
         const { from: fyFrom } = getFYDates();
         const { data: fyPaidOps } = await sb
           .from('transaction_operatives')
@@ -480,47 +461,48 @@
           .not('transactions.date_paid', 'is', null)
           .gte('transactions.date_paid', fyFrom);
 
-        // ── Unpaid deductions / bonuses ──
         const { data: unpaidEntries } = await sb
           .from('bonus_entries')
           .select('id, date, type, amount, reason')
           .eq('employee_id', employeeId)
           .is('date_paid', null);
 
-        // ── Month-end history ──
         const { data: history } = await sb
           .from('month_end_lines')
-          .select(`gross_earned, deductions, carry_over_in, net_payable, carry_over_out,
-                   month_end_runs!inner(id, period_name, payment_date)`)
+          .select('gross_earned, deductions, carry_over_in, net_payable, carry_over_out, month_end_runs!inner(id, period_name, payment_date)')
           .eq('employee_id', employeeId)
           .order('month_end_runs(payment_date)', { ascending: false });
 
-        const unpaidJobs    = (unpaidOps    || []);
-        const paidJobs      = (allOps       || []);
+        const unpaidJobs    = unpaidOps     || [];
+        const paidJobs      = allOps        || [];
         const unpaidDeds    = (unpaidEntries|| []).filter(e => e.type === 'deduction');
         const unpaidBonuses = (unpaidEntries|| []).filter(e => e.type === 'special_bonus');
-        const hist          = (history      || []);
+        const hist          = history        || [];
 
-        // Totals
         const totalUnpaidJobs = unpaidJobs.reduce((s, o) => s + parseFloat(o.share_value), 0);
         const totalUnpaidBon  = unpaidBonuses.reduce((s, e) => s + parseFloat(e.amount), 0);
         const totalUnpaidDed  = unpaidDeds.reduce((s, e) => s + parseFloat(e.amount), 0);
         const netUnpaid       = Math.max(0, totalUnpaidJobs + totalUnpaidBon - totalUnpaidDed);
         const carryDebt       = Math.max(0, totalUnpaidDed - totalUnpaidJobs - totalUnpaidBon);
-
-        // Total paid this FY only
         const totalEverPaid   = (fyPaidOps||[]).reduce((s, o) => s + parseFloat(o.share_value), 0);
 
+        // Group paid jobs by date_paid
+        const paymentGroups = {};
+        paidJobs.forEach(o => {
+          const tx  = o.transactions;
+          const key = tx.date_paid;
+          if (!paymentGroups[key]) paymentGroups[key] = { date_paid: key, jobs: [], total: 0 };
+          paymentGroups[key].jobs.push(o);
+          paymentGroups[key].total += parseFloat(o.share_value);
+        });
+        const groups = Object.values(paymentGroups).sort((a,b) => new Date(b.date_paid) - new Date(a.date_paid));
+
         container.innerHTML = `
-          <!-- Scope toggle -->
           <div class="scope-toggle">
-            <button class="scope-btn ${bonusScope==='unpaid'?'active':''}"
-                    onclick="setScope('unpaid')">📬 Outstanding</button>
-            <button class="scope-btn ${bonusScope==='all'?'active':''}"
-                    onclick="setScope('all')">📜 Full History</button>
+            <button class="scope-btn ${bonusScope==='unpaid'?'active':''}" onclick="setScope('unpaid')">📬 Outstanding</button>
+            <button class="scope-btn ${bonusScope==='all'?'active':''}"    onclick="setScope('all')">📜 Full History</button>
           </div>
 
-          <!-- Summary cards -->
           <div class="bonus-summary-row">
             <div class="bonus-summary-card green">
               <div class="bsc-val">${fmt(totalUnpaidJobs)}</div>
@@ -540,10 +522,7 @@
             </div>
           </div>
 
-          <!-- Outstanding view -->
           <div id="view-unpaid" style="display:${bonusScope==='unpaid'?'flex':'none'};flex-direction:column;gap:10px;">
-
-            <!-- Unpaid jobs -->
             <div class="bonus-section">
               <div class="bonus-section-header">
                 <h3>🔧 Unpaid Jobs (${unpaidJobs.length})</h3>
@@ -552,165 +531,103 @@
               ${unpaidJobs.length === 0
                 ? '<div class="empty-row">No unpaid jobs</div>'
                 : unpaidJobs.map(o => {
-                    const tx = o.transactions;
-                    const d  = fmtDate(tx.date);
-                    return `<div class="job-row">
-                      <div class="job-date">
-                        <div class="day">${d.day}</div>
-                        <div class="mon">${d.mon}</div>
-                      </div>
-                      <div class="job-info">
-                        <div class="job-site">${tx.site_name || '—'}</div>
-                        <div class="job-ref">${tx.job_ref || ''}</div>
-                        <div class="job-meta">${Math.round(parseFloat(tx.bonus_metres) / Math.max(1, (tx.transaction_operatives||[]).length)).toLocaleString()}m (${(tx.transaction_operatives||[]).length} crew)</div>
-                      </div>
-                      <div class="job-val">${fmt(o.share_value)}</div>
-                    </div>`;
+                    const tx = o.transactions; const d = fmtDate(tx.date);
+                    return '<div class="job-row"><div class="job-date"><div class="day">' + d.day + '</div><div class="mon">' + d.mon + '</div></div><div class="job-info"><div class="job-site">' + (tx.site_name||'—') + '</div><div class="job-ref">' + (tx.job_ref||'') + '</div><div class="job-meta">' + Math.round(parseFloat(tx.bonus_metres)/Math.max(1,(tx.transaction_operatives||[]).length)).toLocaleString() + 'm (' + (tx.transaction_operatives||[]).length + ' crew)</div></div><div class="job-val">' + fmt(o.share_value) + '</div></div>';
                   }).join('')}
             </div>
 
-            <!-- Special bonuses -->
-            ${unpaidBonuses.length > 0 ? `
-            <div class="bonus-section">
-              <div class="bonus-section-header">
-                <h3>⭐ Special Bonuses (${unpaidBonuses.length})</h3>
-                <span class="total-chip green">${fmt(totalUnpaidBon)}</span>
-              </div>
-              ${unpaidBonuses.map(e => {
-                const d = fmtDate(e.date);
-                return `<div class="ded-row">
-                  <div class="ded-icon">⭐</div>
-                  <div class="ded-info">
-                    <div class="ded-reason">${e.reason || 'Special Bonus'}</div>
-                    <div class="ded-date">${d.full}</div>
-                  </div>
-                  <div class="job-val">${fmt(e.amount)}</div>
-                </div>`;
-              }).join('')}
-            </div>` : ''}
+            ${unpaidBonuses.length > 0 ? '<div class="bonus-section"><div class="bonus-section-header"><h3>⭐ Special Bonuses (' + unpaidBonuses.length + ')</h3><span class="total-chip green">' + fmt(totalUnpaidBon) + '</span></div>' + unpaidBonuses.map(e => { const d=fmtDate(e.date); return '<div class="ded-row"><div class="ded-icon">⭐</div><div class="ded-info"><div class="ded-reason">' + (e.reason||'Special Bonus') + '</div><div class="ded-date">' + d.full + '</div></div><div class="job-val">' + fmt(e.amount) + '</div></div>'; }).join('') + '</div>' : ''}
 
-            <!-- Deductions -->
-            ${unpaidDeds.length > 0 ? `
-            <div class="bonus-section">
-              <div class="bonus-section-header">
-                <h3>➖ Deductions (${unpaidDeds.length})</h3>
-                <span class="total-chip red">-${fmt(totalUnpaidDed)}</span>
-              </div>
-              ${unpaidDeds.map(e => {
-                const d = fmtDate(e.date);
-                return `<div class="ded-row">
-                  <div class="ded-icon">➖</div>
-                  <div class="ded-info">
-                    <div class="ded-reason">${e.reason || 'Deduction'}</div>
-                    <div class="ded-date">${d.full}</div>
-                  </div>
-                  <div class="ded-val">-${fmt(e.amount)}</div>
-                </div>`;
-              }).join('')}
-            </div>` : ''}
+            ${unpaidDeds.length > 0 ? '<div class="bonus-section"><div class="bonus-section-header"><h3>➖ Deductions (' + unpaidDeds.length + ')</h3><span class="total-chip red">-' + fmt(totalUnpaidDed) + '</span></div>' + unpaidDeds.map(e => { const d=fmtDate(e.date); return '<div class="ded-row"><div class="ded-icon">➖</div><div class="ded-info"><div class="ded-reason">' + (e.reason||'Deduction') + '</div><div class="ded-date">' + d.full + '</div></div><div class="ded-val">-' + fmt(e.amount) + '</div></div>'; }).join('') + '</div>' : ''}
 
-            ${carryDebt > 0 ? `
-            <div style="background:#fff3e0;border-radius:8px;padding:10px 12px;font-size:12px;color:#e65100;font-weight:600;border-left:4px solid #e65100;">
-              ⚠️ Outstanding debt of ${fmt(carryDebt)} will carry forward to next payment
-            </div>` : ''}
-
+            ${carryDebt > 0 ? '<div style="background:#fff3e0;border-radius:8px;padding:10px 12px;font-size:12px;color:#e65100;font-weight:600;border-left:4px solid #e65100;">⚠️ Outstanding debt of ' + fmt(carryDebt) + ' will carry forward to next payment</div>' : ''}
           </div>
 
-          <!-- Full history view -->
           <div id="view-all" style="display:${bonusScope==='all'?'flex':'none'};flex-direction:column;gap:10px;">
-
-            ${(() => {
-              // Group paid jobs by date_paid
-              const paymentGroups = {};
-              paidJobs.forEach(o => {
-                const tx  = o.transactions;
-                const key = tx.date_paid;
-                if (!paymentGroups[key]) paymentGroups[key] = { date_paid: key, jobs: [], total: 0 };
-                paymentGroups[key].jobs.push(o);
-                paymentGroups[key].total += parseFloat(o.share_value);
-              });
-
-              const groups = Object.values(paymentGroups).sort((a,b) => new Date(b.date_paid) - new Date(a.date_paid));
-
-              if (!groups.length) return '<div class="empty-row">No payment history yet</div>';
-
-              return groups.map((g, gi) => {
-                const pd = new Date(g.date_paid).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
-
-                // Check if there's a month_end_run for this payment date
-                const run = hist.find(h => h.month_end_runs?.payment_date?.startsWith(g.date_paid));
-
-                const jobRows = g.jobs.map(o => {
-                  const tx = o.transactions;
-                  const d  = fmtDate(tx.date);
-                  return `<div class="job-row" style="border-bottom:1px solid #f0f0f0;padding:10px 16px">
-                    <div class="job-date">
-                      <div class="day">${d.day}</div>
-                      <div class="mon">${d.mon}</div>
-                    </div>
-                    <div class="job-info">
-                      <div class="job-site">${tx.site_name || '—'}</div>
-                      <div class="job-ref">${tx.job_ref || ''}</div>
-                      <div class="job-meta">${Math.round(parseFloat(tx.bonus_metres) / Math.max(1,(tx.transaction_operatives||[]).length)).toLocaleString()}m · ${(tx.transaction_operatives||[]).length} crew</div>
-                    </div>
-                    <div class="job-val">${fmt(o.share_value)}</div>
-                  </div>`;
-                }).join('');
-
-                return `
-                  <div class="hist-row" onclick="toggleHistDetail(${gi})" style="cursor:pointer">
-                    <div class="hist-period">
-                      <div class="name">Payment — ${pd}</div>
-                      <div class="date">${g.jobs.length} job${g.jobs.length!==1?'s':''}</div>
-                    </div>
-                    <div style="text-align:right">
-                      <div class="hist-amount">${fmt(g.total)}</div>
-                      ${run && parseFloat(run.carry_over_out) > 0 ? `<div class="hist-carry">+${fmt(run.carry_over_out)} carried over</div>` : ''}
-                    </div>
-                    <div class="hist-chevron" id="chev-${gi}">›</div>
-                  </div>
-                  <div class="hist-detail" id="hist-detail-${gi}" style="display:none">
-                    ${run ? `
-                      <div style="padding:10px 16px;background:#f9f9f9;border-bottom:1px solid #f0f0f0;display:flex;gap:16px;flex-wrap:wrap;font-size:12px">
-                        <span>Job Bonuses: <strong>${fmt(run.gross_earned)}</strong></span>
-                        ${parseFloat(run.deductions)>0?`<span style="color:#c00">Deductions: <strong>-${fmt(run.deductions)}</strong></span>`:''}
-                        ${parseFloat(run.carry_over_in)>0?`<span style="color:#e65100">Carry-over in: <strong>-${fmt(run.carry_over_in)}</strong></span>`:''}
-                        <span style="color:#2a9d2a">Net paid: <strong>${fmt(run.net_payable)}</strong></span>
-                      </div>` : ''}
-                    ${jobRows}
-                  </div>`;
-              }).join('');
-            })()}
-
+            ${groups.length === 0
+              ? '<div class="empty-row">No payment history yet</div>'
+              : groups.map((g, gi) => {
+                  const pd  = fmtPaymentDate(g.date_paid);
+                  const run = hist.find(h => h.month_end_runs?.payment_date?.startsWith(g.date_paid));
+                  const jobRows = g.jobs.map(o => {
+                    const tx = o.transactions; const d = fmtDate(tx.date);
+                    return '<div class="job-row" style="border-bottom:1px solid #f0f0f0;padding:10px 16px"><div class="job-date"><div class="day">' + d.day + '</div><div class="mon">' + d.mon + '</div></div><div class="job-info"><div class="job-site">' + (tx.site_name||'—') + '</div><div class="job-ref">' + (tx.job_ref||'') + '</div><div class="job-meta">' + Math.round(parseFloat(tx.bonus_metres)/Math.max(1,(tx.transaction_operatives||[]).length)).toLocaleString() + 'm · ' + (tx.transaction_operatives||[]).length + ' crew</div></div><div class="job-val">' + fmt(o.share_value) + '</div></div>';
+                  }).join('');
+                  return '<div class="hist-row" id="hist-row-' + gi + '" onclick="toggleHistDetail(' + gi + ')"><div class="hist-period"><div class="name">Payment — ' + pd + '</div><div class="date">' + g.jobs.length + ' job' + (g.jobs.length!==1?'s':'') + '</div></div><div style="text-align:right"><div class="hist-amount">' + fmt(g.total) + '</div>' + (run && parseFloat(run.carry_over_out)>0 ? '<div class="hist-carry">+' + fmt(run.carry_over_out) + ' carried over</div>' : '') + '</div><div class="hist-chevron" id="chev-' + gi + '">›</div></div><div class="hist-detail" id="hist-detail-' + gi + '" style="display:none">' + (run ? '<div style="padding:10px 16px;background:#f9f9f9;border-bottom:1px solid #f0f0f0;display:flex;gap:16px;flex-wrap:wrap;font-size:12px"><span>Job Bonuses: <strong>' + fmt(run.gross_earned) + '</strong></span>' + (parseFloat(run.deductions)>0?'<span style="color:#c00">Deductions: <strong>-' + fmt(run.deductions) + '</strong></span>':'') + (parseFloat(run.carry_over_in)>0?'<span style="color:#e65100">Carry-over in: <strong>-' + fmt(run.carry_over_in) + '</strong></span>':'') + '<span style="color:#2a9d2a">Net paid: <strong>' + fmt(run.net_payable) + '</strong></span></div>' : '') + jobRows + '</div>';
+                }).join('')}
           </div>
         `;
 
       } catch(e) {
         console.error(e);
-        container.innerHTML = `<div class="empty-row" style="color:#c00">Error loading bonus data: ${e.message}</div>`;
+        container.innerHTML = '<div class="empty-row" style="color:#c00">Error loading bonus data: ' + e.message + '</div>';
       }
     }
 
     function setScope(scope) {
-      bonusScope = scope;
+      bonusScope  = scope;
       bonusLoaded = false;
       loadBonusTab();
     }
 
     function toggleHistDetail(i) {
-      const detail = document.getElementById(`hist-detail-${i}`);
-      const chev   = document.getElementById(`chev-${i}`);
+      const detail = document.getElementById('hist-detail-' + i);
+      const chev   = document.getElementById('chev-' + i);
       const isOpen = detail.style.display !== 'none';
       detail.style.display = isOpen ? 'none' : 'block';
       chev.textContent = isOpen ? '›' : '⌄';
     }
 
+    function showTab(tabId, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+      if (tabId === 'bonus') {
+        loadBonusTab();
+        document.getElementById('tab-bonus').scrollTop = 0;
+      }
+    }
+
+    // ── Auto-open payment from URL param ─────────────────────────────────────
+    function autoOpenPayment(paymentParam) {
+      if (!paymentParam) return;
+      const targetLabel = fmtPaymentDate(paymentParam); // e.g. "23 April 2026"
+      const maxAttempts = 25;
+      let attempts = 0;
+
+      const interval = setInterval(() => {
+        attempts++;
+        const rows = document.querySelectorAll('.hist-row');
+        let found = false;
+        rows.forEach((row, i) => {
+          const nameEl = row.querySelector('.name');
+          if (nameEl && nameEl.textContent.includes(targetLabel)) {
+            found = true;
+            // Highlight and expand
+            row.classList.add('highlighted');
+            const detail = document.getElementById('hist-detail-' + i);
+            const chev   = document.getElementById('chev-' + i);
+            if (detail && detail.style.display === 'none') {
+              detail.style.display = 'block';
+              if (chev) chev.textContent = '⌄';
+            }
+            // Scroll into view after a short delay
+            setTimeout(() => {
+              row.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 150);
+            clearInterval(interval);
+          }
+        });
+        if (found || attempts >= maxAttempts) clearInterval(interval);
+      }, 200);
+    }
+
     // ── Main build ────────────────────────────────────────────────────────────
     async function build() {
-      const name    = getPlayerName();
+      const { name, view, payment } = getParams();
       const content = document.getElementById('content');
 
-      // Check employee exists and is active/probation
       const { data: empData } = await sb
         .from('employees')
         .select('id, full_name, status, initials')
@@ -720,11 +637,7 @@
 
       if (!name || !empData?.length) {
         document.getElementById('main-spinner').style.display = 'none';
-        content.innerHTML = `
-          <div class="not-found">
-            <h2>Page not found</h2>
-            <p>This stats page is not available.</p>
-          </div>`;
+        content.innerHTML = '<div class="not-found"><h2>Page not found</h2><p>This stats page is not available.</p></div>';
         return;
       }
 
@@ -732,13 +645,11 @@
 
       const { from: fyFrom, to: fyTo } = getFYDates();
 
-      // ── Load all active employees ──
       const { data: activeEmps } = await sb
         .from('employees')
         .select('id, full_name, initials')
         .in('status', ['active', 'probation']);
 
-      // ── Load all transactions for FY (unpaid OR paid within FY) ──
       const { data: unpaidTxs } = await sb.from('transactions')
         .select('id, bonus_metres').is('date_paid', null);
       const { data: paidFYTxs } = await sb.from('transactions')
@@ -748,46 +659,34 @@
       [...(unpaidTxs||[]), ...(paidFYTxs||[])].forEach(t => { fyTxMap[t.id] = t; });
       const fyTxIds = Object.keys(fyTxMap);
 
-      // ── Get operatives for FY transactions ──
       const { data: fyOps } = fyTxIds.length
         ? await sb.from('transaction_operatives').select('employee_id, transaction_id').in('transaction_id', fyTxIds)
         : { data: [] };
 
-      // Crew counts
       const crewCount = {};
       (fyOps||[]).forEach(o => { crewCount[o.transaction_id] = (crewCount[o.transaction_id]||0)+1; });
 
-      // ── Build FY metres AND outstanding metres per employee from fyOps ──
-      // fyTxMap contains both unpaid and FY-paid transactions
-      // unpaidTxIds is the set of unpaid transaction IDs
       const unpaidTxIds = new Set((unpaidTxs||[]).map(t => t.id));
-
-      const fyMetres       = {};
-      const outstandingMetres = {};
+      const fyMetres = {}, outstandingMetres = {};
       (fyOps||[]).forEach(o => {
         const tx = fyTxMap[o.transaction_id]; if (!tx) return;
         const crew = crewCount[o.transaction_id]||1;
         const myM  = parseFloat(tx.bonus_metres||0)/crew;
         fyMetres[o.employee_id] = (fyMetres[o.employee_id]||0) + myM;
-        // Only count in outstanding if transaction is unpaid
         if (unpaidTxIds.has(o.transaction_id)) {
           outstandingMetres[o.employee_id] = (outstandingMetres[o.employee_id]||0) + myM;
         }
       });
 
-      // ── Last closed month-end run ──
       const { data: lastRuns } = await sb.from('month_end_runs')
         .select('id, period_name, payment_date')
         .order('payment_date', { ascending: false }).limit(1);
       const lastRun = lastRuns?.[0] || null;
 
-      // Last period metres per employee (from last month_end_lines)
       let lastPeriodMetres = {};
       if (lastRun) {
-        // Get transactions paid in the last run's payment date
         const { data: lastPaidTxs } = await sb.from('transactions')
-          .select('id, bonus_metres')
-          .eq('date_paid', lastRun.payment_date);
+          .select('id, bonus_metres').eq('date_paid', lastRun.payment_date);
         if (lastPaidTxs?.length) {
           const { data: lastOps } = await sb.from('transaction_operatives')
             .select('employee_id, transaction_id')
@@ -801,27 +700,16 @@
         }
       }
 
-      // ── Build ranked list (FY metres) ──
       const allRanked = (activeEmps||[])
         .map(e => ({ id: e.id, name: e.full_name, initials: e.initials, fyM: fyMetres[e.id]||0, outM: outstandingMetres[e.id]||0, lastM: lastPeriodMetres[e.id]||0 }))
         .sort((a,b) => b.fyM - a.fyM);
 
-      // Assign ranks (joint)
       let rank=1;
-      allRanked.forEach((e,i) => {
-        if (i>0 && e.fyM < allRanked[i-1].fyM) rank=i+1;
-        e.rank=rank;
-      });
+      allRanked.forEach((e,i) => { if (i>0 && e.fyM < allRanked[i-1].fyM) rank=i+1; e.rank=rank; });
 
-      // Last period ranks
-      const lastRanked = [...(activeEmps||[])]
-        .map(e => ({ id: e.id, lastM: lastPeriodMetres[e.id]||0 }))
-        .sort((a,b) => b.lastM - a.lastM);
+      const lastRanked = [...(activeEmps||[])].map(e => ({ id: e.id, lastM: lastPeriodMetres[e.id]||0 })).sort((a,b) => b.lastM - a.lastM);
       let lrank=1;
-      lastRanked.forEach((e,i) => {
-        if (i>0 && e.lastM < lastRanked[i-1].lastM) lrank=i+1;
-        e.lrank=lrank;
-      });
+      lastRanked.forEach((e,i) => { if (i>0 && e.lastM < lastRanked[i-1].lastM) lrank=i+1; e.lrank=lrank; });
 
       const me         = allRanked.find(e => e.id === employeeId);
       const myFYM      = me?.fyM   || 0;
@@ -835,26 +723,24 @@
       const outLeader  = (allRanked.find(e=>e.outM>0)||allRanked[0])?.outM || 0;
       const lastLeader = lastRanked[0]?.lastM || 0;
 
-      const fyDiff   = myFYM  >= fyLeader   ? 'Leader' : `-${Math.round(fyLeader - myFYM).toLocaleString()}m`;
-      const outDiff  = myOutM >= outLeader  ? 'Leader' : `-${Math.round(outLeader - myOutM).toLocaleString()}m`;
-      const lastDiff = myLastM >= lastLeader ? 'Leader' : `-${Math.round(lastLeader - myLastM).toLocaleString()}m`;
+      const fyDiff   = myFYM  >= fyLeader   ? 'Leader' : '-' + Math.round(fyLeader - myFYM).toLocaleString() + 'm';
+      const outDiff  = myOutM >= outLeader  ? 'Leader' : '-' + Math.round(outLeader - myOutM).toLocaleString() + 'm';
+      const lastDiff = myLastM >= lastLeader ? 'Leader' : '-' + Math.round(lastLeader - myLastM).toLocaleString() + 'm';
 
-      // Positional change: current FY rank vs last period rank
       const posChange = (myLastRank !== '-' && myRank !== '-') ? myLastRank - myRank : 0;
       let changeArrow='—', changeText='No change', changeClass='same';
-      if (posChange > 0)      { changeArrow='▲'; changeText=`Up ${posChange}`;           changeClass='up'; }
-      else if (posChange < 0) { changeArrow='▼'; changeText=`Down ${Math.abs(posChange)}`; changeClass='down'; }
+      if (posChange > 0)      { changeArrow='▲'; changeText='Up ' + posChange;              changeClass='up'; }
+      else if (posChange < 0) { changeArrow='▼'; changeText='Down ' + Math.abs(posChange); changeClass='down'; }
 
-      // Motivational message
       const RATE = 0.03;
       let msgText='', msgEmoji='', msgClass='msg-neutral';
-      if      (myFYM >= fyLeader)                   { msgEmoji='🏆'; msgText="You're leading the way — everyone else is chasing you!";    msgClass='msg-gold'; }
-      else if (fyLeader - myFYM <= 500)              { msgEmoji='🔥'; msgText="So close! You're right on the overall leader's heels!";     msgClass='msg-positive'; }
-      else if (myOutM >= outLeader)                  { msgEmoji='⚡'; msgText="You've got the most outstanding this period — brilliant!";  msgClass='msg-gold'; }
-      else if (posChange >= 5)                       { msgEmoji='🚀'; msgText="You've rocketed up the rankings this period!";             msgClass='msg-positive'; }
-      else if (posChange > 0)                        { msgEmoji='👍'; msgText="Moving in the right direction — nice work!";              msgClass='msg-positive'; }
-      else if (posChange < -2)                       { msgEmoji='💪'; msgText="Tough period — but there's everything to play for!";      msgClass='msg-warning'; }
-      else                                           { msgEmoji='🎯'; msgText="You're holding your ground — stay consistent!";           msgClass='msg-neutral'; }
+      if      (myFYM >= fyLeader)         { msgEmoji='🏆'; msgText="You're leading the way — everyone else is chasing you!";   msgClass='msg-gold'; }
+      else if (fyLeader - myFYM <= 500)   { msgEmoji='🔥'; msgText="So close! You're right on the overall leader's heels!";    msgClass='msg-positive'; }
+      else if (myOutM >= outLeader)       { msgEmoji='⚡'; msgText="You've got the most outstanding this period — brilliant!"; msgClass='msg-gold'; }
+      else if (posChange >= 5)            { msgEmoji='🚀'; msgText="You've rocketed up the rankings this period!";             msgClass='msg-positive'; }
+      else if (posChange > 0)             { msgEmoji='👍'; msgText="Moving in the right direction — nice work!";              msgClass='msg-positive'; }
+      else if (posChange < -2)            { msgEmoji='💪'; msgText="Tough period — but there's everything to play for!";      msgClass='msg-warning'; }
+      else                                { msgEmoji='🎯'; msgText="You're holding your ground — stay consistent!";           msgClass='msg-neutral'; }
 
       const playerIcon = await drawIcon(name, null, 64, 0);
 
@@ -875,8 +761,6 @@
         </div>
 
         <div class="tab-panels">
-
-          <!-- Stats tab -->
           <div class="tab-panel active" id="tab-stats">
             <div class="main-grid">
               <div class="coin-col" id="coinCol">
@@ -892,7 +776,7 @@
                       <stop offset="100%" stop-color="#BF6E00"/>
                     </linearGradient>
                   </defs>
-                </svg>` : `<div class="coin-zero">🎯</div>`}
+                </svg>` : '<div class="coin-zero">🎯</div>'}
               </div>
               <div class="stats-col">
                 <div class="stat-card highlight two-col">
@@ -952,272 +836,171 @@
             </div>
           </div>
 
-          <!-- Bonus tab -->
           <div class="tab-panel" id="tab-bonus">
             <div class="bonus-tab-inner" id="bonus-tab-content">
               <div class="spinner-sm"></div>
             </div>
           </div>
-
         </div>
       `;
 
-      // Run race and coin animation in parallel
+      // Run race and coin animation
       const racePromise = renderRace(name, allRanked, employeeId);
 
-      // Coin stack animation — based on outstanding bonus
       if (myOutM > 0) {
         const bonusRaw  = myOutM * RATE;
         const BONUS_MAX = 1500;
         const fillRatio = Math.min(bonusRaw / BONUS_MAX, 1);
-        const COIN_RX   = 32, COIN_RY = 6, COIN_H = 11, SVG_W = 72;
-        const svg      = document.getElementById('coinStackSvg');
-        const amountEl = document.getElementById('coinAmount');
-        const coinCol  = document.getElementById('coinCol');
-
+        const COIN_RX=32, COIN_RY=6, COIN_H=11, SVG_W=72;
+        const svg=document.getElementById('coinStackSvg');
+        const amountEl=document.getElementById('coinAmount');
+        const coinCol=document.getElementById('coinCol');
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            const panelH   = Math.max(coinCol.clientHeight, 120);
-            const maxCoins = Math.floor((panelH - COIN_RY * 2 - 8) / COIN_H);
-            const numCoins = Math.max(1, Math.round(maxCoins * fillRatio));
-            svg.setAttribute('viewBox', `0 0 ${SVG_W} ${panelH}`);
-            svg.setAttribute('height', String(panelH));
-            const NS = 'http://www.w3.org/2000/svg';
-            const coins = [];
-            for (let i = 0; i < numCoins; i++) {
-              const bottomY = panelH - 4 - (i * COIN_H);
-              const faceY   = bottomY - COIN_H;
-              const isTop   = i === numCoins - 1;
-              const cx      = SVG_W / 2;
-              const band = document.createElementNS(NS, 'rect');
-              band.setAttribute('x', String(cx - COIN_RX)); band.setAttribute('y', String(faceY));
-              band.setAttribute('width', String(COIN_RX * 2)); band.setAttribute('height', String(COIN_H));
-              band.setAttribute('fill', 'url(#cSide)'); band.style.opacity = '0';
-              const bottom = document.createElementNS(NS, 'ellipse');
-              bottom.setAttribute('cx', String(cx)); bottom.setAttribute('cy', String(bottomY));
-              bottom.setAttribute('rx', String(COIN_RX)); bottom.setAttribute('ry', String(COIN_RY));
-              bottom.setAttribute('fill', 'url(#cSide)'); bottom.style.opacity = '0';
-              const face = document.createElementNS(NS, 'ellipse');
-              face.setAttribute('cx', String(cx)); face.setAttribute('cy', String(faceY));
-              face.setAttribute('rx', String(COIN_RX)); face.setAttribute('ry', String(COIN_RY));
-              face.setAttribute('fill', 'url(#cTop)'); face.style.opacity = '0';
-              const ring = document.createElementNS(NS, 'ellipse');
-              ring.setAttribute('cx', String(cx)); ring.setAttribute('cy', String(faceY));
-              ring.setAttribute('rx', String(COIN_RX - 7)); ring.setAttribute('ry', String(COIN_RY - 1));
-              ring.setAttribute('fill', 'none'); ring.setAttribute('stroke', '#D4880A');
-              ring.setAttribute('stroke-width', '0.7'); ring.style.opacity = '0';
+            const panelH=Math.max(coinCol.clientHeight,120);
+            const maxCoins=Math.floor((panelH-COIN_RY*2-8)/COIN_H);
+            const numCoins=Math.max(1,Math.round(maxCoins*fillRatio));
+            svg.setAttribute('viewBox','0 0 '+SVG_W+' '+panelH);
+            svg.setAttribute('height',String(panelH));
+            const NS='http://www.w3.org/2000/svg', coins=[];
+            for (let i=0;i<numCoins;i++) {
+              const bottomY=panelH-4-(i*COIN_H), faceY=bottomY-COIN_H, isTop=i===numCoins-1, cx=SVG_W/2;
+              const band=document.createElementNS(NS,'rect'); band.setAttribute('x',String(cx-COIN_RX)); band.setAttribute('y',String(faceY)); band.setAttribute('width',String(COIN_RX*2)); band.setAttribute('height',String(COIN_H)); band.setAttribute('fill','url(#cSide)'); band.style.opacity='0';
+              const bottom=document.createElementNS(NS,'ellipse'); bottom.setAttribute('cx',String(cx)); bottom.setAttribute('cy',String(bottomY)); bottom.setAttribute('rx',String(COIN_RX)); bottom.setAttribute('ry',String(COIN_RY)); bottom.setAttribute('fill','url(#cSide)'); bottom.style.opacity='0';
+              const face=document.createElementNS(NS,'ellipse'); face.setAttribute('cx',String(cx)); face.setAttribute('cy',String(faceY)); face.setAttribute('rx',String(COIN_RX)); face.setAttribute('ry',String(COIN_RY)); face.setAttribute('fill','url(#cTop)'); face.style.opacity='0';
+              const ring=document.createElementNS(NS,'ellipse'); ring.setAttribute('cx',String(cx)); ring.setAttribute('cy',String(faceY)); ring.setAttribute('rx',String(COIN_RX-7)); ring.setAttribute('ry',String(COIN_RY-1)); ring.setAttribute('fill','none'); ring.setAttribute('stroke','#D4880A'); ring.setAttribute('stroke-width','0.7'); ring.style.opacity='0';
               svg.appendChild(band); svg.appendChild(bottom); svg.appendChild(face); svg.appendChild(ring);
-              if (isTop) {
-                const lbl = document.createElementNS(NS, 'text');
-                lbl.setAttribute('x', String(cx)); lbl.setAttribute('y', String(faceY + 1));
-                lbl.setAttribute('text-anchor', 'middle'); lbl.setAttribute('dominant-baseline', 'central');
-                lbl.setAttribute('font-size', '8'); lbl.setAttribute('font-weight', '500');
-                lbl.setAttribute('fill', '#9A5E00'); lbl.textContent = '£'; lbl.style.opacity = '0';
-                svg.appendChild(lbl);
-                coins.push([band, bottom, face, ring, lbl]);
-              } else {
-                coins.push([band, bottom, face, ring]);
-              }
+              if (isTop) { const lbl=document.createElementNS(NS,'text'); lbl.setAttribute('x',String(cx)); lbl.setAttribute('y',String(faceY+1)); lbl.setAttribute('text-anchor','middle'); lbl.setAttribute('dominant-baseline','central'); lbl.setAttribute('font-size','8'); lbl.setAttribute('font-weight','500'); lbl.setAttribute('fill','#9A5E00'); lbl.textContent='£'; lbl.style.opacity='0'; svg.appendChild(lbl); coins.push([band,bottom,face,ring,lbl]); }
+              else coins.push([band,bottom,face,ring]);
             }
-            const DELAY = Math.min(60, 900 / Math.max(numCoins, 1));
-            coins.forEach((group, i) => {
-              setTimeout(() => { group.forEach(el => { el.style.transition='opacity 0.1s ease'; el.style.opacity='1'; }); }, 300 + i * DELAY);
-            });
-            const totalDur = 300 + numCoins * DELAY + 200;
-            const start = performance.now();
-            function countUp(now) {
-              const t = Math.min((now - start) / totalDur, 1);
-              const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
-              amountEl.textContent = (bonusRaw * ease).toLocaleString('en-GB', { style:'currency', currency:'GBP' });
-              if (t < 1) requestAnimationFrame(countUp);
-            }
-            setTimeout(() => requestAnimationFrame(countUp), 300);
+            const DELAY=Math.min(60,900/Math.max(numCoins,1));
+            coins.forEach((group,i) => { setTimeout(()=>{ group.forEach(el=>{ el.style.transition='opacity 0.1s ease'; el.style.opacity='1'; }); },300+i*DELAY); });
+            const totalDur=300+numCoins*DELAY+200, start=performance.now();
+            function countUp(now) { const t=Math.min((now-start)/totalDur,1); const ease=t<0.5?2*t*t:-1+(4-2*t)*t; amountEl.textContent=(bonusRaw*ease).toLocaleString('en-GB',{style:'currency',currency:'GBP'}); if(t<1) requestAnimationFrame(countUp); }
+            setTimeout(()=>requestAnimationFrame(countUp),300);
           });
         });
       }
 
       await racePromise;
-    }
 
-    function showTab(tabId, btn) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('tab-' + tabId).classList.add('active');
-      if (tabId === 'bonus') loadBonusTab();
+      // ── Auto-switch to bonus tab and open payment if URL params say so ──
+      if (view === 'bonus') {
+        const bonusBtn = document.querySelector('.tab-btn:nth-child(2)');
+        if (bonusBtn) {
+          showTab('bonus', bonusBtn);
+          // Switch to Full History if a payment date is specified
+          if (payment) {
+            bonusScope  = 'all';
+            bonusLoaded = false;
+            await loadBonusTab();
+            // Wait for render then find and open the matching row
+            autoOpenPayment(payment);
+          }
+        }
+      }
     }
 
     async function renderRace(playerName, allRanked, playerId) {
       const wrap = document.getElementById('race-wrap');
       if (!wrap) return;
 
-      // Build racer list: top 3 + player (deduplicated), sorted by rank
       const top3 = allRanked.slice(0, 3);
       const racerIds = new Set(top3.map(r => r.id));
       racerIds.add(playerId);
       const racers = allRanked
         .filter(r => racerIds.has(r.id))
         .sort((a, b) => a.rank - b.rank)
-        .map((r, i) => ({
-          ...r,
-          isPlayer: r.id === playerId,
-          silkIdx:  i % SILKS.length
-        }));
+        .map((r, i) => ({ ...r, isPlayer: r.id === playerId, silkIdx: i % SILKS.length }));
 
-      const n          = racers.length;
-      const LANE_H     = 52;
-      const totalH     = n * LANE_H;
-      const leaderM    = racers[0]?.fyM || 1;
+      const n = racers.length;
+      const LANE_H  = 52;
+      const totalH  = n * LANE_H;
+      const leaderM = racers[0]?.fyM || 1;
 
-      // Build DOM
       wrap.innerHTML = '';
 
-      const sky = document.createElement('div');
-      sky.className = 'race-sky-mini';
+      const sky = document.createElement('div'); sky.className = 'race-sky-mini';
       [[10,4,70],[40,2,55],[72,5,85]].forEach(([l,t,w]) => {
         const c = document.createElement('div');
-        c.style.cssText = `position:absolute;left:${l}%;top:${t}px;width:${w}px;height:${w*0.35}px;background:rgba(255,255,255,0.85);border-radius:40px`;
+        c.style.cssText = 'position:absolute;left:'+l+'%;top:'+t+'px;width:'+w+'px;height:'+(w*0.35)+'px;background:rgba(255,255,255,0.85);border-radius:40px';
         sky.appendChild(c);
       });
       wrap.appendChild(sky);
 
-      const railTop = document.createElement('div'); railTop.className = 'race-rail-mini';
-      wrap.appendChild(railTop);
+      const railTop = document.createElement('div'); railTop.className = 'race-rail-mini'; wrap.appendChild(railTop);
+      const lanesEl = document.createElement('div'); lanesEl.className = 'race-lanes-mini'; lanesEl.style.height = totalH+'px'; wrap.appendChild(lanesEl);
+      const railBot = document.createElement('div'); railBot.className = 'race-rail-bot-mini'; wrap.appendChild(railBot);
 
-      const lanesEl = document.createElement('div');
-      lanesEl.className = 'race-lanes-mini';
-      lanesEl.style.height = totalH + 'px';
-      wrap.appendChild(lanesEl);
-
-      const railBot = document.createElement('div'); railBot.className = 'race-rail-bot-mini';
-      wrap.appendChild(railBot);
-
-      // Small delay to ensure DOM is painted and dimensions are available
       await new Promise(r => setTimeout(r, 50));
 
-      // Use window width minus sidebar/padding rather than offsetWidth which may be 0
       const viewW   = wrap.offsetWidth || (window.innerWidth - 40);
-      lanesEl.style.width = viewW + 'px';
-      const startX  = 30;
-      const finishX = viewW - 30;
-      const maxX    = finishX - 60;
+      lanesEl.style.width = viewW+'px';
+      const startX  = 30, finishX = viewW - 30, maxX = finishX - 60;
 
-
-      // Lane backgrounds
       racers.forEach((r, i) => {
         const bg = document.createElement('div');
-        bg.className = `race-lane-bg-mini ${i%2===0?'odd':'even'}`;
-        bg.style.cssText = `top:${i*LANE_H}px;height:${LANE_H}px`;
+        bg.className = 'race-lane-bg-mini '+(i%2===0?'odd':'even');
+        bg.style.cssText = 'top:'+(i*LANE_H)+'px;height:'+LANE_H+'px';
         lanesEl.appendChild(bg);
       });
 
-      // Finish line — hidden initially
-      const fl = document.createElement('div');
-      fl.className = 'race-finish-mini';
-      fl.style.left = finishX + 'px';
-      const fp1 = document.createElement('div'); fp1.className='race-f-post-mini'; fp1.style.left='0';
-      const fp2 = document.createElement('div'); fp2.className='race-f-post-mini'; fp2.style.right='-10px';
-      const fb  = document.createElement('div'); fb.className='race-f-banner-mini';
-      fl.appendChild(fp1); fl.appendChild(fp2); fl.appendChild(fb);
-      lanesEl.appendChild(fl);
+      const fl = document.createElement('div'); fl.className='race-finish-mini'; fl.style.left=finishX+'px';
+      const fp1=document.createElement('div'); fp1.className='race-f-post-mini'; fp1.style.left='0';
+      const fp2=document.createElement('div'); fp2.className='race-f-post-mini'; fp2.style.right='-10px';
+      const fb=document.createElement('div');  fb.className='race-f-banner-mini';
+      fl.appendChild(fp1); fl.appendChild(fp2); fl.appendChild(fb); lanesEl.appendChild(fl);
 
-      // Horse units — preload photos
-      const HORSE_SIZE = 28;
-      const PHOTO_SIZE = 18;
-      const SILK_W = 14, SILK_H = 10;
-      const BADGE_SIZE = 12;
-      const NAME_SIZE = 9;
-
+      const HORSE_SIZE=28, PHOTO_SIZE=18, SILK_W=14, SILK_H=10, BADGE_SIZE=12, NAME_SIZE=9;
       const units = {};
+
       racers.forEach((r, i) => {
-        const silk = SILKS[r.silkIdx], cap = CAPS[r.silkIdx];
-        const y    = i * LANE_H;
-        // Minimum 8% progress so nobody sits right on the start line
-        const minTarget = startX + (maxX - startX) * 0.08;
-        const targetX = Math.max(minTarget, r.fyM > 0 ? startX + (r.fyM / leaderM) * (maxX - startX) : minTarget);
+        const silk=SILKS[r.silkIdx], cap=CAPS[r.silkIdx];
+        const y=i*LANE_H;
+        const minTarget=startX+(maxX-startX)*0.08;
+        const targetX=Math.max(minTarget, r.fyM>0 ? startX+(r.fyM/leaderM)*(maxX-startX) : minTarget);
 
-        const unit = document.createElement('div');
-        unit.className = 'race-horse-unit';
-        unit.style.cssText = `top:${y + Math.floor(LANE_H*0.5 - HORSE_SIZE*0.5)}px;left:${startX}px`;
-        unit._currentX = startX;
-        unit._targetX  = targetX;
+        const unit=document.createElement('div'); unit.className='race-horse-unit';
+        unit.style.cssText='top:'+(y+Math.floor(LANE_H*0.5-HORSE_SIZE*0.5))+'px;left:'+startX+'px';
+        unit._currentX=startX; unit._targetX=targetX;
 
-        const stack = document.createElement('div'); stack.className = 'race-horse-stack';
-
-        const horse = document.createElement('div'); horse.className = 'race-horse-emoji';
-        horse.textContent = '🐎'; horse.style.fontSize = HORSE_SIZE + 'px';
+        const stack=document.createElement('div'); stack.className='race-horse-stack';
+        const horse=document.createElement('div'); horse.className='race-horse-emoji'; horse.textContent='🐎'; horse.style.fontSize=HORSE_SIZE+'px';
         stack.appendChild(horse);
 
-        const jw = document.createElement('div'); jw.className = 'race-jockey-wrap';
-        const ph = document.createElement('img'); ph.className = 'race-jockey-photo';
-        ph.style.cssText = `width:${PHOTO_SIZE}px;height:${PHOTO_SIZE}px`;
-        ph.src = `${IMG_PATH}${encodeURIComponent(r.name)}_cvface1.jpg`;
-        ph.onerror = function() {
-          this.style.display='none';
-          const fb=document.createElement('div');
-          fb.style.cssText=`background:${silk};width:${PHOTO_SIZE}px;height:${PHOTO_SIZE}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:900;color:#fff;border:2px solid #fff`;
-          fb.textContent=r.initials.slice(0,2);
-          this.parentNode.insertBefore(fb,this.nextSibling);
-        };
+        const jw=document.createElement('div'); jw.className='race-jockey-wrap';
+        const ph=document.createElement('img'); ph.className='race-jockey-photo'; ph.style.cssText='width:'+PHOTO_SIZE+'px;height:'+PHOTO_SIZE+'px';
+        ph.src=IMG_PATH+encodeURIComponent(r.name)+'_cvface1.jpg';
+        ph.onerror=function(){ this.style.display='none'; const fb2=document.createElement('div'); fb2.style.cssText='background:'+silk+';width:'+PHOTO_SIZE+'px;height:'+PHOTO_SIZE+'px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:900;color:#fff;border:2px solid #fff'; fb2.textContent=r.initials.slice(0,2); this.parentNode.insertBefore(fb2,this.nextSibling); };
         jw.appendChild(ph);
-
-        const sd = document.createElement('div'); sd.className = 'race-jockey-silk';
-        sd.style.cssText = `background:${silk};width:${SILK_W}px;height:${SILK_H}px`;
-        const ss = document.createElement('div'); ss.className = 'race-silk-stripe'; ss.style.background = cap;
-        sd.appendChild(ss); jw.appendChild(sd);
+        const sd=document.createElement('div'); sd.className='race-jockey-silk'; sd.style.cssText='background:'+silk+';width:'+SILK_W+'px;height:'+SILK_H+'px';
+        const ss=document.createElement('div'); ss.className='race-silk-stripe'; ss.style.background=cap; sd.appendChild(ss); jw.appendChild(sd);
         stack.appendChild(jw);
 
-        const badge = document.createElement('div'); badge.className = 'race-pos-badge';
-        badge.style.cssText = `background:${r.rank===1?'#ffd700':r.rank===2?'#c0c0c0':r.rank===3?'#cd7f32':'#333'};color:${r.rank<=3?'#000':'#fff'};width:${BADGE_SIZE}px;height:${BADGE_SIZE}px`;
-        badge.textContent = r.rank;
-        stack.appendChild(badge);
-        unit.appendChild(stack);
+        const badge=document.createElement('div'); badge.className='race-pos-badge';
+        badge.style.cssText='background:'+(r.rank===1?'#ffd700':r.rank===2?'#c0c0c0':r.rank===3?'#cd7f32':'#333')+';color:'+(r.rank<=3?'#000':'#fff')+';width:'+BADGE_SIZE+'px;height:'+BADGE_SIZE+'px';
+        badge.textContent=r.rank; stack.appendChild(badge); unit.appendChild(stack);
 
-        const nm = document.createElement('div');
-        nm.className = 'race-horse-name' + (r.isPlayer ? ' race-player-label' : '');
-        nm.style.fontSize = NAME_SIZE + 'px';
-        nm.style.maxWidth = '80px';
-        nm.style.overflow = 'hidden';
-        nm.style.textOverflow = 'ellipsis';
-        const shortFirst = r.name.split(' ')[0];
-        nm.textContent   = r.isPlayer && r.rank > 3
-          ? `${shortFirst} (You)`
-          : `${shortFirst} ${(r.name.split(' ')[1]?.[0]||'')}${r.name.split(' ')[1]?'.':''}`;
-        unit.appendChild(nm);
-
-        lanesEl.appendChild(unit);
-        units[r.id] = { unit, targetX };
+        const nm=document.createElement('div'); nm.className='race-horse-name'+(r.isPlayer?' race-player-label':''); nm.style.fontSize=NAME_SIZE+'px'; nm.style.maxWidth='80px'; nm.style.overflow='hidden'; nm.style.textOverflow='ellipsis';
+        const shortFirst=r.name.split(' ')[0];
+        nm.textContent=r.isPlayer && r.rank>3 ? shortFirst+' (You)' : shortFirst+' '+((r.name.split(' ')[1]?.[0]||''))+(r.name.split(' ')[1]?'.':'');
+        unit.appendChild(nm); lanesEl.appendChild(unit); units[r.id]={unit,targetX};
       });
 
-      document.getElementById('race-spinner')?.style && (document.getElementById('race-spinner').style.display = 'none');
+      document.getElementById('race-spinner') && (document.getElementById('race-spinner').style.display='none');
 
-      // ── Animate — all horses run at the same pace, once ──
-      const RACE_MS = 8000;
-      let startTs = null;
-
+      const RACE_MS=8000; let startTs=null;
       await new Promise(resolve => {
         function frame(ts) {
-          if (!startTs) startTs = ts;
-          const elapsed  = ts - startTs;
-          const progress = Math.min(elapsed / RACE_MS, 1);
-          let anyMoving  = false;
-
+          if (!startTs) startTs=ts;
+          const elapsed=ts-startTs, progress=Math.min(elapsed/RACE_MS,1);
           racers.forEach(r => {
-            const u = units[r.id]; if (!u) return;
-            const dist = u.targetX - startX;
-            const newX = startX + progress * dist;
-            if (newX < u.targetX) anyMoving = true;
-            u.unit._currentX = Math.min(newX, u.targetX);
-            u.unit.style.left = Math.round(u.unit._currentX) + 'px';
+            const u=units[r.id]; if (!u) return;
+            const newX=startX+progress*(u.targetX-startX);
+            u.unit._currentX=Math.min(newX,u.targetX); u.unit.style.left=Math.round(u.unit._currentX)+'px';
           });
-
-          // Fade finish line in at 75%
-          if (progress > 0.75) {
-            fl.style.opacity = String(Math.min(1, (progress - 0.75) * 4));
-          }
-
-          if (progress < 1) requestAnimationFrame(frame);
-          else resolve();
+          if (progress>0.75) fl.style.opacity=String(Math.min(1,(progress-0.75)*4));
+          if (progress<1) requestAnimationFrame(frame); else resolve();
         }
         requestAnimationFrame(frame);
       });
@@ -1225,8 +1008,8 @@
 
     build().catch(e => {
       console.error(e);
-      document.getElementById('main-spinner').style.display = 'none';
-      document.getElementById('content').innerHTML = `<div class="error">Error loading stats. Please try again.</div>`;
+      document.getElementById('main-spinner').style.display='none';
+      document.getElementById('content').innerHTML='<div class="error">Error loading stats. Please try again.</div>';
     });
   </script>
 </body>
