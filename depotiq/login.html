@@ -16,54 +16,60 @@
 
     .login-wrap {
       width: 100%;
-      max-width: 400px;
+      max-width: 380px;
       padding: 24px;
     }
 
     .login-brand {
       text-align: center;
-      margin-bottom: 40px;
+      margin-bottom: 32px;
+    }
+
+    .login-brand img {
+      height: 48px;
+      margin-bottom: 12px;
     }
 
     .login-brand-name {
-      font-family: var(--font-display);
-      font-size: 48px;
-      color: var(--yellow);
-      letter-spacing: 4px;
-      line-height: 1;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.5px;
     }
+
+    .login-brand-name span { color: var(--red); }
 
     .login-brand-sub {
       font-size: 11px;
-      letter-spacing: 3px;
+      letter-spacing: 2px;
       text-transform: uppercase;
       color: var(--text-muted);
-      margin-top: 6px;
+      margin-top: 4px;
     }
 
     .login-card {
-      background: var(--bg-2);
+      background: var(--bg-white);
       border: 1px solid var(--border);
-      border-top: 3px solid var(--yellow);
+      border-top: 3px solid var(--red);
       border-radius: var(--radius-lg);
-      padding: 32px;
+      padding: 28px;
+      box-shadow: var(--shadow-md);
     }
 
     .login-title {
-      font-family: var(--font-display);
-      font-size: 22px;
-      letter-spacing: 1px;
-      margin-bottom: 24px;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 20px;
       color: var(--text);
     }
 
     .login-error {
-      background: rgba(204,0,0,0.1);
-      border: 1px solid var(--red);
+      background: var(--red-light);
+      border: 1px solid #ffcccc;
       border-radius: var(--radius);
       padding: 10px 14px;
       font-size: 13px;
-      color: #ff4444;
+      color: var(--red);
       margin-bottom: 16px;
       display: none;
     }
@@ -71,14 +77,14 @@
     .btn-login {
       width: 100%;
       justify-content: center;
-      padding: 12px;
+      padding: 11px;
       font-size: 14px;
     }
 
     .login-footer {
       text-align: center;
-      margin-top: 24px;
-      font-size: 12px;
+      margin-top: 20px;
+      font-size: 11px;
       color: var(--text-muted);
     }
   </style>
@@ -86,7 +92,8 @@
 <body>
   <div class="login-wrap">
     <div class="login-brand">
-      <div class="login-brand-name">DepotIQ</div>
+      <img src="/img/JHB Logo.png" alt="JHB" onerror="this.style.display='none'">
+      <div class="login-brand-name">Depot<span>IQ</span></div>
       <div class="login-brand-sub">Stock Intelligence</div>
     </div>
 
