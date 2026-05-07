@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DepotIQ — Stores</title>
+  <link rel="stylesheet" href="depotiq.css">
+  <style>
+    .stores-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .store-card {
+      background: var(--bg-white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      transition: box-shadow var(--transition);
+    }
+    .store-card:hover { box-shadow: var(--shadow-md); }
+
+    .store-card-header {
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .store-card-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .store-card-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .store-card-body {
+      padding: 14px 18px;
+    }
+
+    .store-stat-row {
+      display: flex;
+      gap: 20px;
+    }
+
+    .store-stat {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .store-stat-value {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--red);
+      line-height: 1;
+    }
+
+    .store-stat-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-top: 2px;
+    }
+
+    .store-card-footer {
+      padding: 10px 18px;
+      border-top: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .store-items-list {
+      margin-top: 12px;
+    }
+
+    .store-item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 12px;
+    }
+    .store-item-row:last-child { border-bottom: none; }
+
+    .store-item-name  { color: var(--text); font-weight: 600; }
+    .store-item-qty   { color: var(--text-dim); }
+    .store-item-qty.low { color: var(--red); font-weight: 700; }
+
+    .inactive-banner {
+      background: #fffbe6;
+      border: 1px solid #ffe58f;
+      border-radius: var(--radius);
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #7c5e00;
+      margin-bottom: 16px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="/img/JHB Logo.png" alt="JHB" onerror="this.style.display='none'">
+      <span class="sidebar-logo-text">Depot<span>IQ</span></span>
+      <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">‹</button>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Main</div>
+      <a href="index.html"       class="nav-item" data-label="Dashboard"><span class="icon">⬛</span><span class="nav-label-text">Dashboard</span></a>
+      <a href="deliveries.html"  class="nav-item" data-label="Deliveries"><span class="icon">🚚</span><span class="nav-label-text">Deliveries</span></a>
+      <a href="stock-takes.html" class="nav-item" data-label="Stock Takes"><span class="icon">📋</span><span class="nav-label-text">Stock Takes</span></a>
+      <a href="orders.html"      class="nav-item" data-label="Orders"><span class="icon">📦</span><span class="nav-label-text">Orders</span></a>
+      <div class="nav-section">Manage</div>
+      <a href="stock-items.html" class="nav-item" data-label="Stock Items"><span class="icon">🗂</span><span class="nav-label-text">Stock Items</span></a>
+      <a href="stores.html"      class="nav-item active" data-label="Stores"><span class="icon">🏪</span><span class="nav-label-text">Stores</span></a>
+      <a href="reports.html"     class="nav-item" data-label="Reports"><span class="icon">📊</span><span class="nav-label-text">Reports</span></a>
+      <div class="nav-section">System</div>
+      <a href="settings.html"    class="nav-item" data-label="Settings"><span class="icon">⚙️</span><span class="nav-label-text">Settings</span></a>
+      <a href="tv.html"          class="nav-item" data-label="TV Display" target="_blank"><span class="icon">📺</span><span class="nav-label-text">TV Display</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar" id="userAvatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="userName">Loading…</div>
+          <div class="sidebar-user-role" id="userRole">—</div>
+        </div>
+        <button class="logout-btn" id="logoutBtn" title="Sign out">⏻</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main" id="main">
+    <div class="page-body">
+
+      <div class="page-header-row">
+        <div>
+          <div class="page-title">Stores</div>
+          <div class="page-subtitle">Manage storage containers and their current stock</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer;color:var(--text-dim);">
+            <input type="checkbox" id="showInactive"> Show inactive
+          </label>
+          <button class="btn btn-primary" id="addStoreBtn">+ Add Store</button>
+        </div>
+      </div>
+
+      <div class="inactive-banner" id="inactiveBanner">
+        ⚠ Some inactive stores are shown below.
+      </div>
+
+      <div id="storesGrid" class="stores-grid">
+        <div class="loading-spinner" style="grid-column:1/-1;">
+          <div class="spinner"></div> Loading…
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Add / Edit Modal -->
+  <div class="modal-overlay" id="storeModal" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="modalTitle">Add Store</div>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="storeId">
+
+        <div class="form-group">
+          <label for="storeName">Store Name *</label>
+          <input type="text" id="storeName" placeholder="e.g. Container A">
+        </div>
+
+        <div class="form-group">
+          <label for="storeDescription">Description</label>
+          <textarea id="storeDescription" rows="2" placeholder="e.g. Main paint storage — left side of depot"></textarea>
+        </div>
+
+        <div class="form-group" id="activeToggleGroup" style="display:none;">
+          <label>Status</label>
+          <div style="display:flex;gap:10px;margin-top:4px;">
+            <label style="display:flex;align-items:center;gap:6px;text-transform:none;font-size:13px;font-weight:400;letter-spacing:0;cursor:pointer;">
+              <input type="radio" name="storeActive" value="true" id="activeYes"> Active
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;text-transform:none;font-size:13px;font-weight:400;letter-spacing:0;cursor:pointer;">
+              <input type="radio" name="storeActive" value="false" id="activeNo"> Inactive
+            </label>
+          </div>
+        </div>
+
+        <div id="modalError" style="display:none;background:var(--red-light);border:1px solid #ffcccc;border-radius:var(--radius);padding:10px 12px;font-size:13px;color:var(--red);margin-top:8px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="modalCancel">Cancel</button>
+        <button class="btn btn-primary" id="modalSave">Save Store</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm modal -->
+  <div class="modal-overlay" id="confirmModal" style="display:none;">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <div class="modal-title" id="confirmTitle">Confirm</div>
+        <button class="modal-close" id="confirmClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmText" style="font-size:13px;line-height:1.6;color:var(--text-dim);"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="confirmCancel">Cancel</button>
+        <button class="btn" id="confirmOk">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    const supabase = createClient(DEPOTIQ_CONFIG.SUPABASE_URL, DEPOTIQ_CONFIG.SUPABASE_ANON_KEY);
+
+    // ── Auth ──────────────────────────────────────────────
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = 'login.html'; }
+
+    const { data: profile } = await supabase
+      .from('depotiq_user_profiles').select('full_name,role').eq('id', session.user.id).single();
+
+    const displayName = profile?.full_name || session.user.email.split('@')[0];
+    document.getElementById('userName').textContent   = displayName;
+    document.getElementById('userRole').textContent   = profile?.role || 'user';
+    document.getElementById('userAvatar').textContent = displayName.charAt(0).toUpperCase();
+
+    // ── Sidebar ───────────────────────────────────────────
+    const sidebar = document.getElementById('sidebar');
+    const mainEl  = document.getElementById('main');
+    if (localStorage.getItem('depotiq_sidebar_collapsed') === 'true') {
+      sidebar.classList.add('collapsed'); mainEl.classList.add('collapsed');
+    }
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      const c = sidebar.classList.toggle('collapsed');
+      mainEl.classList.toggle('collapsed', c);
+      localStorage.setItem('depotiq_sidebar_collapsed', c);
+    });
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await supabase.auth.signOut(); window.location.href = 'login.html';
+    });
+
+    // ── State ─────────────────────────────────────────────
+    let allStores    = [];
+    let stockByStore = {};
+    let showInactive = false;
+
+    // ── Toast ─────────────────────────────────────────────
+    function toast(msg, type = 'success') {
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.innerHTML = `<span>${type === 'success' ? '✓' : '✕'}</span> ${msg}`;
+      document.getElementById('toastContainer').appendChild(el);
+      setTimeout(() => el.remove(), 3500);
+    }
+
+    // ── Load stores ───────────────────────────────────────
+    async function loadStores() {
+      const [storesRes, stockRes] = await Promise.all([
+        supabase.from('depotiq_stores').select('*').order('name'),
+        supabase.from('depotiq_stock_levels').select('store_id, stock_item_id, item_name, current_quantity, unit_of_measure, minimum_threshold')
+      ]);
+
+      if (storesRes.error) { toast('Failed to load stores', 'error'); return; }
+
+      allStores = storesRes.data || [];
+
+      // Group stock by store
+      stockByStore = {};
+      (stockRes.data || []).forEach(r => {
+        if (!stockByStore[r.store_id]) stockByStore[r.store_id] = [];
+        stockByStore[r.store_id].push(r);
+      });
+
+      renderStores();
+    }
+
+    function renderStores() {
+      const stores = showInactive ? allStores : allStores.filter(s => s.is_active);
+      const hasInactive = allStores.some(s => !s.is_active);
+
+      document.getElementById('inactiveBanner').style.display = (showInactive && hasInactive) ? 'block' : 'none';
+
+      const grid = document.getElementById('storesGrid');
+
+      if (!stores.length) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
+          <div class="empty-state-icon">🏪</div>
+          <div class="empty-state-text">No stores yet — add your first store to get started</div>
+        </div>`;
+        return;
+      }
+
+      grid.innerHTML = stores.map(store => {
+        const items       = stockByStore[store.id] || [];
+        const itemCount   = items.filter(i => parseFloat(i.current_quantity) > 0).length;
+        const lowCount    = items.filter(i => parseFloat(i.current_quantity) <= parseFloat(i.minimum_threshold)).length;
+        const topItems    = items.filter(i => parseFloat(i.current_quantity) > 0)
+                                  .sort((a, b) => b.current_quantity - a.current_quantity)
+                                  .slice(0, 5);
+
+        const itemsHtml = topItems.length
+          ? topItems.map(i => {
+              const qty = parseFloat(i.current_quantity);
+              const low = qty <= parseFloat(i.minimum_threshold);
+              return `
+                <div class="store-item-row">
+                  <span class="store-item-name">${i.item_name}</span>
+                  <span class="store-item-qty ${low ? 'low' : ''}">
+                    ${qty % 1 === 0 ? qty : qty.toFixed(2)} ${i.unit_of_measure}
+                    ${low ? ' ⚠' : ''}
+                  </span>
+                </div>`;
+            }).join('') + (items.filter(i => parseFloat(i.current_quantity) > 0).length > 5
+              ? `<div style="font-size:11px;color:var(--text-muted);padding:6px 0;">
+                  + ${items.filter(i => parseFloat(i.current_quantity) > 0).length - 5} more items
+                </div>` : '')
+          : `<div style="font-size:12px;color:var(--text-muted);padding:8px 0;">No stock in this store</div>`;
+
+        return `
+          <div class="store-card" style="${!store.is_active ? 'opacity:0.6;' : ''}">
+            <div class="store-card-header">
+              <div>
+                <div class="store-card-name">${store.name}</div>
+                ${store.description ? `<div class="store-card-desc">${store.description}</div>` : ''}
+              </div>
+              ${!store.is_active ? `<span class="badge badge-neutral">Inactive</span>` : ''}
+            </div>
+            <div class="store-card-body">
+              <div class="store-stat-row">
+                <div class="store-stat">
+                  <div class="store-stat-value">${itemCount}</div>
+                  <div class="store-stat-label">Item${itemCount !== 1 ? 's' : ''} in stock</div>
+                </div>
+                ${lowCount > 0 ? `
+                  <div class="store-stat">
+                    <div class="store-stat-value" style="color:var(--red);">${lowCount}</div>
+                    <div class="store-stat-label">Low / empty</div>
+                  </div>` : ''}
+              </div>
+              <div class="store-items-list">${itemsHtml}</div>
+            </div>
+            <div class="store-card-footer">
+              <span style="font-size:11px;color:var(--text-muted);">
+                ${new Date(store.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}
+              </span>
+              <div style="display:flex;gap:6px;">
+                <button class="btn btn-ghost btn-sm" onclick="openEditModal('${store.id}')">Edit</button>
+                <button class="btn btn-ghost btn-sm"
+                  onclick="confirmToggle('${store.id}','${store.name}',${store.is_active})"
+                  style="${store.is_active ? 'color:var(--red);' : 'color:var(--green);'}">
+                  ${store.is_active ? 'Retire' : 'Activate'}
+                </button>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Show inactive toggle ──────────────────────────────
+    document.getElementById('showInactive').addEventListener('change', e => {
+      showInactive = e.target.checked;
+      renderStores();
+    });
+
+    // ── Modal helpers ─────────────────────────────────────
+    function openModal()  { document.getElementById('storeModal').style.display = 'flex'; }
+    function closeModal() {
+      document.getElementById('storeModal').style.display = 'none';
+      document.getElementById('modalError').style.display = 'none';
+      document.getElementById('storeId').value          = '';
+      document.getElementById('storeName').value        = '';
+      document.getElementById('storeDescription').value = '';
+      document.getElementById('activeToggleGroup').style.display = 'none';
+    }
+
+    function showModalError(msg) {
+      const el = document.getElementById('modalError');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    document.getElementById('addStoreBtn').addEventListener('click', () => {
+      document.getElementById('modalTitle').textContent = 'Add Store';
+      closeModal();
+      openModal();
+    });
+
+    window.openEditModal = (id) => {
+      const store = allStores.find(s => s.id === id);
+      if (!store) return;
+
+      document.getElementById('modalTitle').textContent    = 'Edit Store';
+      document.getElementById('storeId').value            = store.id;
+      document.getElementById('storeName').value          = store.name;
+      document.getElementById('storeDescription').value   = store.description || '';
+      document.getElementById('activeToggleGroup').style.display = 'block';
+      document.getElementById(store.is_active ? 'activeYes' : 'activeNo').checked = true;
+      openModal();
+    };
+
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('modalCancel').addEventListener('click', closeModal);
+    document.getElementById('storeModal').addEventListener('click', e => {
+      if (e.target === document.getElementById('storeModal')) closeModal();
+    });
+
+    document.getElementById('modalSave').addEventListener('click', async () => {
+      const id          = document.getElementById('storeId').value;
+      const name        = document.getElementById('storeName').value.trim();
+      const description = document.getElementById('storeDescription').value.trim();
+      const isActive    = id ? document.querySelector('input[name="storeActive"]:checked')?.value !== 'false' : true;
+
+      if (!name) return showModalError('Store name is required');
+
+      document.getElementById('modalSave').textContent = 'Saving…';
+      document.getElementById('modalSave').disabled    = true;
+
+      const payload = { name, description, is_active: isActive };
+
+      const { error } = id
+        ? await supabase.from('depotiq_stores').update(payload).eq('id', id)
+        : await supabase.from('depotiq_stores').insert(payload);
+
+      document.getElementById('modalSave').textContent = 'Save Store';
+      document.getElementById('modalSave').disabled    = false;
+
+      if (error) { showModalError(error.message); return; }
+
+      toast(id ? 'Store updated' : 'Store added');
+      closeModal();
+      loadStores();
+    });
+
+    // ── Activate / Retire ─────────────────────────────────
+    window.confirmToggle = (id, name, isActive) => {
+      document.getElementById('confirmTitle').textContent = isActive ? 'Retire Store' : 'Activate Store';
+      document.getElementById('confirmText').innerHTML   = isActive
+        ? `Retire <strong>${name}</strong>? It will no longer appear in delivery or stock take screens. Existing stock records are preserved.`
+        : `Reactivate <strong>${name}</strong>? It will appear again in delivery and stock take screens.`;
+      const okBtn = document.getElementById('confirmOk');
+      okBtn.style.background = isActive ? 'var(--red)' : 'var(--green)';
+      okBtn.style.color      = '#fff';
+      okBtn.textContent      = isActive ? 'Retire' : 'Activate';
+
+      okBtn.onclick = async () => {
+        const { error } = await supabase
+          .from('depotiq_stores').update({ is_active: !isActive }).eq('id', id);
+        if (error) toast(error.message, 'error');
+        else { toast(isActive ? 'Store retired' : 'Store activated'); loadStores(); }
+        document.getElementById('confirmModal').style.display = 'none';
+      };
+
+      document.getElementById('confirmModal').style.display = 'flex';
+    };
+
+    document.getElementById('confirmClose').addEventListener('click',  () => document.getElementById('confirmModal').style.display = 'none');
+    document.getElementById('confirmCancel').addEventListener('click', () => document.getElementById('confirmModal').style.display = 'none');
+
+    // ── Init ──────────────────────────────────────────────
+    loadStores();
+  </script>
+</body>
+</html>

@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DepotIQ — Stock Items</title>
+  <link rel="stylesheet" href="depotiq.css">
+  <style>
+    .item-status { display:flex; align-items:center; gap:6px; font-size:12px; }
+    .status-dot  { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .status-dot.active   { background:var(--green); }
+    .status-dot.inactive { background:#ccc; }
+
+    .search-bar {
+      display:flex; gap:10px; margin-bottom:16px; align-items:center;
+    }
+    .search-bar input {
+      max-width:280px;
+    }
+    .filter-btn {
+      padding:7px 12px; border-radius:var(--radius);
+      font-size:12px; font-weight:700; cursor:pointer;
+      border:1px solid var(--border); background:var(--bg-white);
+      color:var(--text-dim); transition:all var(--transition);
+    }
+    .filter-btn.active { background:var(--red-light); color:var(--red); border-color:#ffcccc; }
+
+    .threshold-bar {
+      height:4px; background:#eee; border-radius:2px;
+      overflow:hidden; width:80px; display:inline-block;
+      vertical-align:middle; margin-left:6px;
+    }
+    .threshold-fill { height:100%; background:var(--green); border-radius:2px; }
+    .threshold-fill.low { background:var(--red); }
+    .threshold-fill.warn { background:var(--amber); }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="/img/JHB Logo.png" alt="JHB" onerror="this.style.display='none'">
+      <span class="sidebar-logo-text">Depot<span>IQ</span></span>
+      <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">‹</button>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Main</div>
+      <a href="index.html"       class="nav-item" data-label="Dashboard"><span class="icon">⬛</span><span class="nav-label-text">Dashboard</span></a>
+      <a href="deliveries.html"  class="nav-item" data-label="Deliveries"><span class="icon">🚚</span><span class="nav-label-text">Deliveries</span></a>
+      <a href="stock-takes.html" class="nav-item" data-label="Stock Takes"><span class="icon">📋</span><span class="nav-label-text">Stock Takes</span></a>
+      <a href="orders.html"      class="nav-item" data-label="Orders"><span class="icon">📦</span><span class="nav-label-text">Orders</span></a>
+      <div class="nav-section">Manage</div>
+      <a href="stock-items.html" class="nav-item active" data-label="Stock Items"><span class="icon">🗂</span><span class="nav-label-text">Stock Items</span></a>
+      <a href="stores.html"      class="nav-item" data-label="Stores"><span class="icon">🏪</span><span class="nav-label-text">Stores</span></a>
+      <a href="reports.html"     class="nav-item" data-label="Reports"><span class="icon">📊</span><span class="nav-label-text">Reports</span></a>
+      <div class="nav-section">System</div>
+      <a href="settings.html"    class="nav-item" data-label="Settings"><span class="icon">⚙️</span><span class="nav-label-text">Settings</span></a>
+      <a href="tv.html"          class="nav-item" data-label="TV Display" target="_blank"><span class="icon">📺</span><span class="nav-label-text">TV Display</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar" id="userAvatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="userName">Loading…</div>
+          <div class="sidebar-user-role" id="userRole">—</div>
+        </div>
+        <button class="logout-btn" id="logoutBtn" title="Sign out">⏻</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main" id="main">
+    <div class="page-body">
+
+      <div class="page-header-row">
+        <div>
+          <div class="page-title">Stock Items</div>
+          <div class="page-subtitle">Master list of all products and materials</div>
+        </div>
+        <button class="btn btn-primary" id="addItemBtn">+ Add Stock Item</button>
+      </div>
+
+      <div class="card">
+        <div class="search-bar">
+          <input type="text" id="searchInput" placeholder="Search items…">
+          <button class="filter-btn active" id="filterActive" data-filter="active">Active</button>
+          <button class="filter-btn" id="filterAll" data-filter="all">All</button>
+          <button class="filter-btn" id="filterInactive" data-filter="inactive">Inactive</button>
+          <span id="itemCount" style="margin-left:auto;font-size:12px;color:var(--text-muted);"></span>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Item Name</th>
+                <th>Unit</th>
+                <th>Min Threshold</th>
+                <th>Reorder Qty</th>
+                <th>Current Stock</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="itemsBody">
+              <tr><td colspan="7"><div class="loading-spinner"><div class="spinner"></div> Loading…</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Add / Edit Modal -->
+  <div class="modal-overlay" id="itemModal" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="modalTitle">Add Stock Item</div>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="itemId">
+
+        <div class="form-group">
+          <label for="itemName">Item Name *</label>
+          <input type="text" id="itemName" placeholder="e.g. White Line Marking Paint">
+        </div>
+
+        <div class="form-group">
+          <label for="itemDescription">Description</label>
+          <textarea id="itemDescription" rows="2" placeholder="Optional description"></textarea>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label for="itemUnit">Unit of Measure *</label>
+            <select id="itemUnit">
+              <option value="">— Select —</option>
+              <option value="litres">Litres</option>
+              <option value="kg">KG</option>
+              <option value="tins">Tins</option>
+              <option value="rolls">Rolls</option>
+              <option value="units">Units</option>
+              <option value="boxes">Boxes</option>
+              <option value="bags">Bags</option>
+              <option value="metres">Metres</option>
+              <option value="pairs">Pairs</option>
+            </select>
+          </div>
+          <div class="form-group" style="display:flex;align-items:flex-end;">
+            <div style="width:100%;">
+              <label for="itemUnitCustom">Or enter custom unit</label>
+              <input type="text" id="itemUnitCustom" placeholder="e.g. pallets">
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label for="itemThreshold">Min Threshold *</label>
+            <input type="number" id="itemThreshold" min="0" step="0.01" placeholder="0">
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Alert fires below this level</div>
+          </div>
+          <div class="form-group">
+            <label for="itemReorder">Reorder Quantity *</label>
+            <input type="number" id="itemReorder" min="0" step="0.01" placeholder="0">
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Suggested order amount</div>
+          </div>
+        </div>
+
+        <div class="form-group" id="activeToggleGroup" style="display:none;">
+          <label>Status</label>
+          <div style="display:flex;gap:10px;margin-top:4px;">
+            <label style="display:flex;align-items:center;gap:6px;text-transform:none;font-size:13px;font-weight:400;letter-spacing:0;cursor:pointer;">
+              <input type="radio" name="itemActive" value="true" id="activeYes"> Active
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;text-transform:none;font-size:13px;font-weight:400;letter-spacing:0;cursor:pointer;">
+              <input type="radio" name="itemActive" value="false" id="activeNo"> Inactive
+            </label>
+          </div>
+        </div>
+
+        <div id="modalError" style="display:none;background:var(--red-light);border:1px solid #ffcccc;border-radius:var(--radius);padding:10px 12px;font-size:13px;color:var(--red);margin-top:8px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="modalCancel">Cancel</button>
+        <button class="btn btn-primary" id="modalSave">Save Item</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deactivate confirm modal -->
+  <div class="modal-overlay" id="confirmModal" style="display:none;">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <div class="modal-title" id="confirmTitle">Deactivate Item</div>
+        <button class="modal-close" id="confirmClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmText" style="font-size:13px;line-height:1.6;color:var(--text-dim);"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="confirmCancel">Cancel</button>
+        <button class="btn btn-danger" id="confirmOk" style="background:var(--red);color:#fff;">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    const supabase = createClient(DEPOTIQ_CONFIG.SUPABASE_URL, DEPOTIQ_CONFIG.SUPABASE_ANON_KEY);
+
+    // ── Auth ──────────────────────────────────────────────
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = 'login.html'; }
+
+    const { data: profile } = await supabase
+      .from('depotiq_user_profiles').select('full_name,role').eq('id', session.user.id).single();
+
+    const displayName = profile?.full_name || session.user.email.split('@')[0];
+    document.getElementById('userName').textContent   = displayName;
+    document.getElementById('userRole').textContent   = profile?.role || 'user';
+    document.getElementById('userAvatar').textContent = displayName.charAt(0).toUpperCase();
+
+    // ── Sidebar ───────────────────────────────────────────
+    const sidebar = document.getElementById('sidebar');
+    const mainEl  = document.getElementById('main');
+    if (localStorage.getItem('depotiq_sidebar_collapsed') === 'true') {
+      sidebar.classList.add('collapsed'); mainEl.classList.add('collapsed');
+    }
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      const c = sidebar.classList.toggle('collapsed');
+      mainEl.classList.toggle('collapsed', c);
+      localStorage.setItem('depotiq_sidebar_collapsed', c);
+    });
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await supabase.auth.signOut(); window.location.href = 'login.html';
+    });
+
+    // ── State ─────────────────────────────────────────────
+    let allItems   = [];
+    let stockLevels = {};
+    let currentFilter = 'active';
+    let searchTerm    = '';
+
+    // ── Toast ─────────────────────────────────────────────
+    function toast(msg, type = 'success') {
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.innerHTML = `<span>${type === 'success' ? '✓' : '✕'}</span> ${msg}`;
+      document.getElementById('toastContainer').appendChild(el);
+      setTimeout(() => el.remove(), 3500);
+    }
+
+    // ── Load items ────────────────────────────────────────
+    async function loadItems() {
+      const [itemsRes, stockRes] = await Promise.all([
+        supabase.from('depotiq_stock_items').select('*').order('name'),
+        supabase.from('depotiq_stock_levels').select('stock_item_id, current_quantity')
+      ]);
+
+      if (itemsRes.error) { toast('Failed to load items', 'error'); return; }
+
+      allItems = itemsRes.data || [];
+
+      // Sum stock per item across all stores
+      stockLevels = {};
+      (stockRes.data || []).forEach(r => {
+        stockLevels[r.stock_item_id] = (stockLevels[r.stock_item_id] || 0) + parseFloat(r.current_quantity || 0);
+      });
+
+      renderItems();
+    }
+
+    function renderItems() {
+      let items = allItems;
+
+      if (currentFilter === 'active')   items = items.filter(i => i.is_active);
+      if (currentFilter === 'inactive') items = items.filter(i => !i.is_active);
+
+      if (searchTerm) {
+        const q = searchTerm.toLowerCase();
+        items = items.filter(i => i.name.toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q));
+      }
+
+      document.getElementById('itemCount').textContent = `${items.length} item${items.length !== 1 ? 's' : ''}`;
+
+      const tbody = document.getElementById('itemsBody');
+
+      if (!items.length) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">
+          <div class="empty-state-icon">🗂</div>
+          <div class="empty-state-text">${searchTerm ? 'No items match your search' : 'No stock items yet — add your first item'}</div>
+        </div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = items.map(item => {
+        const stock     = stockLevels[item.id] || 0;
+        const threshold = parseFloat(item.minimum_threshold) || 0;
+        const pct       = threshold > 0 ? Math.min((stock / threshold) * 100, 100) : 100;
+        const fillCls   = stock <= threshold ? 'low' : stock <= threshold * 1.5 ? 'warn' : '';
+        const stockStr  = `${stock % 1 === 0 ? stock : stock.toFixed(2)} ${item.unit_of_measure}`;
+        const threshStr = `${threshold % 1 === 0 ? threshold : threshold.toFixed(2)} ${item.unit_of_measure}`;
+        const reordStr  = `${parseFloat(item.reorder_quantity) % 1 === 0 ? parseFloat(item.reorder_quantity) : parseFloat(item.reorder_quantity).toFixed(2)} ${item.unit_of_measure}`;
+
+        return `
+          <tr>
+            <td>
+              <div style="font-weight:700;">${item.name}</div>
+              ${item.description ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${item.description}</div>` : ''}
+            </td>
+            <td>${item.unit_of_measure}</td>
+            <td>${threshStr}</td>
+            <td>${reordStr}</td>
+            <td>
+              <span style="font-weight:700;color:${stock <= threshold ? 'var(--red)' : 'var(--text)'};">${stockStr}</span>
+              <span class="threshold-bar"><span class="threshold-fill ${fillCls}" style="width:${pct}%"></span></span>
+            </td>
+            <td>
+              <div class="item-status">
+                <span class="status-dot ${item.is_active ? 'active' : 'inactive'}"></span>
+                ${item.is_active ? 'Active' : 'Inactive'}
+              </div>
+            </td>
+            <td>
+              <div style="display:flex;gap:6px;justify-content:flex-end;">
+                <button class="btn btn-ghost btn-sm" onclick="openEditModal('${item.id}')">Edit</button>
+                <button class="btn btn-ghost btn-sm" onclick="confirmToggle('${item.id}','${item.name}',${item.is_active})"
+                  style="${item.is_active ? 'color:var(--red);' : 'color:var(--green);'}">
+                  ${item.is_active ? 'Deactivate' : 'Activate'}
+                </button>
+              </div>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    // ── Filters ───────────────────────────────────────────
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        renderItems();
+      });
+    });
+
+    document.getElementById('searchInput').addEventListener('input', e => {
+      searchTerm = e.target.value.trim();
+      renderItems();
+    });
+
+    // ── Modal helpers ─────────────────────────────────────
+    function openModal() { document.getElementById('itemModal').style.display = 'flex'; }
+    function closeModal() {
+      document.getElementById('itemModal').style.display = 'none';
+      document.getElementById('modalError').style.display = 'none';
+      document.getElementById('itemId').value          = '';
+      document.getElementById('itemName').value        = '';
+      document.getElementById('itemDescription').value = '';
+      document.getElementById('itemUnit').value        = '';
+      document.getElementById('itemUnitCustom').value  = '';
+      document.getElementById('itemThreshold').value   = '';
+      document.getElementById('itemReorder').value     = '';
+      document.getElementById('activeToggleGroup').style.display = 'none';
+    }
+
+    function showModalError(msg) {
+      const el = document.getElementById('modalError');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    // Add
+    document.getElementById('addItemBtn').addEventListener('click', () => {
+      document.getElementById('modalTitle').textContent = 'Add Stock Item';
+      closeModal();
+      openModal();
+    });
+
+    // Edit
+    window.openEditModal = (id) => {
+      const item = allItems.find(i => i.id === id);
+      if (!item) return;
+
+      document.getElementById('modalTitle').textContent = 'Edit Stock Item';
+      document.getElementById('itemId').value          = item.id;
+      document.getElementById('itemName').value        = item.name;
+      document.getElementById('itemDescription').value = item.description || '';
+      document.getElementById('itemThreshold').value   = item.minimum_threshold;
+      document.getElementById('itemReorder').value     = item.reorder_quantity;
+      document.getElementById('activeToggleGroup').style.display = 'block';
+      document.getElementById(item.is_active ? 'activeYes' : 'activeNo').checked = true;
+
+      // Unit of measure — check if it matches a preset
+      const unitSelect  = document.getElementById('itemUnit');
+      const unitCustom  = document.getElementById('itemUnitCustom');
+      const presets     = Array.from(unitSelect.options).map(o => o.value);
+      if (presets.includes(item.unit_of_measure)) {
+        unitSelect.value = item.unit_of_measure;
+        unitCustom.value = '';
+      } else {
+        unitSelect.value = '';
+        unitCustom.value = item.unit_of_measure;
+      }
+
+      openModal();
+    };
+
+    // Close
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('modalCancel').addEventListener('click', closeModal);
+    document.getElementById('itemModal').addEventListener('click', e => {
+      if (e.target === document.getElementById('itemModal')) closeModal();
+    });
+
+    // Save
+    document.getElementById('modalSave').addEventListener('click', async () => {
+      const id          = document.getElementById('itemId').value;
+      const name        = document.getElementById('itemName').value.trim();
+      const description = document.getElementById('itemDescription').value.trim();
+      const unitPreset  = document.getElementById('itemUnit').value;
+      const unitCustom  = document.getElementById('itemUnitCustom').value.trim();
+      const unit        = unitCustom || unitPreset;
+      const threshold   = parseFloat(document.getElementById('itemThreshold').value) || 0;
+      const reorder     = parseFloat(document.getElementById('itemReorder').value) || 0;
+      const isActive    = id ? document.querySelector('input[name="itemActive"]:checked')?.value !== 'false' : true;
+
+      if (!name)  return showModalError('Item name is required');
+      if (!unit)  return showModalError('Unit of measure is required');
+
+      document.getElementById('modalSave').textContent = 'Saving…';
+      document.getElementById('modalSave').disabled    = true;
+
+      const payload = {
+        name, description, unit_of_measure: unit,
+        minimum_threshold: threshold, reorder_quantity: reorder,
+        is_active: isActive,
+      };
+
+      const { error } = id
+        ? await supabase.from('depotiq_stock_items').update(payload).eq('id', id)
+        : await supabase.from('depotiq_stock_items').insert(payload);
+
+      document.getElementById('modalSave').textContent = 'Save Item';
+      document.getElementById('modalSave').disabled    = false;
+
+      if (error) { showModalError(error.message); return; }
+
+      toast(id ? 'Item updated' : 'Item added');
+      closeModal();
+      loadItems();
+    });
+
+    // ── Activate / Deactivate ─────────────────────────────
+    window.confirmToggle = (id, name, isActive) => {
+      document.getElementById('confirmTitle').textContent = isActive ? 'Deactivate Item' : 'Activate Item';
+      document.getElementById('confirmText').innerHTML   = isActive
+        ? `Are you sure you want to deactivate <strong>${name}</strong>? It will no longer appear in delivery or stock take screens.`
+        : `Reactivate <strong>${name}</strong>? It will appear again in delivery and stock take screens.`;
+      document.getElementById('confirmOk').style.background = isActive ? 'var(--red)' : 'var(--green)';
+      document.getElementById('confirmOk').textContent      = isActive ? 'Deactivate' : 'Activate';
+
+      document.getElementById('confirmOk').onclick = async () => {
+        const { error } = await supabase
+          .from('depotiq_stock_items')
+          .update({ is_active: !isActive })
+          .eq('id', id);
+        if (error) { toast(error.message, 'error'); }
+        else { toast(isActive ? 'Item deactivated' : 'Item activated'); loadItems(); }
+        document.getElementById('confirmModal').style.display = 'none';
+      };
+
+      document.getElementById('confirmModal').style.display = 'flex';
+    };
+
+    document.getElementById('confirmClose').addEventListener('click',  () => document.getElementById('confirmModal').style.display = 'none');
+    document.getElementById('confirmCancel').addEventListener('click', () => document.getElementById('confirmModal').style.display = 'none');
+
+    // ── Init ──────────────────────────────────────────────
+    loadItems();
+  </script>
+</body>
+</html>
