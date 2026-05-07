@@ -4,8 +4,8 @@
 // ============================================================
 
 const DEPOTIQ_CONFIG = {
-  SUPABASE_URL:      'YOUR_SUPABASE_URL',
-  SUPABASE_ANON_KEY: 'YOUR_SUPABASE_ANON_KEY',
+  SUPABASE_URL:      'https://oxgehlmalbvppjmdaswn.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN',
   APP_NAME:          'DepotIQ',
   VERSION:           '1.0.0',
 
