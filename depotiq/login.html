@@ -95,19 +95,12 @@
 
       <div class="login-error" id="loginError"></div>
 
-      <div class="form-group">
-        <label for="email">Email Address</label>
-        <input type="email" id="email" placeholder="your@email.com" autocomplete="email">
-      </div>
-
-      <div class="form-group">
-        <label for="password">Password</label>
-        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
-      </div>
-
       <button class="btn btn-primary btn-login" id="loginBtn">
-        Sign In
+        <img src="https://authjs.dev/img/providers/microsoft-entra-id.svg" style="height:18px;vertical-align:middle;margin-right:8px;">
+        Sign in with Microsoft
       </button>
+
+      <div style="margin-top:16px;font-size:12px;color:var(--text-muted);text-align:center;" id="loginMsg"></div>
     </div>
 
     <div class="login-footer">
@@ -123,42 +116,48 @@
       DEPOTIQ_CONFIG.SUPABASE_ANON_KEY
     );
 
-    // Redirect if already logged in
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) window.location.href = '/depotiq/index.html';
+    // Handle OAuth callback — extract tokens from URL hash
+    if (location.hash && location.hash.includes('access_token')) {
+      const params       = new URLSearchParams(location.hash.replace('#', ''));
+      const accessToken  = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
 
-    const emailEl   = document.getElementById('email');
-    const passEl    = document.getElementById('password');
-    const loginBtn  = document.getElementById('loginBtn');
-    const errorEl   = document.getElementById('loginError');
-
-    function showError(msg) {
-      errorEl.textContent = msg;
-      errorEl.style.display = 'block';
+      if (accessToken) {
+        await supabase.auth.setSession({
+          access_token:  accessToken,
+          refresh_token: refreshToken,
+        });
+        window.location.href = 'index.html';
+      }
     }
 
-    async function doLogin() {
-      errorEl.style.display = 'none';
-      loginBtn.textContent = 'Signing in…';
-      loginBtn.disabled = true;
+    // Redirect if already logged in
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) window.location.href = 'index.html';
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email:    emailEl.value.trim(),
-        password: passEl.value,
+    const loginBtn = document.getElementById('loginBtn');
+    const loginMsg = document.getElementById('loginMsg');
+    const errorEl  = document.getElementById('loginError');
+
+    loginBtn.addEventListener('click', async () => {
+      loginBtn.disabled    = true;
+      loginBtn.textContent = 'Redirecting…';
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          scopes:     'email',
+          redirectTo: 'https://apps-nu-sand.vercel.app/depotiq/index.html',
+        }
       });
 
       if (error) {
-        showError(error.message);
-        loginBtn.textContent = 'Sign In';
-        loginBtn.disabled = false;
-        return;
+        errorEl.textContent   = error.message;
+        errorEl.style.display = 'block';
+        loginBtn.disabled     = false;
+        loginBtn.innerHTML    = '<img src="https://authjs.dev/img/providers/microsoft-entra-id.svg" style="height:18px;vertical-align:middle;margin-right:8px;"> Sign in with Microsoft';
       }
-
-      window.location.href = '/depotiq/index.html';
-    }
-
-    loginBtn.addEventListener('click', doLogin);
-    passEl.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    });
   </script>
 
   <script src="config.js"></script>
