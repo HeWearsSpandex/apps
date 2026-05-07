@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DepotIQ — Sign In</title>
+  <link rel="stylesheet" href="depotiq.css">
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: var(--bg);
+    }
+
+    .login-wrap {
+      width: 100%;
+      max-width: 400px;
+      padding: 24px;
+    }
+
+    .login-brand {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .login-brand-name {
+      font-family: var(--font-display);
+      font-size: 48px;
+      color: var(--yellow);
+      letter-spacing: 4px;
+      line-height: 1;
+    }
+
+    .login-brand-sub {
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .login-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--yellow);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+    }
+
+    .login-title {
+      font-family: var(--font-display);
+      font-size: 22px;
+      letter-spacing: 1px;
+      margin-bottom: 24px;
+      color: var(--text);
+    }
+
+    .login-error {
+      background: rgba(204,0,0,0.1);
+      border: 1px solid var(--red);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #ff4444;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .btn-login {
+      width: 100%;
+      justify-content: center;
+      padding: 12px;
+      font-size: 14px;
+    }
+
+    .login-footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-brand">
+      <div class="login-brand-name">DepotIQ</div>
+      <div class="login-brand-sub">Stock Intelligence</div>
+    </div>
+
+    <div class="login-card">
+      <div class="login-title">Sign In</div>
+
+      <div class="login-error" id="loginError"></div>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" placeholder="your@email.com" autocomplete="email">
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+
+      <button class="btn btn-primary btn-login" id="loginBtn">
+        Sign In
+      </button>
+    </div>
+
+    <div class="login-footer">
+      JHB Line Marking &nbsp;·&nbsp; DepotIQ v1.0
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const supabase = createClient(
+      DEPOTIQ_CONFIG.SUPABASE_URL,
+      DEPOTIQ_CONFIG.SUPABASE_ANON_KEY
+    );
+
+    // Redirect if already logged in
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) window.location.href = '/depotiq/index.html';
+
+    const emailEl   = document.getElementById('email');
+    const passEl    = document.getElementById('password');
+    const loginBtn  = document.getElementById('loginBtn');
+    const errorEl   = document.getElementById('loginError');
+
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+    }
+
+    async function doLogin() {
+      errorEl.style.display = 'none';
+      loginBtn.textContent = 'Signing in…';
+      loginBtn.disabled = true;
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email:    emailEl.value.trim(),
+        password: passEl.value,
+      });
+
+      if (error) {
+        showError(error.message);
+        loginBtn.textContent = 'Sign In';
+        loginBtn.disabled = false;
+        return;
+      }
+
+      window.location.href = '/depotiq/index.html';
+    }
+
+    loginBtn.addEventListener('click', doLogin);
+    passEl.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  </script>
+
+  <script src="config.js"></script>
+</body>
+</html>
