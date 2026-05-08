@@ -97,6 +97,7 @@
               <tr>
                 <th>Item Name</th>
                 <th>Unit</th>
+                <th>Type</th>
                 <th>Min Threshold</th>
                 <th>Reorder Qty</th>
                 <th>Current Stock</th>
@@ -105,7 +106,7 @@
               </tr>
             </thead>
             <tbody id="itemsBody">
-              <tr><td colspan="7"><div class="loading-spinner"><div class="spinner"></div> Loading…</div></td></tr>
+              <tr><td colspan="8"><div class="loading-spinner"><div class="spinner"></div> Loading…</div></td></tr>
             </tbody>
           </table>
         </div>
@@ -171,6 +172,20 @@
             <label for="itemReorder">Reorder Quantity *</label>
             <input type="number" id="itemReorder" min="0" step="0.01" placeholder="0">
             <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Suggested order amount</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Item Type</label>
+          <div style="display:flex;gap:10px;margin-top:4px;">
+            <label style="display:flex;align-items:center;gap:6px;text-transform:none;font-size:13px;font-weight:400;letter-spacing:0;cursor:pointer;">
+              <input type="radio" name="itemReport" value="true" id="reportYes" checked> Stock Item <span style="color:var(--text-muted);font-size:11px;">(appears in reports &amp; TV)</span>
+            </label>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:6px;">
+            <label style="display:flex;align-items:center;gap:6px;text-transform:none;font-size:13px;font-weight:400;letter-spacing:0;cursor:pointer;">
+              <input type="radio" name="itemReport" value="false" id="reportNo"> Consumable <span style="color:var(--text-muted);font-size:11px;">(stock takes only)</span>
+            </label>
           </div>
         </div>
 
@@ -295,7 +310,7 @@
       const tbody = document.getElementById('itemsBody');
 
       if (!items.length) {
-        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">
           <div class="empty-state-icon">🗂</div>
           <div class="empty-state-text">${searchTerm ? 'No items match your search' : 'No stock items yet — add your first item'}</div>
         </div></td></tr>`;
@@ -310,6 +325,9 @@
         const stockStr  = `${stock % 1 === 0 ? stock : stock.toFixed(2)} ${item.unit_of_measure}`;
         const threshStr = `${threshold % 1 === 0 ? threshold : threshold.toFixed(2)} ${item.unit_of_measure}`;
         const reordStr  = `${parseFloat(item.reorder_quantity) % 1 === 0 ? parseFloat(item.reorder_quantity) : parseFloat(item.reorder_quantity).toFixed(2)} ${item.unit_of_measure}`;
+        const typeBadge = item.include_in_report
+          ? `<span class="badge badge-ok">Stock</span>`
+          : `<span class="badge badge-neutral">Consumable</span>`;
 
         return `
           <tr>
@@ -318,6 +336,7 @@
               ${item.description ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${item.description}</div>` : ''}
             </td>
             <td>${item.unit_of_measure}</td>
+            <td>${typeBadge}</td>
             <td>${threshStr}</td>
             <td>${reordStr}</td>
             <td>
@@ -339,7 +358,7 @@
                 </button>
               </div>
             </td>
-          </tr>`;
+          </tr>`; 
       }).join('');
     }
 
@@ -399,6 +418,7 @@
       document.getElementById('itemReorder').value     = item.reorder_quantity;
       document.getElementById('activeToggleGroup').style.display = 'block';
       document.getElementById(item.is_active ? 'activeYes' : 'activeNo').checked = true;
+      document.getElementById(item.include_in_report !== false ? 'reportYes' : 'reportNo').checked = true;
 
       // Unit of measure — check if it matches a preset
       const unitSelect  = document.getElementById('itemUnit');
@@ -433,6 +453,7 @@
       const threshold   = parseFloat(document.getElementById('itemThreshold').value) || 0;
       const reorder     = parseFloat(document.getElementById('itemReorder').value) || 0;
       const isActive    = id ? document.querySelector('input[name="itemActive"]:checked')?.value !== 'false' : true;
+      const inReport    = document.querySelector('input[name="itemReport"]:checked')?.value !== 'false';
 
       if (!name)  return showModalError('Item name is required');
       if (!unit)  return showModalError('Unit of measure is required');
@@ -443,7 +464,7 @@
       const payload = {
         name, description, unit_of_measure: unit,
         minimum_threshold: threshold, reorder_quantity: reorder,
-        is_active: isActive,
+        is_active: isActive, include_in_report: inReport,
       };
 
       const { error } = id

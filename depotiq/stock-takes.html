@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DepotIQ — Stock Takes</title>
+  <link rel="stylesheet" href="depotiq.css">
+  <style>
+    /* ── Two-panel layout ── */
+    .stocktake-layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    /* ── Store selector panel ── */
+    .store-select-card {
+      background: var(--bg-white);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      position: sticky;
+      top: 24px;
+    }
+
+    .store-select-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .store-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 12px 16px;
+      background: none;
+      border: none;
+      border-bottom: 1px solid var(--border-light);
+      text-align: left;
+      cursor: pointer;
+      font-family: var(--font-ui);
+      font-size: 13px;
+      color: var(--text-dim);
+      transition: background var(--transition), color var(--transition);
+    }
+    .store-btn:last-child { border-bottom: none; }
+    .store-btn:hover  { background: #f4f5f7; color: var(--text); }
+    .store-btn.active { background: var(--red-light); color: var(--red); font-weight: 700; }
+
+    .store-btn-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      font-weight: 400;
+    }
+    .store-btn.active .store-btn-meta { color: #e88; }
+
+    /* ── Count panel ── */
+    .count-panel { display: flex; flex-direction: column; gap: 16px; }
+
+    .count-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .count-store-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .count-table td { vertical-align: middle; }
+
+    .qty-input {
+      width: 110px !important;
+      text-align: right;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .variance-cell {
+      font-size: 13px;
+      font-weight: 700;
+      min-width: 80px;
+      text-align: right;
+    }
+
+    .variance-pos  { color: var(--green); }
+    .variance-neg  { color: var(--red); }
+    .variance-zero { color: var(--text-muted); }
+
+    .consumable-row td { background: #fafafa; color: var(--text-dim); }
+    .consumable-tag {
+      font-size: 10px;
+      background: #f0f0f0;
+      color: var(--text-muted);
+      padding: 2px 6px;
+      border-radius: 10px;
+      margin-left: 6px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .summary-bar {
+      display: flex;
+      gap: 20px;
+      padding: 12px 16px;
+      background: var(--bg);
+      border-radius: var(--radius);
+      font-size: 12px;
+    }
+
+    .summary-stat { display: flex; flex-direction: column; gap: 2px; }
+    .summary-stat-val { font-size: 20px; font-weight: 700; color: var(--text); line-height: 1; }
+    .summary-stat-val.red   { color: var(--red); }
+    .summary-stat-val.green { color: var(--green); }
+    .summary-stat-lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; }
+
+    /* ── History panel ── */
+    .history-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 13px;
+      cursor: pointer;
+      transition: color var(--transition);
+    }
+    .history-row:last-child { border-bottom: none; }
+    .history-row:hover { color: var(--red); }
+    .history-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    .no-store-prompt {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--text-muted);
+    }
+    .no-store-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+    .no-store-text { font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="/img/JHB Logo.png" alt="JHB" onerror="this.style.display='none'">
+      <span class="sidebar-logo-text">Depot<span>IQ</span></span>
+      <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">‹</button>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Main</div>
+      <a href="index.html"       class="nav-item" data-label="Dashboard"><span class="icon">⬛</span><span class="nav-label-text">Dashboard</span></a>
+      <a href="deliveries.html"  class="nav-item" data-label="Deliveries"><span class="icon">🚚</span><span class="nav-label-text">Deliveries</span></a>
+      <a href="stock-takes.html" class="nav-item active" data-label="Stock Takes"><span class="icon">📋</span><span class="nav-label-text">Stock Takes</span></a>
+      <a href="orders.html"      class="nav-item" data-label="Orders"><span class="icon">📦</span><span class="nav-label-text">Orders</span></a>
+      <div class="nav-section">Manage</div>
+      <a href="stock-items.html" class="nav-item" data-label="Stock Items"><span class="icon">🗂</span><span class="nav-label-text">Stock Items</span></a>
+      <a href="stores.html"      class="nav-item" data-label="Stores"><span class="icon">🏪</span><span class="nav-label-text">Stores</span></a>
+      <a href="reports.html"     class="nav-item" data-label="Reports"><span class="icon">📊</span><span class="nav-label-text">Reports</span></a>
+      <div class="nav-section">System</div>
+      <a href="settings.html"    class="nav-item" data-label="Settings"><span class="icon">⚙️</span><span class="nav-label-text">Settings</span></a>
+      <a href="tv.html"          class="nav-item" data-label="TV Display" target="_blank"><span class="icon">📺</span><span class="nav-label-text">TV Display</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar" id="userAvatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="userName">Loading…</div>
+          <div class="sidebar-user-role" id="userRole">—</div>
+        </div>
+        <button class="logout-btn" id="logoutBtn" title="Sign out">⏻</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main" id="main">
+    <div class="page-body">
+
+      <div class="page-header-row">
+        <div>
+          <div class="page-title">Stock Takes</div>
+          <div class="page-subtitle">Count stock per store and record variances</div>
+        </div>
+      </div>
+
+      <div class="stocktake-layout">
+
+        <!-- Store selector -->
+        <div>
+          <div class="store-select-card" id="storeSelectCard">
+            <div class="store-select-header">Select a Store to Count</div>
+            <div id="storeList">
+              <div class="loading-spinner"><div class="spinner"></div></div>
+            </div>
+          </div>
+
+          <!-- Recent history -->
+          <div class="card" style="margin-top:16px;">
+            <div class="card-header">
+              <div class="card-title">Recent Stock Takes</div>
+            </div>
+            <div id="historyList">
+              <div class="loading-spinner"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Count panel -->
+        <div class="count-panel" id="countPanel">
+          <div class="no-store-prompt">
+            <div class="no-store-icon">📋</div>
+            <div class="no-store-text">Select a store on the left to begin counting</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Confirm submit modal -->
+  <div class="modal-overlay" id="confirmModal" style="display:none;">
+    <div class="modal" style="max-width:440px;">
+      <div class="modal-header">
+        <div class="modal-title">Submit Stock Take</div>
+        <button class="modal-close" id="confirmClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;line-height:1.6;color:var(--text-dim);" id="confirmText"></p>
+        <div class="form-group" style="margin-top:16px;margin-bottom:0;">
+          <label for="takeNotes">Notes (optional)</label>
+          <textarea id="takeNotes" rows="2" placeholder="Any observations about this count…"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="confirmCancel">Cancel</button>
+        <button class="btn btn-primary" id="confirmSubmit">Submit Stock Take</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History detail modal -->
+  <div class="modal-overlay" id="historyModal" style="display:none;">
+    <div class="modal" style="max-width:600px;">
+      <div class="modal-header">
+        <div class="modal-title" id="historyModalTitle">Stock Take Detail</div>
+        <button class="modal-close" id="historyClose">✕</button>
+      </div>
+      <div class="modal-body" id="historyModalBody">
+        <div class="loading-spinner"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    const supabase = createClient(DEPOTIQ_CONFIG.SUPABASE_URL, DEPOTIQ_CONFIG.SUPABASE_ANON_KEY);
+
+    // ── Auth ──────────────────────────────────────────────
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = 'login.html'; }
+
+    const { data: profile } = await supabase
+      .from('depotiq_user_profiles').select('full_name,role').eq('id', session.user.id).single();
+
+    const displayName = profile?.full_name || session.user.email.split('@')[0];
+    document.getElementById('userName').textContent   = displayName;
+    document.getElementById('userRole').textContent   = profile?.role || 'user';
+    document.getElementById('userAvatar').textContent = displayName.charAt(0).toUpperCase();
+
+    // ── Sidebar ───────────────────────────────────────────
+    const sidebar = document.getElementById('sidebar');
+    const mainEl  = document.getElementById('main');
+    if (localStorage.getItem('depotiq_sidebar_collapsed') === 'true') {
+      sidebar.classList.add('collapsed'); mainEl.classList.add('collapsed');
+    }
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      const c = sidebar.classList.toggle('collapsed');
+      mainEl.classList.toggle('collapsed', c);
+      localStorage.setItem('depotiq_sidebar_collapsed', c);
+    });
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await supabase.auth.signOut(); window.location.href = 'login.html';
+    });
+
+    // ── State ─────────────────────────────────────────────
+    let stores       = [];
+    let activeStore  = null;
+    let countData    = []; // { item, expected, actual }
+
+    // ── Toast ─────────────────────────────────────────────
+    function toast(msg, type = 'success') {
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.innerHTML = `<span>${type === 'success' ? '✓' : '✕'}</span> ${msg}`;
+      document.getElementById('toastContainer').appendChild(el);
+      setTimeout(() => el.remove(), 3500);
+    }
+
+    function formatDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    // ── Load stores ───────────────────────────────────────
+    async function loadStores() {
+      const { data } = await supabase
+        .from('depotiq_stores').select('id, name').eq('is_active', true).order('name');
+
+      stores = data || [];
+
+      const list = document.getElementById('storeList');
+      if (!stores.length) {
+        list.innerHTML = `<div style="padding:16px;font-size:13px;color:var(--text-muted);">No active stores found</div>`;
+        return;
+      }
+
+      list.innerHTML = stores.map(s => `
+        <button class="store-btn" data-id="${s.id}" onclick="selectStore('${s.id}')">
+          <div>
+            <div>${s.name}</div>
+          </div>
+          <span style="font-size:16px;color:#ccc;">›</span>
+        </button>`).join('');
+    }
+
+    // ── Select store & load stock ─────────────────────────
+    window.selectStore = async (storeId) => {
+      activeStore = stores.find(s => s.id === storeId);
+
+      // Highlight active store button
+      document.querySelectorAll('.store-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.id === storeId);
+      });
+
+      // Show loading in count panel
+      document.getElementById('countPanel').innerHTML = `
+        <div class="loading-spinner"><div class="spinner"></div> Loading stock for ${activeStore.name}…</div>`;
+
+      // Load all active stock items + current levels for this store
+      const [itemsRes, stockRes] = await Promise.all([
+        supabase.from('depotiq_stock_items')
+          .select('id, name, unit_of_measure, include_in_report')
+          .eq('is_active', true)
+          .order('include_in_report', { ascending: false })
+          .order('name'),
+        supabase.from('depotiq_store_stock')
+          .select('stock_item_id, current_quantity')
+          .eq('store_id', storeId)
+      ]);
+
+      const stockMap = {};
+      (stockRes.data || []).forEach(r => { stockMap[r.stock_item_id] = parseFloat(r.current_quantity) || 0; });
+
+      // Build count data — snapshot expected quantities now
+      countData = (itemsRes.data || []).map(item => ({
+        item,
+        expected: stockMap[item.id] || 0,
+        actual:   stockMap[item.id] || 0, // starts matching expected
+      }));
+
+      renderCountPanel();
+    };
+
+    // ── Render count panel ────────────────────────────────
+    function renderCountPanel() {
+      if (!activeStore) return;
+
+      const panel = document.getElementById('countPanel');
+
+      const variances   = countData.filter(r => r.actual !== r.expected);
+      const negCount    = variances.filter(r => r.actual < r.expected).length;
+      const posCount    = variances.filter(r => r.actual > r.expected).length;
+      const stockItems  = countData.filter(r => r.item.include_in_report);
+      const consumables = countData.filter(r => !r.item.include_in_report);
+
+      panel.innerHTML = `
+        <div class="card">
+          <div class="count-header">
+            <div>
+              <div class="count-store-name">${activeStore.name}</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+                Adjust quantities to match what's physically in this store
+              </div>
+            </div>
+            <button class="btn btn-primary" id="submitBtn">Submit Count</button>
+          </div>
+
+          <!-- Summary bar -->
+          <div class="summary-bar" style="margin-bottom:16px;">
+            <div class="summary-stat">
+              <div class="summary-stat-val">${countData.length}</div>
+              <div class="summary-stat-lbl">Items</div>
+            </div>
+            <div class="summary-stat">
+              <div class="summary-stat-val red">${negCount}</div>
+              <div class="summary-stat-lbl">Short</div>
+            </div>
+            <div class="summary-stat">
+              <div class="summary-stat-val green">${posCount}</div>
+              <div class="summary-stat-lbl">Over</div>
+            </div>
+            <div class="summary-stat">
+              <div class="summary-stat-val">${countData.length - variances.length}</div>
+              <div class="summary-stat-lbl">Matching</div>
+            </div>
+          </div>
+
+          <!-- Stock items table -->
+          ${stockItems.length ? `
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px;">Stock Items</div>
+            <div class="table-wrap">
+              <table class="count-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th style="text-align:right;">Expected</th>
+                    <th style="text-align:right;">Actual Count</th>
+                    <th style="text-align:right;">Variance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${stockItems.map((r, idx) => renderCountRow(r, idx)).join('')}
+                </tbody>
+              </table>
+            </div>` : ''}
+
+          <!-- Consumables table -->
+          ${consumables.length ? `
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin:20px 0 8px;">Consumables</div>
+            <div class="table-wrap">
+              <table class="count-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th style="text-align:right;">Expected</th>
+                    <th style="text-align:right;">Actual Count</th>
+                    <th style="text-align:right;">Variance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${consumables.map((r, idx) => renderCountRow(r, stockItems.length + idx)).join('')}
+                </tbody>
+              </table>
+            </div>` : ''}
+        </div>`;
+
+      // Wire up quantity inputs
+      document.querySelectorAll('.qty-input').forEach(input => {
+        input.addEventListener('input', e => {
+          const idx = parseInt(e.target.dataset.idx);
+          countData[idx].actual = parseFloat(e.target.value) || 0;
+          updateVarianceCell(idx);
+          updateSummaryBar();
+        });
+      });
+
+      // Submit
+      document.getElementById('submitBtn').addEventListener('click', openSubmitModal);
+    }
+
+    function renderCountRow(r, idx) {
+      const variance    = r.actual - r.expected;
+      const varianceCls = variance > 0 ? 'variance-pos' : variance < 0 ? 'variance-neg' : 'variance-zero';
+      const varianceStr = variance === 0 ? '—'
+        : `${variance > 0 ? '+' : ''}${variance % 1 === 0 ? variance : variance.toFixed(2)} ${r.item.unit_of_measure}`;
+      const isConsumable = !r.item.include_in_report;
+
+      return `
+        <tr class="${isConsumable ? 'consumable-row' : ''}">
+          <td>
+            <span style="font-weight:600;">${r.item.name}</span>
+            ${isConsumable ? '<span class="consumable-tag">Consumable</span>' : ''}
+          </td>
+          <td style="text-align:right;color:var(--text-muted);">
+            ${r.expected % 1 === 0 ? r.expected : r.expected.toFixed(2)} ${r.item.unit_of_measure}
+          </td>
+          <td style="text-align:right;">
+            <input type="number" class="qty-input" data-idx="${idx}"
+              value="${r.actual}" min="0" step="0.01">
+          </td>
+          <td class="variance-cell ${varianceCls}" id="variance-${idx}">${varianceStr}</td>
+        </tr>`;
+    }
+
+    function updateVarianceCell(idx) {
+      const r        = countData[idx];
+      const variance = r.actual - r.expected;
+      const cls      = variance > 0 ? 'variance-pos' : variance < 0 ? 'variance-neg' : 'variance-zero';
+      const str      = variance === 0 ? '—'
+        : `${variance > 0 ? '+' : ''}${variance % 1 === 0 ? variance : variance.toFixed(2)} ${r.item.unit_of_measure}`;
+      const el = document.getElementById(`variance-${idx}`);
+      if (el) { el.className = `variance-cell ${cls}`; el.textContent = str; }
+    }
+
+    function updateSummaryBar() {
+      const variances = countData.filter(r => r.actual !== r.expected);
+      const negCount  = variances.filter(r => r.actual < r.expected).length;
+      const posCount  = variances.filter(r => r.actual > r.expected).length;
+      const summaryVals = document.querySelectorAll('.summary-stat-val');
+      if (summaryVals[1]) summaryVals[1].textContent = negCount;
+      if (summaryVals[2]) summaryVals[2].textContent = posCount;
+      if (summaryVals[3]) summaryVals[3].textContent = countData.length - variances.length;
+    }
+
+    // ── Submit modal ──────────────────────────────────────
+    function openSubmitModal() {
+      const variances = countData.filter(r => r.actual !== r.expected);
+      document.getElementById('confirmText').innerHTML =
+        `You are about to submit a stock take for <strong>${activeStore.name}</strong>.<br><br>
+        <strong>${countData.length}</strong> items counted &nbsp;·&nbsp;
+        <strong style="color:var(--red);">${variances.filter(r => r.actual < r.expected).length} short</strong> &nbsp;·&nbsp;
+        <strong style="color:var(--green);">${variances.filter(r => r.actual > r.expected).length} over</strong><br><br>
+        Stock levels will be updated to the actual quantities entered. This cannot be undone.`;
+      document.getElementById('takeNotes').value = '';
+      document.getElementById('confirmModal').style.display = 'flex';
+    }
+
+    document.getElementById('confirmClose').addEventListener('click',  () => document.getElementById('confirmModal').style.display = 'none');
+    document.getElementById('confirmCancel').addEventListener('click', () => document.getElementById('confirmModal').style.display = 'none');
+
+    document.getElementById('confirmSubmit').addEventListener('click', async () => {
+      const notes  = document.getElementById('takeNotes').value.trim();
+      const btn    = document.getElementById('confirmSubmit');
+      btn.textContent = 'Submitting…'; btn.disabled = true;
+
+      // 1. Create stock take header
+      const { data: takeData, error: takeError } = await supabase
+        .from('depotiq_stock_takes')
+        .insert({ taken_by: session.user.id, notes })
+        .select('id')
+        .single();
+
+      if (takeError) {
+        toast('Failed to create stock take: ' + takeError.message, 'error');
+        btn.textContent = 'Submit Stock Take'; btn.disabled = false;
+        return;
+      }
+
+      // 2. Insert stock take lines
+      const lines = countData.map(r => ({
+        stock_take_id:     takeData.id,
+        store_id:          activeStore.id,
+        stock_item_id:     r.item.id,
+        expected_quantity: r.expected,
+        actual_quantity:   r.actual,
+      }));
+
+      const { error: linesError } = await supabase
+        .from('depotiq_stock_take_lines').insert(lines);
+
+      if (linesError) {
+        toast('Failed to save stock take lines: ' + linesError.message, 'error');
+        btn.textContent = 'Submit Stock Take'; btn.disabled = false;
+        return;
+      }
+
+      toast(`Stock take for ${activeStore.name} submitted successfully`);
+      document.getElementById('confirmModal').style.display = 'none';
+      btn.textContent = 'Submit Stock Take'; btn.disabled = false;
+
+      // Reset panel and reload history
+      activeStore = null;
+      countData   = [];
+      document.querySelectorAll('.store-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('countPanel').innerHTML = `
+        <div class="no-store-prompt">
+          <div class="no-store-icon">✅</div>
+          <div class="no-store-text">Stock take submitted. Select another store to continue.</div>
+        </div>`;
+      loadHistory();
+    });
+
+    // ── History ───────────────────────────────────────────
+    async function loadHistory() {
+      const { data } = await supabase
+        .from('depotiq_stock_takes')
+        .select('id, taken_at, notes, depotiq_user_profiles(full_name)')
+        .order('taken_at', { ascending: false })
+        .limit(10);
+
+      const el = document.getElementById('historyList');
+
+      if (!data?.length) {
+        el.innerHTML = `<div style="font-size:13px;color:var(--text-muted);padding:8px 0;">No stock takes recorded yet</div>`;
+        return;
+      }
+
+      el.innerHTML = data.map(t => `
+        <div class="history-row" onclick="showHistory('${t.id}')">
+          <div>
+            <div style="font-weight:700;">${formatDate(t.taken_at)}</div>
+            <div class="history-meta">${t.depotiq_user_profiles?.full_name || 'Unknown'} ${t.notes ? '· ' + t.notes : ''}</div>
+          </div>
+          <span style="color:#ccc;font-size:16px;">›</span>
+        </div>`).join('');
+    }
+
+    // ── History detail ────────────────────────────────────
+    window.showHistory = async (takeId) => {
+      document.getElementById('historyModal').style.display = 'flex';
+      document.getElementById('historyModalBody').innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
+
+      const { data } = await supabase
+        .from('depotiq_stock_take_lines')
+        .select('expected_quantity, actual_quantity, variance, depotiq_stock_items(name, unit_of_measure), depotiq_stores(name)')
+        .eq('stock_take_id', takeId)
+        .order('depotiq_stores(name)')
+        .order('depotiq_stock_items(name)');
+
+      if (!data?.length) {
+        document.getElementById('historyModalBody').innerHTML = `<p style="color:var(--text-muted);font-size:13px;">No lines found</p>`;
+        return;
+      }
+
+      const storeName = data[0]?.depotiq_stores?.name || '—';
+      document.getElementById('historyModalTitle').textContent = `Stock Take — ${storeName}`;
+
+      const rows = data.map(l => {
+        const v   = parseFloat(l.variance);
+        const cls = v > 0 ? 'variance-pos' : v < 0 ? 'variance-neg' : 'variance-zero';
+        const str = v === 0 ? '—' : `${v > 0 ? '+' : ''}${v % 1 === 0 ? v : v.toFixed(2)} ${l.depotiq_stock_items?.unit_of_measure}`;
+        return `
+          <tr>
+            <td><strong>${l.depotiq_stock_items?.name}</strong></td>
+            <td style="text-align:right;">${parseFloat(l.expected_quantity)} ${l.depotiq_stock_items?.unit_of_measure}</td>
+            <td style="text-align:right;">${parseFloat(l.actual_quantity)} ${l.depotiq_stock_items?.unit_of_measure}</td>
+            <td class="variance-cell ${cls}" style="text-align:right;">${str}</td>
+          </tr>`;
+      }).join('');
+
+      document.getElementById('historyModalBody').innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Item</th>
+              <th style="text-align:right;">Expected</th>
+              <th style="text-align:right;">Counted</th>
+              <th style="text-align:right;">Variance</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    };
+
+    document.getElementById('historyClose').addEventListener('click', () => document.getElementById('historyModal').style.display = 'none');
+
+    // ── Init ──────────────────────────────────────────────
+    loadStores();
+    loadHistory();
+  </script>
+</body>
+</html>
