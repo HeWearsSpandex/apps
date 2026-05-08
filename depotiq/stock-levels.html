@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DepotIQ — Stock Levels</title>
+  <link rel="stylesheet" href="depotiq.css">
+  <style>
+    /* ── Matrix table ── */
+    .matrix-wrap {
+      overflow-x: auto;
+    }
+
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      min-width: 600px;
+    }
+
+    /* Header row — store names */
+    .matrix-table thead th {
+      background: var(--bg-2);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .matrix-table thead th.store-col {
+      text-align: center;
+      min-width: 120px;
+    }
+
+    .matrix-table thead th.item-col {
+      text-align: left;
+      min-width: 200px;
+      position: sticky;
+      left: 0;
+      background: var(--bg-2);
+      z-index: 2;
+      border-right: 2px solid var(--border);
+    }
+
+    .matrix-table thead th.total-col {
+      text-align: center;
+      background: #f0f0f0;
+      border-left: 2px solid var(--border);
+      min-width: 120px;
+    }
+
+    /* Body rows */
+    .matrix-table tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-light);
+      vertical-align: middle;
+    }
+
+    .matrix-table tbody tr:hover td { background: #f9f9f9; }
+    .matrix-table tbody tr:hover td.item-name-cell { background: #f9f9f9; }
+
+    .item-name-cell {
+      position: sticky;
+      left: 0;
+      background: var(--bg-white);
+      z-index: 1;
+      border-right: 2px solid var(--border);
+    }
+
+    .item-name {
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .item-unit {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .qty-cell {
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .qty-cell.empty {
+      color: #ddd;
+      font-weight: 400;
+    }
+
+    .total-cell {
+      text-align: center;
+      font-weight: 700;
+      background: #fafafa;
+      border-left: 2px solid var(--border);
+    }
+
+    /* Status colours on total cell */
+    .total-cell.status-ok  { color: var(--green); }
+    .total-cell.status-low { color: var(--red); background: var(--red-light); }
+    .total-cell.status-warn { color: var(--amber); background: var(--amber-light); }
+
+    /* Section divider rows */
+    .section-row td {
+      background: var(--bg);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-bottom: 1px solid var(--border);
+      border-top: 2px solid var(--border);
+    }
+
+    .section-row td.item-col {
+      position: sticky;
+      left: 0;
+      background: var(--bg);
+      border-right: 2px solid var(--border);
+    }
+
+    /* Consumable rows — slightly muted */
+    .consumable-row .item-name { color: var(--text-dim); font-weight: 600; }
+    .consumable-row .qty-cell  { color: var(--text-dim); }
+    .consumable-row .total-cell { color: var(--text-dim); background: #fafafa; }
+    .consumable-row .total-cell.status-low { color: var(--red); background: var(--red-light); }
+
+    /* Threshold indicator dot */
+    .threshold-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      margin-left: 5px;
+      vertical-align: middle;
+    }
+    .dot-ok   { background: var(--green); }
+    .dot-low  { background: var(--red); }
+    .dot-warn { background: var(--amber); }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Summary stats */
+    .matrix-stats {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .matrix-stat {
+      background: var(--bg-white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+    }
+
+    .matrix-stat-val {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .matrix-stat-lbl { color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="/img/JHB Logo.png" alt="JHB" onerror="this.style.display='none'">
+      <span class="sidebar-logo-text">Depot<span>IQ</span></span>
+      <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">‹</button>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Main</div>
+      <a href="index.html"        class="nav-item" data-label="Dashboard"><span class="icon">⬛</span><span class="nav-label-text">Dashboard</span></a>
+      <a href="deliveries.html"   class="nav-item" data-label="Deliveries"><span class="icon">🚚</span><span class="nav-label-text">Deliveries</span></a>
+      <a href="stock-takes.html"  class="nav-item" data-label="Stock Takes"><span class="icon">📋</span><span class="nav-label-text">Stock Takes</span></a>
+      <a href="orders.html"       class="nav-item" data-label="Orders"><span class="icon">📦</span><span class="nav-label-text">Orders</span></a>
+      <div class="nav-section">Manage</div>
+      <a href="stock-levels.html" class="nav-item active" data-label="Stock Levels"><span class="icon">📈</span><span class="nav-label-text">Stock Levels</span></a>
+      <a href="stock-items.html"  class="nav-item" data-label="Stock Items"><span class="icon">🗂</span><span class="nav-label-text">Stock Items</span></a>
+      <a href="stores.html"       class="nav-item" data-label="Stores"><span class="icon">🏪</span><span class="nav-label-text">Stores</span></a>
+      <a href="reports.html"      class="nav-item" data-label="Reports"><span class="icon">📊</span><span class="nav-label-text">Reports</span></a>
+      <div class="nav-section">System</div>
+      <a href="settings.html"     class="nav-item" data-label="Settings"><span class="icon">⚙️</span><span class="nav-label-text">Settings</span></a>
+      <a href="tv.html"           class="nav-item" data-label="TV Display" target="_blank"><span class="icon">📺</span><span class="nav-label-text">TV Display</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar" id="userAvatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="userName">Loading…</div>
+          <div class="sidebar-user-role" id="userRole">—</div>
+        </div>
+        <button class="logout-btn" id="logoutBtn" title="Sign out">⏻</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main" id="main">
+    <div class="page-body">
+
+      <div class="page-header-row">
+        <div>
+          <div class="page-title">Stock Levels</div>
+          <div class="page-subtitle" id="lastUpdated">All items across all stores</div>
+        </div>
+        <button class="btn btn-ghost" id="refreshBtn">↻ Refresh</button>
+      </div>
+
+      <!-- Summary stats -->
+      <div class="matrix-stats" id="matrixStats">
+        <div class="loading-spinner"><div class="spinner"></div></div>
+      </div>
+
+      <!-- Legend -->
+      <div class="legend">
+        <div class="legend-item"><span class="threshold-dot dot-ok"></span> Above threshold</div>
+        <div class="legend-item"><span class="threshold-dot dot-warn"></span> Within 50% of threshold</div>
+        <div class="legend-item"><span class="threshold-dot dot-low"></span> At or below threshold</div>
+        <div class="legend-item" style="margin-left:8px;color:#bbb;">— = none in this store</div>
+      </div>
+
+      <!-- Matrix -->
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="matrix-wrap" id="matrixWrap">
+          <div class="loading-spinner" style="padding:40px;"><div class="spinner"></div> Building matrix…</div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="config.js"></script>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    const supabase = createClient(DEPOTIQ_CONFIG.SUPABASE_URL, DEPOTIQ_CONFIG.SUPABASE_ANON_KEY);
+
+    // ── Auth ──────────────────────────────────────────────
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = 'login.html'; }
+
+    const { data: profile } = await supabase
+      .from('depotiq_user_profiles').select('full_name,role').eq('id', session.user.id).single();
+
+    const displayName = profile?.full_name || session.user.email.split('@')[0];
+    document.getElementById('userName').textContent   = displayName;
+    document.getElementById('userRole').textContent   = profile?.role || 'user';
+    document.getElementById('userAvatar').textContent = displayName.charAt(0).toUpperCase();
+
+    // ── Sidebar ───────────────────────────────────────────
+    const sidebar = document.getElementById('sidebar');
+    const mainEl  = document.getElementById('main');
+    if (localStorage.getItem('depotiq_sidebar_collapsed') === 'true') {
+      sidebar.classList.add('collapsed'); mainEl.classList.add('collapsed');
+    }
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      const c = sidebar.classList.toggle('collapsed');
+      mainEl.classList.toggle('collapsed', c);
+      localStorage.setItem('depotiq_sidebar_collapsed', c);
+    });
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await supabase.auth.signOut(); window.location.href = 'login.html';
+    });
+
+    // ── Helpers ───────────────────────────────────────────
+    function fmt(qty, unit) {
+      const n = parseFloat(qty) || 0;
+      return `${n % 1 === 0 ? n : n.toFixed(2)} ${unit}`;
+    }
+
+    function statusClass(total, threshold) {
+      if (threshold <= 0) return 'status-ok';
+      if (total <= threshold) return 'status-low';
+      if (total <= threshold * 1.5) return 'status-warn';
+      return 'status-ok';
+    }
+
+    function dotClass(total, threshold) {
+      if (threshold <= 0) return 'dot-ok';
+      if (total <= threshold) return 'dot-low';
+      if (total <= threshold * 1.5) return 'dot-warn';
+      return 'dot-ok';
+    }
+
+    // ── Load & render matrix ──────────────────────────────
+    async function loadMatrix() {
+      document.getElementById('matrixWrap').innerHTML =
+        `<div class="loading-spinner" style="padding:40px;"><div class="spinner"></div> Building matrix…</div>`;
+      document.getElementById('matrixStats').innerHTML =
+        `<div class="loading-spinner"><div class="spinner"></div></div>`;
+
+      const [storesRes, itemsRes, stockRes] = await Promise.all([
+        supabase.from('depotiq_stores').select('id, name').eq('is_active', true).order('name'),
+        supabase.from('depotiq_stock_items').select('id, name, unit_of_measure, minimum_threshold, include_in_report')
+          .eq('is_active', true)
+          .order('include_in_report', { ascending: false })
+          .order('name'),
+        supabase.from('depotiq_store_stock').select('store_id, stock_item_id, current_quantity'),
+      ]);
+
+      const stores = storesRes.data || [];
+      const items  = itemsRes.data  || [];
+
+      // Build lookup: stockMap[item_id][store_id] = qty
+      const stockMap = {};
+      (stockRes.data || []).forEach(r => {
+        if (!stockMap[r.stock_item_id]) stockMap[r.stock_item_id] = {};
+        stockMap[r.stock_item_id][r.store_id] = parseFloat(r.current_quantity) || 0;
+      });
+
+      // Compute totals per item
+      const totals = {};
+      items.forEach(item => {
+        totals[item.id] = stores.reduce((sum, store) => {
+          return sum + (stockMap[item.id]?.[store.id] || 0);
+        }, 0);
+      });
+
+      // Summary stats
+      const stockItems  = items.filter(i => i.include_in_report);
+      const consumables = items.filter(i => !i.include_in_report);
+      const lowCount    = items.filter(i => {
+        const t = parseFloat(i.minimum_threshold) || 0;
+        return t > 0 && totals[i.id] <= t;
+      }).length;
+      const warnCount   = items.filter(i => {
+        const t = parseFloat(i.minimum_threshold) || 0;
+        return t > 0 && totals[i.id] > t && totals[i.id] <= t * 1.5;
+      }).length;
+
+      document.getElementById('matrixStats').innerHTML = `
+        <div class="matrix-stat">
+          <div class="matrix-stat-val" style="color:var(--blue);">${items.length}</div>
+          <div class="matrix-stat-lbl">Total items tracked</div>
+        </div>
+        <div class="matrix-stat">
+          <div class="matrix-stat-val" style="color:var(--text);">${stores.length}</div>
+          <div class="matrix-stat-lbl">Active stores</div>
+        </div>
+        <div class="matrix-stat">
+          <div class="matrix-stat-val" style="color:var(--red);">${lowCount}</div>
+          <div class="matrix-stat-lbl">At or below threshold</div>
+        </div>
+        <div class="matrix-stat">
+          <div class="matrix-stat-val" style="color:var(--amber);">${warnCount}</div>
+          <div class="matrix-stat-lbl">Approaching threshold</div>
+        </div>
+        <div class="matrix-stat">
+          <div class="matrix-stat-val" style="color:var(--text-muted);">${consumables.length}</div>
+          <div class="matrix-stat-lbl">Consumables tracked</div>
+        </div>`;
+
+      document.getElementById('lastUpdated').textContent =
+        `Last updated ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+
+      if (!stores.length || !items.length) {
+        document.getElementById('matrixWrap').innerHTML = `
+          <div class="empty-state" style="padding:48px;">
+            <div class="empty-state-icon">📈</div>
+            <div class="empty-state-text">${!stores.length ? 'No active stores configured' : 'No active stock items configured'}</div>
+          </div>`;
+        return;
+      }
+
+      // ── Build table ───────────────────────────────────
+      const storeHeaders = stores.map(s =>
+        `<th class="store-col">${s.name}</th>`
+      ).join('');
+
+      function renderItemRow(item, isConsumable) {
+        const threshold  = parseFloat(item.minimum_threshold) || 0;
+        const total      = totals[item.id];
+        const statusCls  = statusClass(total, threshold);
+        const dot        = dotClass(total, threshold);
+        const totalStr   = total > 0 ? fmt(total, item.unit_of_measure) : '—';
+
+        const storeCells = stores.map(store => {
+          const qty = stockMap[item.id]?.[store.id] || 0;
+          if (qty === 0) return `<td class="qty-cell empty">—</td>`;
+          return `<td class="qty-cell">${fmt(qty, item.unit_of_measure)}</td>`;
+        }).join('');
+
+        return `
+          <tr class="${isConsumable ? 'consumable-row' : ''}">
+            <td class="item-name-cell">
+              <div class="item-name">
+                ${item.name}
+                ${threshold > 0 ? `<span class="threshold-dot ${dot}"></span>` : ''}
+              </div>
+              <div class="item-unit">${item.unit_of_measure}${threshold > 0 ? ` · min ${fmt(threshold, item.unit_of_measure)}` : ''}</div>
+            </td>
+            ${storeCells}
+            <td class="total-cell ${isConsumable ? '' : statusCls}">${totalStr}</td>
+          </tr>`;
+      }
+
+      const stockRows = stockItems.map(i => renderItemRow(i, false)).join('');
+
+      const consumableRows = consumables.length ? `
+        <tr class="section-row">
+          <td class="item-col" colspan="${stores.length + 2}">Consumables</td>
+        </tr>
+        ${consumables.map(i => renderItemRow(i, true)).join('')}` : '';
+
+      document.getElementById('matrixWrap').innerHTML = `
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th class="item-col">Item</th>
+              ${storeHeaders}
+              <th class="total-col">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${stockRows || `<tr><td colspan="${stores.length + 2}" class="empty-state" style="padding:32px;text-align:center;color:var(--text-muted);">No stock items configured</td></tr>`}
+            ${consumableRows}
+          </tbody>
+        </table>`;
+    }
+
+    // ── Refresh ───────────────────────────────────────────
+    document.getElementById('refreshBtn').addEventListener('click', loadMatrix);
+
+    // ── Realtime ──────────────────────────────────────────
+    supabase.channel('depotiq-stock-levels')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'depotiq_store_stock' }, () => {
+        loadMatrix();
+      })
+      .subscribe();
+
+    // ── Init ──────────────────────────────────────────────
+    loadMatrix();
+  </script>
+</body>
+</html>
