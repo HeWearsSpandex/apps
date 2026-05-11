@@ -86,9 +86,18 @@
       <div class="card">
         <div class="search-bar">
           <input type="text" id="searchInput" placeholder="Search items…">
-          <button class="filter-btn active" id="filterActive" data-filter="active">Active</button>
-          <button class="filter-btn" id="filterAll" data-filter="all">All</button>
-          <button class="filter-btn" id="filterInactive" data-filter="inactive">Inactive</button>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <span style="font-size:11px;color:var(--text-muted);margin-right:4px;">STATUS</span>
+            <button class="filter-btn active" data-filter-status="active">Active</button>
+            <button class="filter-btn" data-filter-status="all">All</button>
+            <button class="filter-btn" data-filter-status="inactive">Inactive</button>
+          </div>
+          <div style="display:flex;gap:4px;align-items:center;margin-left:8px;">
+            <span style="font-size:11px;color:var(--text-muted);margin-right:4px;">TYPE</span>
+            <button class="filter-btn active" data-filter-type="all">All</button>
+            <button class="filter-btn" data-filter-type="stock">Stock</button>
+            <button class="filter-btn" data-filter-type="consumable">Consumable</button>
+          </div>
           <span id="itemCount" style="margin-left:auto;font-size:12px;color:var(--text-muted);"></span>
         </div>
 
@@ -261,9 +270,10 @@
     });
 
     // ── State ─────────────────────────────────────────────
-    let allItems   = [];
+    let allItems    = [];
     let stockLevels = {};
-    let currentFilter = 'active';
+    let currentStatus = 'active';
+    let currentType   = 'all';
     let searchTerm    = '';
 
     // ── Toast ─────────────────────────────────────────────
@@ -298,8 +308,11 @@
     function renderItems() {
       let items = allItems;
 
-      if (currentFilter === 'active')   items = items.filter(i => i.is_active);
-      if (currentFilter === 'inactive') items = items.filter(i => !i.is_active);
+      if (currentStatus === 'active')   items = items.filter(i => i.is_active);
+      if (currentStatus === 'inactive') items = items.filter(i => !i.is_active);
+
+      if (currentType === 'stock')      items = items.filter(i => i.include_in_report);
+      if (currentType === 'consumable') items = items.filter(i => !i.include_in_report);
 
       if (searchTerm) {
         const q = searchTerm.toLowerCase();
@@ -364,11 +377,20 @@
     }
 
     // ── Filters ───────────────────────────────────────────
-    document.querySelectorAll('.filter-btn').forEach(btn => {
+    document.querySelectorAll('.filter-btn[data-filter-status]').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.filter-btn[data-filter-status]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        currentFilter = btn.dataset.filter;
+        currentStatus = btn.dataset.filterStatus;
+        renderItems();
+      });
+    });
+
+    document.querySelectorAll('.filter-btn[data-filter-type]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn[data-filter-type]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentType = btn.dataset.filterType;
         renderItems();
       });
     });
