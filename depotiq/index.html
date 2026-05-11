@@ -126,11 +126,6 @@
 
       <!-- Stat cards -->
       <div class="stat-grid">
-        <div class="stat-card neutral">
-          <div class="stat-label">Total Items Tracked</div>
-          <div class="stat-value blue" id="statTotal">—</div>
-          <div class="stat-sub">across all stores</div>
-        </div>
         <div class="stat-card low">
           <div class="stat-label">Low Stock — Unordered</div>
           <div class="stat-value low" id="statLow">—</div>
@@ -144,7 +139,12 @@
         <div class="stat-card ok">
           <div class="stat-label">Stock OK</div>
           <div class="stat-value ok" id="statOk">—</div>
-          <div class="stat-sub">healthy levels</div>
+          <div class="stat-sub">above threshold</div>
+        </div>
+        <div class="stat-card neutral">
+          <div class="stat-label">Not Configured</div>
+          <div class="stat-value blue" id="statUnconfigured">—</div>
+          <div class="stat-sub">no threshold set</div>
         </div>
       </div>
 
@@ -306,12 +306,13 @@
 
       if (error) { toast('Failed to load stock data', 'error'); return; }
 
-      document.getElementById('statTotal').textContent   = data.length;
-      document.getElementById('statLow').textContent     = data.filter(r => r.alert_status === 'low').length;
-      document.getElementById('statOrdered').textContent = data.filter(r => r.alert_status === 'ordered').length;
-      document.getElementById('statOk').textContent      = data.filter(r => r.alert_status === 'ok').length;
+      document.getElementById('statLow').textContent          = data.filter(r => r.alert_status === 'low').length;
+      document.getElementById('statOrdered').textContent      = data.filter(r => r.alert_status === 'ordered').length;
+      document.getElementById('statOk').textContent           = data.filter(r => r.alert_status === 'ok').length;
+      document.getElementById('statUnconfigured').textContent = data.filter(r => r.alert_status === 'unconfigured').length;
 
-      const alerts = data.filter(r => r.alert_status !== 'ok');
+      // Only show low and ordered in alerts table
+      const alerts = data.filter(r => r.alert_status === 'low' || r.alert_status === 'ordered');
       const tbody  = document.getElementById('alertsBody');
 
       if (!alerts.length) {
