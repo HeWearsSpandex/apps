@@ -15,57 +15,51 @@
     .dashboard-left  { display: flex; flex-direction: column; gap: 16px; }
     .dashboard-right { display: flex; flex-direction: column; gap: 16px; }
 
-    .stores-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 10px;
+    /* Favourites matrix */
+    .fav-matrix { width:100%; border-collapse:collapse; font-size:13px; }
+    .fav-matrix th {
+      font-size:10px; font-weight:700; letter-spacing:1px;
+      text-transform:uppercase; color:var(--text-muted);
+      padding:6px 10px; border-bottom:1px solid var(--border);
+      background:var(--bg-2); text-align:center;
     }
+    .fav-matrix th.item-col { text-align:left; min-width:180px; }
+    .fav-matrix th.total-col { background:#f0f0f0; border-left:2px solid var(--border); }
+    .fav-matrix td { padding:9px 10px; border-bottom:1px solid var(--border-light); vertical-align:middle; font-size:12px; }
+    .fav-matrix tr:last-child td { border-bottom:none; }
+    .fav-matrix tr:hover td { background:#f9f9f9; }
+    .fav-matrix td.qty  { text-align:center; font-weight:600; color:var(--text-dim); }
+    .fav-matrix td.qty.empty { color:#ddd; font-weight:400; }
+    .fav-matrix td.total { text-align:center; font-weight:700; border-left:2px solid var(--border); background:#fafafa; }
+    .fav-matrix td.total.ok   { color:var(--green); }
+    .fav-matrix td.total.low  { color:var(--red); background:var(--red-light); }
+    .fav-matrix td.total.warn { color:var(--amber); background:var(--amber-light); }
 
-    .store-card {
-      background: #f9f9f9;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px;
-      text-decoration: none;
-      transition: border-color var(--transition), box-shadow var(--transition);
-      display: block;
-    }
-    .store-card:hover { border-color: #ccc; box-shadow: var(--shadow-sm); }
-    .store-card-name  { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-    .store-card-count { font-size: 28px; font-weight: 700; color: var(--red); line-height: 1; }
-    .store-card-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .threshold-dot { display:inline-block; width:7px; height:7px; border-radius:50%; margin-left:4px; vertical-align:middle; }
+    .dot-ok   { background:var(--green); }
+    .dot-low  { background:var(--red); }
+    .dot-warn { background:var(--amber); }
 
     .activity-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--border-light);
-      font-size: 12px;
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 12px;
     }
     .activity-item:last-child { border-bottom: none; }
-
     .activity-icon {
-      width: 28px; height: 28px;
-      border-radius: 50%;
+      width: 28px; height: 28px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       font-size: 12px; flex-shrink: 0;
     }
     .activity-icon.delivery  { background: #fff3cd; }
     .activity-icon.issue     { background: var(--red-light); }
     .activity-icon.stocktake { background: var(--green-light); }
-
     .activity-text  { color: var(--text); line-height: 1.4; }
     .activity-text strong { color: var(--red); }
     .activity-time  { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
 
     .pending-order-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 9px 0;
-      border-bottom: 1px solid var(--border-light);
-      font-size: 12px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 0; border-bottom: 1px solid var(--border-light); font-size: 12px;
     }
     .pending-order-row:last-child { border-bottom: none; }
 
@@ -184,13 +178,13 @@
             </div>
           </div>
 
-          <!-- Stores -->
+          <!-- Favourites stock matrix -->
           <div class="card">
             <div class="card-header">
-              <div class="card-title">Stores</div>
-              <a href="stores.html" class="btn btn-ghost btn-sm">Manage</a>
+              <div class="card-title">⭐ Tracked Stock</div>
+              <a href="stock-items.html" class="btn btn-ghost btn-sm">Manage Favourites</a>
             </div>
-            <div class="stores-grid" id="storesGrid">
+            <div id="favouritesMatrix">
               <div class="loading-spinner"><div class="spinner"></div> Loading…</div>
             </div>
           </div>
@@ -348,43 +342,83 @@
       }).join('');
     }
 
-    // ── Load stores ───────────────────────────────────────
-    async function loadStores() {
-      const { data: stores } = await supabase
-        .from('depotiq_stores')
-        .select('id, name, description')
-        .eq('is_active', true)
-        .order('name');
+    // ── Load favourites matrix ────────────────────────────
+    async function loadFavourites() {
+      const [itemsRes, storesRes, stockRes] = await Promise.all([
+        supabase.from('depotiq_stock_items')
+          .select('id, name, unit_of_measure, minimum_threshold')
+          .eq('is_active', true)
+          .eq('is_favourite', true)
+          .order('name'),
+        supabase.from('depotiq_stores')
+          .select('id, name')
+          .eq('is_active', true)
+          .order('name'),
+        supabase.from('depotiq_store_stock')
+          .select('store_id, stock_item_id, current_quantity'),
+      ]);
 
-      const { data: stockData } = await supabase
-        .from('depotiq_store_stock')
-        .select('store_id, stock_item_id')
-        .gt('current_quantity', 0);
+      const el = document.getElementById('favouritesMatrix');
+      const items  = itemsRes.data  || [];
+      const stores = storesRes.data || [];
 
-      const countMap = {};
-      (stockData || []).forEach(r => {
-        countMap[r.store_id] = (countMap[r.store_id] || 0) + 1;
-      });
-
-      const grid = document.getElementById('storesGrid');
-
-      if (!stores?.length) {
-        grid.innerHTML = `<div class="empty-state">
-          <div class="empty-state-icon">🏪</div>
-          <div class="empty-state-text">No stores configured yet</div>
+      if (!items.length) {
+        el.innerHTML = `<div class="empty-state">
+          <div class="empty-state-icon">⭐</div>
+          <div class="empty-state-text">No items tracked yet — go to <a href="stock-items.html">Stock Items</a> and click ⭐ to track items here</div>
         </div>`;
         return;
       }
 
-      grid.innerHTML = stores.map(s => {
-        const count = countMap[s.id] || 0;
+      // Build lookup
+      const stockMap = {};
+      (stockRes.data || []).forEach(r => {
+        if (!stockMap[r.stock_item_id]) stockMap[r.stock_item_id] = {};
+        stockMap[r.stock_item_id][r.store_id] = parseFloat(r.current_quantity) || 0;
+      });
+
+      const storeHeaders = stores.map(s => `<th>${s.name}</th>`).join('');
+
+      const rows = items.map(item => {
+        const threshold = parseFloat(item.minimum_threshold) || 0;
+        const total     = stores.reduce((sum, s) => sum + (stockMap[item.id]?.[s.id] || 0), 0);
+        const statusCls = threshold <= 0 ? 'ok' : total <= threshold ? 'low' : total <= threshold * 1.5 ? 'warn' : 'ok';
+        const dotCls    = `dot-${statusCls}`;
+        const fmt       = (n) => `${n % 1 === 0 ? n : n.toFixed(2)}`;
+
+        const storeCells = stores.map(s => {
+          const qty = stockMap[item.id]?.[s.id] || 0;
+          return `<td class="qty ${qty === 0 ? 'empty' : ''}">${qty === 0 ? '—' : fmt(qty)}</td>`;
+        }).join('');
+
         return `
-          <a href="stores.html?id=${s.id}" class="store-card">
-            <div class="store-card-name">${s.name}</div>
-            <div class="store-card-count">${count}</div>
-            <div class="store-card-label">distinct item${count !== 1 ? 's' : ''} in stock</div>
-          </a>`;
+          <tr>
+            <td>
+              <span style="font-weight:700;">${item.name}</span>
+              <span class="threshold-dot ${dotCls}"></span>
+              <div style="font-size:11px;color:var(--text-muted);">${item.unit_of_measure}${threshold > 0 ? ` · min ${fmt(threshold)}` : ''}</div>
+            </td>
+            ${storeCells}
+            <td class="total ${statusCls}">${total > 0 ? fmt(total) : '—'}</td>
+          </tr>`;
       }).join('');
+
+      el.innerHTML = `
+        <div style="overflow-x:auto;">
+          <table class="fav-matrix">
+            <thead>
+              <tr>
+                <th class="item-col">Item</th>
+                ${storeHeaders}
+                <th class="total-col">Total</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        <div style="padding:8px 10px;font-size:11px;color:var(--text-muted);">
+          <a href="stock-levels.html" style="color:var(--red);">View full stock levels →</a>
+        </div>`;
     }
 
     // ── Load activity ─────────────────────────────────────
@@ -451,7 +485,7 @@
 
     // ── Init ──────────────────────────────────────────────
     async function init() {
-      await Promise.all([loadAlerts(), loadStores(), loadActivity(), loadPendingOrders()]);
+      await Promise.all([loadAlerts(), loadFavourites(), loadActivity(), loadPendingOrders()]);
       document.getElementById('lastUpdated').textContent =
         `Updated ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
     }
@@ -462,6 +496,7 @@
     supabase.channel('depotiq-dashboard')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'depotiq_store_stock' }, () => {
         loadAlerts();
+        loadFavourites();
         document.getElementById('lastUpdated').textContent =
           `Updated ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
       })

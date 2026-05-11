@@ -33,6 +33,20 @@
     .threshold-fill { height:100%; background:var(--green); border-radius:2px; }
     .threshold-fill.low { background:var(--red); }
     .threshold-fill.warn { background:var(--amber); }
+
+    .star-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 2px 4px;
+      line-height: 1;
+      color: #ddd;
+      transition: color var(--transition), transform 0.1s;
+    }
+    .star-btn:hover    { color: var(--amber); transform: scale(1.2); }
+    .star-btn.starred  { color: var(--amber); }
+    .star-btn.starred:hover { color: #ccc; }
   </style>
 </head>
 <body>
@@ -98,6 +112,9 @@
             <button class="filter-btn" data-filter-type="stock">Stock</button>
             <button class="filter-btn" data-filter-type="consumable">Consumable</button>
           </div>
+          <div style="display:flex;gap:4px;align-items:center;margin-left:8px;">
+            <button class="filter-btn" data-filter-type="favourite">⭐ Favourites</button>
+          </div>
           <span id="itemCount" style="margin-left:auto;font-size:12px;color:var(--text-muted);"></span>
         </div>
 
@@ -105,6 +122,7 @@
           <table>
             <thead>
               <tr>
+                <th></th>
                 <th>Item Name</th>
                 <th>Unit</th>
                 <th>Type</th>
@@ -116,7 +134,7 @@
               </tr>
             </thead>
             <tbody id="itemsBody">
-              <tr><td colspan="8"><div class="loading-spinner"><div class="spinner"></div> Loading…</div></td></tr>
+              <tr><td colspan="9"><div class="loading-spinner"><div class="spinner"></div> Loading…</div></td></tr>
             </tbody>
           </table>
         </div>
@@ -313,6 +331,7 @@
 
       if (currentType === 'stock')      items = items.filter(i => i.include_in_report);
       if (currentType === 'consumable') items = items.filter(i => !i.include_in_report);
+      if (currentType === 'favourite')  items = items.filter(i => i.is_favourite);
 
       if (searchTerm) {
         const q = searchTerm.toLowerCase();
@@ -321,12 +340,10 @@
 
       document.getElementById('itemCount').textContent = `${items.length} item${items.length !== 1 ? 's' : ''}`;
 
-      const tbody = document.getElementById('itemsBody');
-
       if (!items.length) {
-        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">
+        tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state">
           <div class="empty-state-icon">🗂</div>
-          <div class="empty-state-text">${searchTerm ? 'No items match your search' : 'No stock items yet — add your first item'}</div>
+          <div class="empty-state-text">${searchTerm ? 'No items match your search' : currentType === 'favourite' ? 'No favourites yet — click the ⭐ on any item to add it to your dashboard' : 'No stock items yet — add your first item'}</div>
         </div></td></tr>`;
         return;
       }
@@ -345,6 +362,13 @@
 
         return `
           <tr>
+            <td style="width:32px;text-align:center;">
+              <button class="star-btn ${item.is_favourite ? 'starred' : ''}"
+                onclick="toggleFavourite('${item.id}', ${item.is_favourite})"
+                title="${item.is_favourite ? 'Remove from dashboard' : 'Add to dashboard'}">
+                ${item.is_favourite ? '⭐' : '☆'}
+              </button>
+            </td>
             <td>
               <div style="font-weight:700;">${item.name}</div>
               ${item.description ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${item.description}</div>` : ''}
@@ -528,6 +552,19 @@
 
     document.getElementById('confirmClose').addEventListener('click',  () => document.getElementById('confirmModal').style.display = 'none');
     document.getElementById('confirmCancel').addEventListener('click', () => document.getElementById('confirmModal').style.display = 'none');
+
+    // ── Toggle favourite ──────────────────────────────────
+    window.toggleFavourite = async (id, current) => {
+      const { error } = await supabase
+        .from('depotiq_stock_items')
+        .update({ is_favourite: !current })
+        .eq('id', id);
+      if (error) { toast(error.message, 'error'); return; }
+      const item = allItems.find(i => i.id === id);
+      if (item) item.is_favourite = !current;
+      toast(!current ? '⭐ Added to dashboard' : 'Removed from dashboard');
+      renderItems();
+    };
 
     // ── Init ──────────────────────────────────────────────
     loadItems();
