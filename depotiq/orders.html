@@ -321,7 +321,7 @@
     async function loadOrders() {
       const { data, error } = await supabase
         .from('depotiq_purchase_orders')
-        .select('*, depotiq_stock_items(name, unit_of_measure), depotiq_user_profiles(full_name)')
+        .select('*, depotiq_stock_items(name, unit_of_measure)')
         .order('ordered_at', { ascending: false });
 
       if (error) { toast('Failed to load orders', 'error'); return; }
@@ -349,7 +349,7 @@
 
       list.innerHTML = items.map(o => {
         const item    = o.depotiq_stock_items;
-        const orderer = o.depotiq_user_profiles?.full_name || '—';
+        const orderer = '—';
         const overdue = o.status === 'pending' && o.expected_delivery_date && new Date(o.expected_delivery_date) < new Date();
 
         const actions = o.status === 'pending' ? `
