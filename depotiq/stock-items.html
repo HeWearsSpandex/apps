@@ -340,6 +340,8 @@
 
       document.getElementById('itemCount').textContent = `${items.length} item${items.length !== 1 ? 's' : ''}`;
 
+      const tbody = document.getElementById('itemsBody');
+
       if (!items.length) {
         tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state">
           <div class="empty-state-icon">🗂</div>
