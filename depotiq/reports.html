@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DepotIQ — Reports</title>
+  <link rel="stylesheet" href="depotiq.css">
+  <style>
+    .report-tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    .report-tab {
+      padding: 9px 18px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all var(--transition);
+    }
+    .report-tab:hover  { color: var(--text); }
+    .report-tab.active { color: var(--red); border-bottom-color: var(--red); }
+
+    .report-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .report-section { display: none; }
+    .report-section.active { display: block; }
+
+    .export-btn {
+      margin-left: auto;
+    }
+
+    .variance-pos { color: var(--green); font-weight: 700; }
+    .variance-neg { color: var(--red);   font-weight: 700; }
+    .variance-zero { color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="/img/JHB Logo.png" alt="JHB" onerror="this.style.display='none'">
+      <span class="sidebar-logo-text">Depot<span>IQ</span></span>
+      <button class="sidebar-toggle" id="sidebarToggle">‹</button>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Main</div>
+      <a href="index.html"        class="nav-item" data-label="Dashboard"><span class="icon">⬛</span><span class="nav-label-text">Dashboard</span></a>
+      <a href="deliveries.html"   class="nav-item" data-label="Deliveries"><span class="icon">🚚</span><span class="nav-label-text">Deliveries</span></a>
+      <a href="stock-takes.html"  class="nav-item" data-label="Stock Takes"><span class="icon">📋</span><span class="nav-label-text">Stock Takes</span></a>
+      <a href="orders.html"       class="nav-item" data-label="Orders"><span class="icon">📦</span><span class="nav-label-text">Orders</span></a>
+      <div class="nav-section">Manage</div>
+      <a href="stock-levels.html" class="nav-item" data-label="Stock Levels"><span class="icon">📈</span><span class="nav-label-text">Stock Levels</span></a>
+      <a href="stock-items.html"  class="nav-item" data-label="Stock Items"><span class="icon">🗂</span><span class="nav-label-text">Stock Items</span></a>
+      <a href="stores.html"       class="nav-item" data-label="Stores"><span class="icon">🏪</span><span class="nav-label-text">Stores</span></a>
+      <a href="reports.html"      class="nav-item active" data-label="Reports"><span class="icon">📊</span><span class="nav-label-text">Reports</span></a>
+      <div class="nav-section">System</div>
+      <a href="settings.html"     class="nav-item" data-label="Settings"><span class="icon">⚙️</span><span class="nav-label-text">Settings</span></a>
+      <a href="tv.html"           class="nav-item" data-label="TV Display" target="_blank"><span class="icon">📺</span><span class="nav-label-text">TV Display</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar" id="userAvatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="userName">Loading…</div>
+          <div class="sidebar-user-role" id="userRole">—</div>
+        </div>
+        <button class="logout-btn" id="logoutBtn" title="Sign out">⏻</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main" id="main">
+    <div class="page-body">
+
+      <div class="page-header-row">
+        <div>
+          <div class="page-title">Reports</div>
+          <div class="page-subtitle">Stock levels, delivery history and variance analysis</div>
+        </div>
+      </div>
+
+      <!-- Report tabs -->
+      <div class="report-tabs">
+        <button class="report-tab active" data-report="stock">Stock Levels</button>
+        <button class="report-tab" data-report="deliveries">Delivery History</button>
+        <button class="report-tab" data-report="stocktakes">Stock Take Variances</button>
+      </div>
+
+      <!-- ── Stock Levels Report ── -->
+      <div class="report-section active" id="report-stock">
+        <div class="report-controls">
+          <div style="display:flex;gap:4px;">
+            <button class="btn btn-ghost btn-sm active-filter" data-type="all" onclick="setStockFilter('all',this)">All Items</button>
+            <button class="btn btn-ghost btn-sm" data-type="stock" onclick="setStockFilter('stock',this)">Stock Items Only</button>
+            <button class="btn btn-ghost btn-sm" data-type="low" onclick="setStockFilter('low',this)">Low Stock Only</button>
+          </div>
+          <button class="btn btn-ghost btn-sm export-btn" onclick="exportCSV('stock')">↓ Export CSV</button>
+        </div>
+        <div class="card" style="padding:0;">
+          <div class="table-wrap">
+            <table id="stockTable">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Type</th>
+                  <th>Unit</th>
+                  <th>Min Threshold</th>
+                  <th>Total Stock</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="stockBody">
+                <tr><td colspan="6"><div class="loading-spinner"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Delivery History Report ── -->
+      <div class="report-section" id="report-deliveries">
+        <div class="report-controls">
+          <label style="font-size:12px;color:var(--text-dim);">From</label>
+          <input type="date" id="deliveryFrom" style="max-width:150px;">
+          <label style="font-size:12px;color:var(--text-dim);">To</label>
+          <input type="date" id="deliveryTo" style="max-width:150px;">
+          <input type="text" id="deliverySupplier" placeholder="Filter supplier…" style="max-width:180px;">
+          <button class="btn btn-ghost btn-sm" onclick="loadDeliveryReport()">Apply</button>
+          <button class="btn btn-ghost btn-sm export-btn" onclick="exportCSV('deliveries')">↓ Export CSV</button>
+        </div>
+        <div class="card" style="padding:0;">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Supplier</th>
+                  <th>Reference</th>
+                  <th>Item</th>
+                  <th>Store</th>
+                  <th>Qty Delivered</th>
+                </tr>
+              </thead>
+              <tbody id="deliveryBody">
+                <tr><td colspan="6"><div class="loading-spinner"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Stock Take Variances Report ── -->
+      <div class="report-section" id="report-stocktakes">
+        <div class="report-controls">
+          <label style="font-size:12px;color:var(--text-dim);">From</label>
+          <input type="date" id="takeFrom" style="max-width:150px;">
+          <label style="font-size:12px;color:var(--text-dim);">To</label>
+          <input type="date" id="takeTo" style="max-width:150px;">
+          <div style="display:flex;gap:4px;margin-left:8px;">
+            <button class="btn btn-ghost btn-sm" data-variance="all" onclick="setVarianceFilter('all',this)">All</button>
+            <button class="btn btn-ghost btn-sm" data-variance="variances" onclick="setVarianceFilter('variances',this)">Variances Only</button>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="loadTakeReport()">Apply</button>
+          <button class="btn btn-ghost btn-sm export-btn" onclick="exportCSV('stocktakes')">↓ Export CSV</button>
+        </div>
+        <div class="card" style="padding:0;">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Store</th>
+                  <th>Item</th>
+                  <th style="text-align:right;">Expected</th>
+                  <th style="text-align:right;">Counted</th>
+                  <th style="text-align:right;">Variance</th>
+                  <th>Taken By</th>
+                </tr>
+              </thead>
+              <tbody id="takesBody">
+                <tr><td colspan="7"><div class="loading-spinner"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="config.js"></script>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    const supabase = createClient(DEPOTIQ_CONFIG.SUPABASE_URL, DEPOTIQ_CONFIG.SUPABASE_ANON_KEY);
+
+    // ── Auth ──────────────────────────────────────────────
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = 'login.html'; }
+
+    const { data: profile } = await supabase
+      .from('depotiq_user_profiles').select('full_name,role').eq('id', session.user.id).single();
+    const displayName = profile?.full_name || session.user.email.split('@')[0];
+    document.getElementById('userName').textContent   = displayName;
+    document.getElementById('userRole').textContent   = profile?.role || 'user';
+    document.getElementById('userAvatar').textContent = displayName.charAt(0).toUpperCase();
+
+    // ── Sidebar ───────────────────────────────────────────
+    const sidebar = document.getElementById('sidebar');
+    const mainEl  = document.getElementById('main');
+    if (localStorage.getItem('depotiq_sidebar_collapsed') === 'true') {
+      sidebar.classList.add('collapsed'); mainEl.classList.add('collapsed');
+    }
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      const c = sidebar.classList.toggle('collapsed');
+      mainEl.classList.toggle('collapsed', c);
+      localStorage.setItem('depotiq_sidebar_collapsed', c);
+    });
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await supabase.auth.signOut(); window.location.href = 'login.html';
+    });
+
+    // ── Helpers ───────────────────────────────────────────
+    function fmt(n, unit = '') {
+      const v = parseFloat(n) || 0;
+      return `${v % 1 === 0 ? v : v.toFixed(2)}${unit ? ' ' + unit : ''}`;
+    }
+
+    function formatDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function formatDateTime(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function emptyRow(cols, msg) {
+      return `<tr><td colspan="${cols}"><div class="empty-state" style="padding:32px;">
+        <div class="empty-state-icon">📊</div>
+        <div class="empty-state-text">${msg}</div>
+      </div></td></tr>`;
+    }
+
+    // ── Report tabs ───────────────────────────────────────
+    document.querySelectorAll('.report-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.report-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.report-section').forEach(s => s.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(`report-${tab.dataset.report}`).classList.add('active');
+      });
+    });
+
+    // ── STOCK LEVELS REPORT ───────────────────────────────
+    let stockData       = [];
+    let stockFilter     = 'all';
+
+    window.setStockFilter = (type, btn) => {
+      document.querySelectorAll('[data-type]').forEach(b => b.classList.remove('active-filter'));
+      btn.classList.add('active-filter');
+      stockFilter = type;
+      renderStockReport();
+    };
+
+    async function loadStockReport() {
+      const [itemsRes, stockRes] = await Promise.all([
+        supabase.from('depotiq_stock_items').select('id,name,unit_of_measure,minimum_threshold,include_in_report').eq('is_active',true).order('name'),
+        supabase.from('depotiq_store_stock').select('stock_item_id,current_quantity'),
+      ]);
+
+      const totals = {};
+      (stockRes.data || []).forEach(r => {
+        totals[r.stock_item_id] = (totals[r.stock_item_id] || 0) + parseFloat(r.current_quantity || 0);
+      });
+
+      stockData = (itemsRes.data || []).map(i => ({ ...i, total: totals[i.id] || 0 }));
+      renderStockReport();
+    }
+
+    function renderStockReport() {
+      let items = stockData;
+      if (stockFilter === 'stock') items = items.filter(i => i.include_in_report);
+      if (stockFilter === 'low')   items = items.filter(i => parseFloat(i.minimum_threshold) > 0 && i.total <= parseFloat(i.minimum_threshold));
+
+      const tbody = document.getElementById('stockBody');
+      if (!items.length) { tbody.innerHTML = emptyRow(6, 'No items match the filter'); return; }
+
+      tbody.innerHTML = items.map(i => {
+        const t   = parseFloat(i.minimum_threshold) || 0;
+        const cls = t === 0 ? '' : i.total <= t ? 'badge-low' : i.total <= t * 1.5 ? 'badge-ordered' : 'badge-ok';
+        const lbl = t === 0 ? '<span class="badge badge-neutral">Not configured</span>'
+                  : i.total <= t ? '<span class="badge badge-low">Low</span>'
+                  : i.total <= t * 1.5 ? '<span class="badge badge-ordered">Warning</span>'
+                  : '<span class="badge badge-ok">OK</span>';
+        return `
+          <tr>
+            <td><strong>${i.name}</strong></td>
+            <td>${i.include_in_report ? '<span class="badge badge-ok">Stock</span>' : '<span class="badge badge-neutral">Consumable</span>'}</td>
+            <td>${i.unit_of_measure}</td>
+            <td>${t > 0 ? fmt(t, i.unit_of_measure) : '—'}</td>
+            <td style="font-weight:700;color:${t > 0 && i.total <= t ? 'var(--red)' : 'var(--text)'};">${fmt(i.total, i.unit_of_measure)}</td>
+            <td>${lbl}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    // ── DELIVERY HISTORY REPORT ───────────────────────────
+    let deliveryReportData = [];
+
+    window.loadDeliveryReport = async () => {
+      const from     = document.getElementById('deliveryFrom').value;
+      const to       = document.getElementById('deliveryTo').value;
+      const supplier = document.getElementById('deliverySupplier').value.trim().toLowerCase();
+
+      document.getElementById('deliveryBody').innerHTML = `<tr><td colspan="6"><div class="loading-spinner"><div class="spinner"></div></div></td></tr>`;
+
+      let query = supabase
+        .from('depotiq_delivery_lines')
+        .select('quantity_delivered, depotiq_deliveries(supplier_name, delivery_date, delivery_note_ref), depotiq_stock_items(name,unit_of_measure), depotiq_stores(name)')
+        .order('depotiq_deliveries(delivery_date)', { ascending: false });
+
+      const { data, error } = await query;
+      if (error) { document.getElementById('deliveryBody').innerHTML = emptyRow(6, 'Failed to load data'); return; }
+
+      deliveryReportData = (data || []).filter(r => {
+        const d = r.depotiq_deliveries;
+        if (from && d?.delivery_date < from) return false;
+        if (to   && d?.delivery_date > to)   return false;
+        if (supplier && !d?.supplier_name?.toLowerCase().includes(supplier)) return false;
+        return true;
+      });
+
+      renderDeliveryReport();
+    };
+
+    function renderDeliveryReport() {
+      const tbody = document.getElementById('deliveryBody');
+      if (!deliveryReportData.length) { tbody.innerHTML = emptyRow(6, 'No deliveries found for this period'); return; }
+
+      tbody.innerHTML = deliveryReportData.map(r => {
+        const d = r.depotiq_deliveries;
+        return `
+          <tr>
+            <td>${formatDate(d?.delivery_date)}</td>
+            <td><strong>${d?.supplier_name || '—'}</strong></td>
+            <td style="color:var(--text-muted);">${d?.delivery_note_ref || '—'}</td>
+            <td>${r.depotiq_stock_items?.name || '—'}</td>
+            <td style="color:var(--text-muted);">${r.depotiq_stores?.name || '—'}</td>
+            <td style="font-weight:600;">${fmt(r.quantity_delivered, r.depotiq_stock_items?.unit_of_measure)}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    // ── STOCK TAKE VARIANCES REPORT ───────────────────────
+    let takeReportData  = [];
+    let varianceFilter  = 'all';
+
+    window.setVarianceFilter = (type, btn) => {
+      document.querySelectorAll('[data-variance]').forEach(b => b.classList.remove('active-filter'));
+      btn.classList.add('active-filter');
+      varianceFilter = type;
+      renderTakeReport();
+    };
+
+    window.loadTakeReport = async () => {
+      const from = document.getElementById('takeFrom').value;
+      const to   = document.getElementById('takeTo').value;
+
+      document.getElementById('takesBody').innerHTML = `<tr><td colspan="7"><div class="loading-spinner"><div class="spinner"></div></div></td></tr>`;
+
+      let query = supabase
+        .from('depotiq_stock_take_lines')
+        .select('expected_quantity, actual_quantity, variance, depotiq_stock_takes(taken_at, depotiq_user_profiles(full_name)), depotiq_stock_items(name,unit_of_measure), depotiq_stores(name)')
+        .order('depotiq_stock_takes(taken_at)', { ascending: false });
+
+      const { data, error } = await query;
+      if (error) { document.getElementById('takesBody').innerHTML = emptyRow(7, 'Failed to load data'); return; }
+
+      takeReportData = (data || []).filter(r => {
+        const t = r.depotiq_stock_takes?.taken_at;
+        if (from && t < from) return false;
+        if (to   && t > to)   return false;
+        return true;
+      });
+
+      renderTakeReport();
+    };
+
+    function renderTakeReport() {
+      let rows = takeReportData;
+      if (varianceFilter === 'variances') rows = rows.filter(r => parseFloat(r.variance) !== 0);
+
+      const tbody = document.getElementById('takesBody');
+      if (!rows.length) { tbody.innerHTML = emptyRow(7, 'No stock take data found'); return; }
+
+      tbody.innerHTML = rows.map(r => {
+        const v    = parseFloat(r.variance);
+        const cls  = v > 0 ? 'variance-pos' : v < 0 ? 'variance-neg' : 'variance-zero';
+        const vStr = v === 0 ? '—' : `${v > 0 ? '+' : ''}${fmt(v, r.depotiq_stock_items?.unit_of_measure)}`;
+        return `
+          <tr>
+            <td>${formatDateTime(r.depotiq_stock_takes?.taken_at)}</td>
+            <td>${r.depotiq_stores?.name || '—'}</td>
+            <td><strong>${r.depotiq_stock_items?.name || '—'}</strong></td>
+            <td style="text-align:right;">${fmt(r.expected_quantity, r.depotiq_stock_items?.unit_of_measure)}</td>
+            <td style="text-align:right;">${fmt(r.actual_quantity, r.depotiq_stock_items?.unit_of_measure)}</td>
+            <td style="text-align:right;" class="${cls}">${vStr}</td>
+            <td style="color:var(--text-muted);">${r.depotiq_stock_takes?.depotiq_user_profiles?.full_name || '—'}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    // ── CSV EXPORT ────────────────────────────────────────
+    window.exportCSV = (type) => {
+      let headers, rows;
+
+      if (type === 'stock') {
+        let items = stockData;
+        if (stockFilter === 'stock') items = items.filter(i => i.include_in_report);
+        if (stockFilter === 'low')   items = items.filter(i => parseFloat(i.minimum_threshold) > 0 && i.total <= parseFloat(i.minimum_threshold));
+        headers = ['Item', 'Type', 'Unit', 'Min Threshold', 'Total Stock'];
+        rows    = items.map(i => [i.name, i.include_in_report ? 'Stock' : 'Consumable', i.unit_of_measure, i.minimum_threshold, i.total]);
+      } else if (type === 'deliveries') {
+        headers = ['Date', 'Supplier', 'Reference', 'Item', 'Store', 'Qty Delivered'];
+        rows    = deliveryReportData.map(r => [
+          r.depotiq_deliveries?.delivery_date, r.depotiq_deliveries?.supplier_name,
+          r.depotiq_deliveries?.delivery_note_ref || '', r.depotiq_stock_items?.name,
+          r.depotiq_stores?.name, r.quantity_delivered,
+        ]);
+      } else {
+        headers = ['Date', 'Store', 'Item', 'Expected', 'Counted', 'Variance', 'Taken By'];
+        rows    = takeReportData.map(r => [
+          r.depotiq_stock_takes?.taken_at, r.depotiq_stores?.name,
+          r.depotiq_stock_items?.name, r.expected_quantity,
+          r.actual_quantity, r.variance,
+          r.depotiq_stock_takes?.depotiq_user_profiles?.full_name || '',
+        ]);
+      }
+
+      const csv  = [headers, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `depotiq-${type}-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    // ── Init ──────────────────────────────────────────────
+    loadStockReport();
+    loadDeliveryReport();
+    loadTakeReport();
+  </script>
+</body>
+</html>

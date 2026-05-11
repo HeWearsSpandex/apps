@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DepotIQ — Orders</title>
+  <link rel="stylesheet" href="depotiq.css">
+  <style>
+    .status-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0;
+    }
+
+    .status-tab {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all var(--transition);
+    }
+    .status-tab:hover  { color: var(--text); }
+    .status-tab.active { color: var(--red); border-bottom-color: var(--red); }
+
+    .tab-count {
+      display: inline-block;
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 1px 7px;
+      font-size: 11px;
+      margin-left: 5px;
+      color: var(--text-muted);
+    }
+    .status-tab.active .tab-count { background: var(--red-light); color: var(--red); }
+
+    .order-row {
+      display: grid;
+      grid-template-columns: 1fr 130px 130px 130px 160px;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 13px;
+      transition: background var(--transition);
+    }
+    .order-row:hover { background: #f9f9f9; }
+    .order-row:last-child { border-bottom: none; }
+
+    .order-item-name  { font-weight: 700; color: var(--text); }
+    .order-item-qty   { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    .overdue-badge {
+      display: inline-block;
+      background: var(--red-light);
+      color: var(--red);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 6px;
+    }
+
+    .low-stock-banner {
+      background: var(--red-light);
+      border: 1px solid #ffcccc;
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .low-stock-banner-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--red);
+      margin-bottom: 8px;
+    }
+    .low-stock-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-white);
+      border: 1px solid #ffcccc;
+      border-radius: var(--radius);
+      padding: 4px 10px;
+      font-size: 12px;
+      margin: 3px;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .low-stock-item:hover { background: var(--red-light); }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="/img/JHB Logo.png" alt="JHB" onerror="this.style.display='none'">
+      <span class="sidebar-logo-text">Depot<span>IQ</span></span>
+      <button class="sidebar-toggle" id="sidebarToggle">‹</button>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Main</div>
+      <a href="index.html"        class="nav-item" data-label="Dashboard"><span class="icon">⬛</span><span class="nav-label-text">Dashboard</span></a>
+      <a href="deliveries.html"   class="nav-item" data-label="Deliveries"><span class="icon">🚚</span><span class="nav-label-text">Deliveries</span></a>
+      <a href="stock-takes.html"  class="nav-item" data-label="Stock Takes"><span class="icon">📋</span><span class="nav-label-text">Stock Takes</span></a>
+      <a href="orders.html"       class="nav-item active" data-label="Orders"><span class="icon">📦</span><span class="nav-label-text">Orders</span></a>
+      <div class="nav-section">Manage</div>
+      <a href="stock-levels.html" class="nav-item" data-label="Stock Levels"><span class="icon">📈</span><span class="nav-label-text">Stock Levels</span></a>
+      <a href="stock-items.html"  class="nav-item" data-label="Stock Items"><span class="icon">🗂</span><span class="nav-label-text">Stock Items</span></a>
+      <a href="stores.html"       class="nav-item" data-label="Stores"><span class="icon">🏪</span><span class="nav-label-text">Stores</span></a>
+      <a href="reports.html"      class="nav-item" data-label="Reports"><span class="icon">📊</span><span class="nav-label-text">Reports</span></a>
+      <div class="nav-section">System</div>
+      <a href="settings.html"     class="nav-item" data-label="Settings"><span class="icon">⚙️</span><span class="nav-label-text">Settings</span></a>
+      <a href="tv.html"           class="nav-item" data-label="TV Display" target="_blank"><span class="icon">📺</span><span class="nav-label-text">TV Display</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar" id="userAvatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="userName">Loading…</div>
+          <div class="sidebar-user-role" id="userRole">—</div>
+        </div>
+        <button class="logout-btn" id="logoutBtn" title="Sign out">⏻</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main" id="main">
+    <div class="page-body">
+
+      <div class="page-header-row">
+        <div>
+          <div class="page-title">Orders</div>
+          <div class="page-subtitle">Track purchase orders and pending deliveries</div>
+        </div>
+        <button class="btn btn-primary" id="raiseOrderBtn">📦 Raise Order</button>
+      </div>
+
+      <!-- Low stock prompt -->
+      <div class="low-stock-banner" id="lowStockBanner">
+        <div class="low-stock-banner-title">⚠ Items below threshold — click to raise an order</div>
+        <div id="lowStockItems"></div>
+      </div>
+
+      <!-- Status tabs -->
+      <div class="status-tabs">
+        <button class="status-tab active" data-status="pending">Pending <span class="tab-count" id="countPending">0</span></button>
+        <button class="status-tab" data-status="delivered">Delivered <span class="tab-count" id="countDelivered">0</span></button>
+        <button class="status-tab" data-status="cancelled">Cancelled <span class="tab-count" id="countCancelled">0</span></button>
+      </div>
+
+      <div class="card" style="padding:0;">
+        <div style="display:grid;grid-template-columns:1fr 130px 130px 130px 160px;gap:12px;padding:8px 14px;background:var(--bg-2);border-bottom:1px solid var(--border);">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);">Item</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);">Qty Ordered</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);">Ordered By</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);">Ordered On</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);">Expected / Actions</div>
+        </div>
+        <div id="ordersList">
+          <div class="loading-spinner"><div class="spinner"></div> Loading…</div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Raise / Edit Order Modal -->
+  <div class="modal-overlay" id="orderModal" style="display:none;">
+    <div class="modal" style="max-width:500px;">
+      <div class="modal-header">
+        <div class="modal-title" id="orderModalTitle">Raise Order</div>
+        <button class="modal-close" id="orderModalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="orderId">
+
+        <div class="form-group">
+          <label for="orderItem">Stock Item *</label>
+          <select id="orderItem">
+            <option value="">— Select item —</option>
+          </select>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label for="orderQty">Quantity *</label>
+            <input type="number" id="orderQty" min="0" step="0.01" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label for="orderExpected">Expected Delivery</label>
+            <input type="date" id="orderExpected">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="orderNotes">Notes</label>
+          <textarea id="orderNotes" rows="2" placeholder="Supplier contact, PO reference, etc."></textarea>
+        </div>
+
+        <div id="orderError" style="display:none;background:var(--red-light);border:1px solid #ffcccc;border-radius:var(--radius);padding:10px 12px;font-size:13px;color:var(--red);"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="orderModalCancel">Cancel</button>
+        <button class="btn btn-primary" id="orderModalSave">Save Order</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cancel confirm modal -->
+  <div class="modal-overlay" id="confirmModal" style="display:none;">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <div class="modal-title" id="confirmTitle">Confirm</div>
+        <button class="modal-close" id="confirmClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmText" style="font-size:13px;line-height:1.6;color:var(--text-dim);"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="confirmCancel">Cancel</button>
+        <button class="btn" id="confirmOk">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    const supabase = createClient(DEPOTIQ_CONFIG.SUPABASE_URL, DEPOTIQ_CONFIG.SUPABASE_ANON_KEY);
+
+    // ── Auth ──────────────────────────────────────────────
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = 'login.html'; }
+
+    const { data: profile } = await supabase
+      .from('depotiq_user_profiles').select('full_name,role').eq('id', session.user.id).single();
+    const displayName = profile?.full_name || session.user.email.split('@')[0];
+    document.getElementById('userName').textContent   = displayName;
+    document.getElementById('userRole').textContent   = profile?.role || 'user';
+    document.getElementById('userAvatar').textContent = displayName.charAt(0).toUpperCase();
+
+    // ── Sidebar ───────────────────────────────────────────
+    const sidebar = document.getElementById('sidebar');
+    const mainEl  = document.getElementById('main');
+    if (localStorage.getItem('depotiq_sidebar_collapsed') === 'true') {
+      sidebar.classList.add('collapsed'); mainEl.classList.add('collapsed');
+    }
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      const c = sidebar.classList.toggle('collapsed');
+      mainEl.classList.toggle('collapsed', c);
+      localStorage.setItem('depotiq_sidebar_collapsed', c);
+    });
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await supabase.auth.signOut(); window.location.href = 'login.html';
+    });
+
+    // ── State ─────────────────────────────────────────────
+    let allOrders   = [];
+    let stockItems  = [];
+    let activeStatus = 'pending';
+
+    // ── Toast ─────────────────────────────────────────────
+    function toast(msg, type = 'success') {
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.innerHTML = `<span>${type === 'success' ? '✓' : '✕'}</span> ${msg}`;
+      document.getElementById('toastContainer').appendChild(el);
+      setTimeout(() => el.remove(), 3500);
+    }
+
+    function formatDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    // ── Load master data ──────────────────────────────────
+    async function loadMasterData() {
+      const { data } = await supabase
+        .from('depotiq_stock_items').select('id,name,unit_of_measure,reorder_quantity')
+        .eq('is_active', true).order('name');
+      stockItems = data || [];
+
+      const sel = document.getElementById('orderItem');
+      sel.innerHTML = '<option value="">— Select item —</option>' +
+        stockItems.map(i => `<option value="${i.id}" data-unit="${i.unit_of_measure}" data-reorder="${i.reorder_quantity}">${i.name}</option>`).join('');
+    }
+
+    // ── Load low stock ────────────────────────────────────
+    async function loadLowStock() {
+      const { data } = await supabase
+        .from('depotiq_low_stock_summary')
+        .select('stock_item_id, item_name, alert_status')
+        .eq('alert_status', 'low');
+
+      const banner = document.getElementById('lowStockBanner');
+      const items  = data || [];
+
+      if (!items.length) { banner.style.display = 'none'; return; }
+
+      banner.style.display = 'block';
+      document.getElementById('lowStockItems').innerHTML = items.map(i => `
+        <span class="low-stock-item" onclick="prefillOrder('${i.stock_item_id}')">
+          ⚠ ${i.item_name} <span style="color:var(--red);font-weight:700;">Order →</span>
+        </span>`).join('');
+    }
+
+    // ── Load orders ───────────────────────────────────────
+    async function loadOrders() {
+      const { data, error } = await supabase
+        .from('depotiq_purchase_orders')
+        .select('*, depotiq_stock_items(name, unit_of_measure), depotiq_user_profiles(full_name)')
+        .order('ordered_at', { ascending: false });
+
+      if (error) { toast('Failed to load orders', 'error'); return; }
+
+      allOrders = data || [];
+
+      document.getElementById('countPending').textContent   = allOrders.filter(o => o.status === 'pending').length;
+      document.getElementById('countDelivered').textContent = allOrders.filter(o => o.status === 'delivered').length;
+      document.getElementById('countCancelled').textContent = allOrders.filter(o => o.status === 'cancelled').length;
+
+      renderOrders();
+    }
+
+    function renderOrders() {
+      const items = allOrders.filter(o => o.status === activeStatus);
+      const list  = document.getElementById('ordersList');
+
+      if (!items.length) {
+        list.innerHTML = `<div class="empty-state" style="padding:32px;">
+          <div class="empty-state-icon">📦</div>
+          <div class="empty-state-text">No ${activeStatus} orders</div>
+        </div>`;
+        return;
+      }
+
+      list.innerHTML = items.map(o => {
+        const item    = o.depotiq_stock_items;
+        const orderer = o.depotiq_user_profiles?.full_name || '—';
+        const overdue = o.status === 'pending' && o.expected_delivery_date && new Date(o.expected_delivery_date) < new Date();
+
+        const actions = o.status === 'pending' ? `
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-ghost btn-sm" onclick="openEditOrder('${o.id}')">Edit</button>
+            <button class="btn btn-success btn-sm" onclick="markDelivered('${o.id}')">Mark Delivered</button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="cancelOrder('${o.id}','${item?.name}')">Cancel</button>
+          </div>` : `<span style="font-size:12px;color:var(--text-muted);">${formatDate(o.ordered_at)}</span>`;
+
+        return `
+          <div class="order-row">
+            <div>
+              <div class="order-item-name">${item?.name || '—'}</div>
+              ${o.notes ? `<div class="order-item-qty">${o.notes}</div>` : ''}
+            </div>
+            <div style="font-weight:600;">${parseFloat(o.quantity_ordered)} ${item?.unit_of_measure || ''}</div>
+            <div style="color:var(--text-dim);">${orderer}</div>
+            <div style="color:var(--text-dim);">${formatDate(o.ordered_at)}</div>
+            <div>
+              ${o.status === 'pending'
+                ? `<div style="font-size:12px;color:${overdue ? 'var(--red)' : 'var(--amber)'};margin-bottom:6px;">
+                    ${o.expected_delivery_date
+                      ? (overdue ? `⚠ Overdue · ${formatDate(o.expected_delivery_date)}` : `Due ${formatDate(o.expected_delivery_date)}`)
+                      : 'No date set'}
+                  </div>`
+                : ''}
+              ${actions}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Status tabs ───────────────────────────────────────
+    document.querySelectorAll('.status-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.status-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        activeStatus = tab.dataset.status;
+        renderOrders();
+      });
+    });
+
+    // ── Modal helpers ─────────────────────────────────────
+    function openModal() { document.getElementById('orderModal').style.display = 'flex'; }
+    function closeModal() {
+      document.getElementById('orderModal').style.display = 'none';
+      document.getElementById('orderError').style.display = 'none';
+      document.getElementById('orderId').value      = '';
+      document.getElementById('orderItem').value    = '';
+      document.getElementById('orderQty').value     = '';
+      document.getElementById('orderExpected').value = '';
+      document.getElementById('orderNotes').value   = '';
+    }
+
+    document.getElementById('raiseOrderBtn').addEventListener('click', () => {
+      document.getElementById('orderModalTitle').textContent = 'Raise Order';
+      closeModal(); openModal();
+    });
+
+    document.getElementById('orderModalClose').addEventListener('click', closeModal);
+    document.getElementById('orderModalCancel').addEventListener('click', closeModal);
+
+    // Prefill from low stock banner
+    window.prefillOrder = (itemId) => {
+      document.getElementById('orderModalTitle').textContent = 'Raise Order';
+      closeModal();
+      const sel = document.getElementById('orderItem');
+      sel.value = itemId;
+      // Pre-fill reorder quantity
+      const opt = sel.querySelector(`option[value="${itemId}"]`);
+      if (opt?.dataset.reorder && parseFloat(opt.dataset.reorder) > 0) {
+        document.getElementById('orderQty').value = opt.dataset.reorder;
+      }
+      openModal();
+    };
+
+    // Prefill from URL param
+    const urlItem = new URLSearchParams(location.search).get('item');
+    if (new URLSearchParams(location.search).get('action') === 'new') {
+      document.getElementById('orderModalTitle').textContent = 'Raise Order';
+      if (urlItem) {
+        await loadMasterData();
+        document.getElementById('orderItem').value = urlItem;
+        const opt = document.querySelector(`#orderItem option[value="${urlItem}"]`);
+        if (opt?.dataset.reorder && parseFloat(opt.dataset.reorder) > 0) {
+          document.getElementById('orderQty').value = opt.dataset.reorder;
+        }
+      }
+      openModal();
+    }
+
+    // Edit order
+    window.openEditOrder = (id) => {
+      const o = allOrders.find(x => x.id === id);
+      if (!o) return;
+      document.getElementById('orderModalTitle').textContent = 'Edit Order';
+      document.getElementById('orderId').value       = o.id;
+      document.getElementById('orderItem').value     = o.stock_item_id;
+      document.getElementById('orderQty').value      = o.quantity_ordered;
+      document.getElementById('orderExpected').value = o.expected_delivery_date || '';
+      document.getElementById('orderNotes').value    = o.notes || '';
+      openModal();
+    };
+
+    // Save
+    document.getElementById('orderModalSave').addEventListener('click', async () => {
+      const id       = document.getElementById('orderId').value;
+      const itemId   = document.getElementById('orderItem').value;
+      const qty      = parseFloat(document.getElementById('orderQty').value) || 0;
+      const expected = document.getElementById('orderExpected').value;
+      const notes    = document.getElementById('orderNotes').value.trim();
+
+      const errEl = document.getElementById('orderError');
+      errEl.style.display = 'none';
+
+      if (!itemId) { errEl.textContent = 'Please select a stock item'; errEl.style.display = 'block'; return; }
+      if (qty <= 0) { errEl.textContent = 'Quantity must be greater than 0'; errEl.style.display = 'block'; return; }
+
+      const saveBtn = document.getElementById('orderModalSave');
+      saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+
+      const payload = {
+        stock_item_id: itemId, quantity_ordered: qty,
+        expected_delivery_date: expected || null,
+        notes: notes || null, status: 'pending',
+      };
+
+      const { error } = id
+        ? await supabase.from('depotiq_purchase_orders').update(payload).eq('id', id)
+        : await supabase.from('depotiq_purchase_orders').insert({ ...payload, ordered_by: session.user.id });
+
+      saveBtn.textContent = 'Save Order'; saveBtn.disabled = false;
+
+      if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+
+      toast(id ? 'Order updated' : 'Order raised');
+      closeModal();
+      loadOrders();
+      loadLowStock();
+    });
+
+    // Mark delivered
+    window.markDelivered = async (id) => {
+      const { error } = await supabase
+        .from('depotiq_purchase_orders')
+        .update({ status: 'delivered' })
+        .eq('id', id);
+      if (error) { toast(error.message, 'error'); return; }
+      toast('Order marked as delivered');
+      loadOrders();
+    };
+
+    // Cancel
+    window.cancelOrder = (id, name) => {
+      document.getElementById('confirmTitle').textContent = 'Cancel Order';
+      document.getElementById('confirmText').innerHTML   = `Cancel the order for <strong>${name}</strong>? This cannot be undone.`;
+      const okBtn = document.getElementById('confirmOk');
+      okBtn.style.background = 'var(--red)'; okBtn.style.color = '#fff';
+      okBtn.textContent = 'Cancel Order';
+      okBtn.onclick = async () => {
+        const { error } = await supabase
+          .from('depotiq_purchase_orders').update({ status: 'cancelled' }).eq('id', id);
+        if (error) toast(error.message, 'error');
+        else { toast('Order cancelled'); loadOrders(); }
+        document.getElementById('confirmModal').style.display = 'none';
+      };
+      document.getElementById('confirmModal').style.display = 'flex';
+    };
+
+    document.getElementById('confirmClose').addEventListener('click',  () => document.getElementById('confirmModal').style.display = 'none');
+    document.getElementById('confirmCancel').addEventListener('click', () => document.getElementById('confirmModal').style.display = 'none');
+
+    // ── Init ──────────────────────────────────────────────
+    await loadMasterData();
+    loadOrders();
+    loadLowStock();
+  </script>
+</body>
+</html>

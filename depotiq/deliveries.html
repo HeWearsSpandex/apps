@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DepotIQ — Deliveries</title>
+  <link rel="stylesheet" href="depotiq.css">
+  <style>
+    .delivery-card {
+      background: var(--bg-white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 12px;
+      overflow: hidden;
+      transition: box-shadow var(--transition);
+    }
+    .delivery-card:hover { box-shadow: var(--shadow-md); }
+
+    .delivery-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      cursor: pointer;
+      gap: 12px;
+    }
+
+    .delivery-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex: 1;
+      flex-wrap: wrap;
+    }
+
+    .delivery-supplier {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .delivery-ref {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .delivery-date {
+      font-size: 12px;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+
+    .delivery-lines-count {
+      font-size: 11px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 2px 8px;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+
+    .delivery-card-body {
+      border-top: 1px solid var(--border-light);
+      padding: 14px 18px;
+      display: none;
+    }
+    .delivery-card-body.open { display: block; }
+
+    .delivery-note-img {
+      max-width: 200px;
+      max-height: 160px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: opacity var(--transition);
+    }
+    .delivery-note-img:hover { opacity: 0.85; }
+
+    /* New delivery form */
+    .form-section {
+      background: var(--bg);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .form-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    /* Line items */
+    .line-item {
+      background: var(--bg-white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+
+    .line-item-header {
+      display: grid;
+      grid-template-columns: 1fr 140px 28px;
+      gap: 10px;
+      align-items: end;
+      margin-bottom: 10px;
+    }
+
+    .store-split {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-light);
+    }
+
+    .split-row {
+      display: grid;
+      grid-template-columns: 1fr 120px 28px;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .split-remaining {
+      font-size: 11px;
+      margin-top: 6px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .split-remaining.ok      { background: var(--green-light); color: var(--green); }
+    .split-remaining.over    { background: var(--red-light);   color: var(--red); }
+    .split-remaining.partial { background: var(--amber-light); color: #b07800; }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      color: #ccc;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0;
+      line-height: 1;
+      transition: color var(--transition);
+      flex-shrink: 0;
+    }
+    .remove-btn:hover { color: var(--red); }
+
+    .add-split-btn {
+      background: none;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 5px 10px;
+      width: 100%;
+      margin-top: 4px;
+      transition: all var(--transition);
+    }
+    .add-split-btn:hover { border-color: var(--red); color: var(--red); }
+
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition);
+      position: relative;
+    }
+    .upload-area:hover  { border-color: var(--red); background: var(--red-light); }
+    .upload-area input  { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .upload-area-icon   { font-size: 28px; margin-bottom: 6px; }
+    .upload-area-text   { font-size: 13px; color: var(--text-dim); }
+    .upload-area-hint   { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+    .upload-preview     { max-width: 100%; max-height: 200px; border-radius: var(--radius); margin-top: 10px; }
+
+    /* Image lightbox */
+    .lightbox {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 2000; cursor: zoom-out;
+    }
+    .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: var(--radius); }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="/img/JHB Logo.png" alt="JHB" onerror="this.style.display='none'">
+      <span class="sidebar-logo-text">Depot<span>IQ</span></span>
+      <button class="sidebar-toggle" id="sidebarToggle">‹</button>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Main</div>
+      <a href="index.html"        class="nav-item" data-label="Dashboard"><span class="icon">⬛</span><span class="nav-label-text">Dashboard</span></a>
+      <a href="deliveries.html"   class="nav-item active" data-label="Deliveries"><span class="icon">🚚</span><span class="nav-label-text">Deliveries</span></a>
+      <a href="stock-takes.html"  class="nav-item" data-label="Stock Takes"><span class="icon">📋</span><span class="nav-label-text">Stock Takes</span></a>
+      <a href="orders.html"       class="nav-item" data-label="Orders"><span class="icon">📦</span><span class="nav-label-text">Orders</span></a>
+      <div class="nav-section">Manage</div>
+      <a href="stock-levels.html" class="nav-item" data-label="Stock Levels"><span class="icon">📈</span><span class="nav-label-text">Stock Levels</span></a>
+      <a href="stock-items.html"  class="nav-item" data-label="Stock Items"><span class="icon">🗂</span><span class="nav-label-text">Stock Items</span></a>
+      <a href="stores.html"       class="nav-item" data-label="Stores"><span class="icon">🏪</span><span class="nav-label-text">Stores</span></a>
+      <a href="reports.html"      class="nav-item" data-label="Reports"><span class="icon">📊</span><span class="nav-label-text">Reports</span></a>
+      <div class="nav-section">System</div>
+      <a href="settings.html"     class="nav-item" data-label="Settings"><span class="icon">⚙️</span><span class="nav-label-text">Settings</span></a>
+      <a href="tv.html"           class="nav-item" data-label="TV Display" target="_blank"><span class="icon">📺</span><span class="nav-label-text">TV Display</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar" id="userAvatar">?</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="userName">Loading…</div>
+          <div class="sidebar-user-role" id="userRole">—</div>
+        </div>
+        <button class="logout-btn" id="logoutBtn" title="Sign out">⏻</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main" id="main">
+    <div class="page-body">
+
+      <div class="page-header-row">
+        <div>
+          <div class="page-title">Deliveries</div>
+          <div class="page-subtitle">Record incoming stock deliveries</div>
+        </div>
+        <button class="btn btn-primary" id="newDeliveryBtn">🚚 Record Delivery</button>
+      </div>
+
+      <!-- Filters -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;">
+        <input type="text" id="searchInput" placeholder="Search supplier or reference…" style="max-width:260px;">
+        <input type="date" id="dateFrom" style="max-width:150px;">
+        <span style="font-size:12px;color:var(--text-muted);">to</span>
+        <input type="date" id="dateTo" style="max-width:150px;">
+        <button class="btn btn-ghost btn-sm" id="clearFilters">Clear</button>
+        <span id="deliveryCount" style="margin-left:auto;font-size:12px;color:var(--text-muted);"></span>
+      </div>
+
+      <!-- Delivery list -->
+      <div id="deliveryList">
+        <div class="loading-spinner"><div class="spinner"></div> Loading…</div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- New Delivery Modal -->
+  <div class="modal-overlay" id="deliveryModal" style="display:none;">
+    <div class="modal" style="max-width:680px;">
+      <div class="modal-header">
+        <div class="modal-title" id="deliveryModalTitle">Record Delivery</div>
+        <button class="modal-close" id="deliveryModalClose">✕</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Header fields -->
+        <div class="form-section">
+          <div class="form-section-title">Delivery Details</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="supplierName">Supplier *</label>
+              <input type="text" id="supplierName" placeholder="e.g. Meon">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label for="deliveryDate">Delivery Date *</label>
+              <input type="date" id="deliveryDate">
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:12px;margin-bottom:0;">
+            <label for="deliveryRef">Delivery Note Reference</label>
+            <input type="text" id="deliveryRef" placeholder="e.g. DN-12345">
+          </div>
+          <div class="form-group" style="margin-top:12px;margin-bottom:0;">
+            <label for="deliveryNotes">Notes</label>
+            <textarea id="deliveryNotes" rows="2" placeholder="Any additional notes…"></textarea>
+          </div>
+        </div>
+
+        <!-- Delivery note photo -->
+        <div class="form-section">
+          <div class="form-section-title">Delivery Note Photo</div>
+          <div class="upload-area" id="uploadArea">
+            <input type="file" id="noteFile" accept="image/jpeg,image/png,image/webp,application/pdf">
+            <div class="upload-area-icon">📄</div>
+            <div class="upload-area-text">Click to upload or drag and drop</div>
+            <div class="upload-area-hint">JPEG, PNG, WebP or PDF — max 10MB</div>
+          </div>
+          <div id="uploadPreview" style="display:none;margin-top:10px;">
+            <img id="previewImg" class="upload-preview">
+            <div style="margin-top:6px;">
+              <button class="btn btn-ghost btn-sm" id="removeFile">Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Line items -->
+        <div class="form-section">
+          <div class="form-section-title">Stock Items Received</div>
+          <div id="lineItems"></div>
+          <button class="btn btn-ghost btn-sm" id="addLineBtn" style="width:100%;justify-content:center;margin-top:4px;">+ Add Item</button>
+        </div>
+
+        <div id="deliveryError" style="display:none;background:var(--red-light);border:1px solid #ffcccc;border-radius:var(--radius);padding:10px 12px;font-size:13px;color:var(--red);"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="deliveryModalCancel">Cancel</button>
+        <button class="btn btn-primary" id="deliveryModalSave">Save Delivery</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image lightbox -->
+  <div class="lightbox" id="lightbox" style="display:none;" onclick="document.getElementById('lightbox').style.display='none'">
+    <img id="lightboxImg" src="">
+  </div>
+
+  <script src="config.js"></script>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    const supabase = createClient(DEPOTIQ_CONFIG.SUPABASE_URL, DEPOTIQ_CONFIG.SUPABASE_ANON_KEY);
+
+    // ── Auth ──────────────────────────────────────────────
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = 'login.html'; }
+
+    const { data: profile } = await supabase
+      .from('depotiq_user_profiles').select('full_name,role').eq('id', session.user.id).single();
+    const displayName = profile?.full_name || session.user.email.split('@')[0];
+    document.getElementById('userName').textContent   = displayName;
+    document.getElementById('userRole').textContent   = profile?.role || 'user';
+    document.getElementById('userAvatar').textContent = displayName.charAt(0).toUpperCase();
+
+    // ── Sidebar ───────────────────────────────────────────
+    const sidebar = document.getElementById('sidebar');
+    const mainEl  = document.getElementById('main');
+    if (localStorage.getItem('depotiq_sidebar_collapsed') === 'true') {
+      sidebar.classList.add('collapsed'); mainEl.classList.add('collapsed');
+    }
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      const c = sidebar.classList.toggle('collapsed');
+      mainEl.classList.toggle('collapsed', c);
+      localStorage.setItem('depotiq_sidebar_collapsed', c);
+    });
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await supabase.auth.signOut(); window.location.href = 'login.html';
+    });
+
+    // ── State ─────────────────────────────────────────────
+    let allDeliveries = [];
+    let stockItems    = [];
+    let stores        = [];
+    let uploadedFile  = null;
+    let lineCount     = 0;
+
+    // ── Toast ─────────────────────────────────────────────
+    function toast(msg, type = 'success') {
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.innerHTML = `<span>${type === 'success' ? '✓' : '✕'}</span> ${msg}`;
+      document.getElementById('toastContainer').appendChild(el);
+      setTimeout(() => el.remove(), 3500);
+    }
+
+    function formatDate(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('deliveryError');
+      el.textContent = msg; el.style.display = 'block';
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // ── Load master data ──────────────────────────────────
+    async function loadMasterData() {
+      const [itemsRes, storesRes] = await Promise.all([
+        supabase.from('depotiq_stock_items').select('id,name,unit_of_measure').eq('is_active',true).order('name'),
+        supabase.from('depotiq_stores').select('id,name').eq('is_active',true).order('name'),
+      ]);
+      stockItems = itemsRes.data || [];
+      stores     = storesRes.data || [];
+    }
+
+    // ── Load deliveries ───────────────────────────────────
+    async function loadDeliveries() {
+      const { data, error } = await supabase
+        .from('depotiq_deliveries')
+        .select('*, depotiq_delivery_lines(id, quantity_delivered, depotiq_stock_items(name, unit_of_measure), depotiq_stores(name))')
+        .order('delivery_date', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) { toast('Failed to load deliveries', 'error'); return; }
+      allDeliveries = data || [];
+      renderDeliveries();
+    }
+
+    function renderDeliveries() {
+      let items = allDeliveries;
+      const search   = document.getElementById('searchInput').value.toLowerCase();
+      const dateFrom = document.getElementById('dateFrom').value;
+      const dateTo   = document.getElementById('dateTo').value;
+
+      if (search)   items = items.filter(d => d.supplier_name.toLowerCase().includes(search) || (d.delivery_note_ref || '').toLowerCase().includes(search));
+      if (dateFrom) items = items.filter(d => d.delivery_date >= dateFrom);
+      if (dateTo)   items = items.filter(d => d.delivery_date <= dateTo);
+
+      document.getElementById('deliveryCount').textContent = `${items.length} deliver${items.length !== 1 ? 'ies' : 'y'}`;
+
+      const list = document.getElementById('deliveryList');
+
+      if (!items.length) {
+        list.innerHTML = `<div class="empty-state card">
+          <div class="empty-state-icon">🚚</div>
+          <div class="empty-state-text">${search || dateFrom || dateTo ? 'No deliveries match your filters' : 'No deliveries recorded yet'}</div>
+        </div>`;
+        return;
+      }
+
+      list.innerHTML = items.map(d => {
+        const lines    = d.depotiq_delivery_lines || [];
+        const lineHtml = lines.map(l => `
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-light);font-size:12px;">
+            <span style="font-weight:600;">${l.depotiq_stock_items?.name || '—'}</span>
+            <span style="color:var(--text-dim);">${l.depotiq_stores?.name || '—'} &nbsp;·&nbsp; ${parseFloat(l.quantity_delivered)} ${l.depotiq_stock_items?.unit_of_measure || ''}</span>
+          </div>`).join('');
+
+        return `
+          <div class="delivery-card">
+            <div class="delivery-card-header" onclick="toggleCard('${d.id}')">
+              <div class="delivery-meta">
+                <div>
+                  <div class="delivery-supplier">${d.supplier_name}</div>
+                  ${d.delivery_note_ref ? `<div class="delivery-ref">Ref: ${d.delivery_note_ref}</div>` : ''}
+                </div>
+                <div class="delivery-date">${formatDate(d.delivery_date)}</div>
+                <div class="delivery-lines-count">${lines.length} line${lines.length !== 1 ? 's' : ''}</div>
+                ${d.notes ? `<div style="font-size:11px;color:var(--text-muted);">${d.notes}</div>` : ''}
+              </div>
+              <span style="color:#ccc;font-size:16px;" id="chevron-${d.id}">›</span>
+            </div>
+            <div class="delivery-card-body" id="body-${d.id}">
+              <div style="display:grid;grid-template-columns:${d.delivery_note_image_url ? '1fr auto' : '1fr'};gap:16px;">
+                <div>
+                  ${lineHtml || '<div style="color:var(--text-muted);font-size:12px;">No line items</div>'}
+                </div>
+                ${d.delivery_note_image_url ? `
+                  <div>
+                    <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.8px;">Delivery Note</div>
+                    <img class="delivery-note-img" src="" data-path="${d.delivery_note_image_url}"
+                      onclick="openLightbox(this)" alt="Delivery note">
+                  </div>` : ''}
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+
+      // Load signed URLs for images
+      document.querySelectorAll('img[data-path]').forEach(async img => {
+        const { data } = await supabase.storage
+          .from(DEPOTIQ_CONFIG.DELIVERY_NOTES_BUCKET)
+          .createSignedUrl(img.dataset.path, 3600);
+        if (data) img.src = data.signedUrl;
+      });
+    }
+
+    // ── Toggle card ───────────────────────────────────────
+    window.toggleCard = (id) => {
+      const body    = document.getElementById(`body-${id}`);
+      const chevron = document.getElementById(`chevron-${id}`);
+      const open    = body.classList.toggle('open');
+      chevron.style.transform = open ? 'rotate(90deg)' : '';
+    };
+
+    // ── Lightbox ──────────────────────────────────────────
+    window.openLightbox = (img) => {
+      document.getElementById('lightboxImg').src = img.src;
+      document.getElementById('lightbox').style.display = 'flex';
+    };
+
+    // ── Filters ───────────────────────────────────────────
+    ['searchInput','dateFrom','dateTo'].forEach(id => {
+      document.getElementById(id).addEventListener('input', renderDeliveries);
+    });
+    document.getElementById('clearFilters').addEventListener('click', () => {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('dateFrom').value    = '';
+      document.getElementById('dateTo').value      = '';
+      renderDeliveries();
+    });
+
+    // ── File upload ───────────────────────────────────────
+    document.getElementById('noteFile').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 10 * 1024 * 1024) { toast('File must be under 10MB', 'error'); return; }
+      uploadedFile = file;
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          document.getElementById('previewImg').src = ev.target.result;
+          document.getElementById('uploadPreview').style.display = 'block';
+          document.getElementById('uploadArea').style.display    = 'none';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        document.getElementById('uploadPreview').style.display = 'block';
+        document.getElementById('uploadArea').style.display    = 'none';
+        document.getElementById('previewImg').style.display    = 'none';
+        document.getElementById('uploadPreview').innerHTML      = `<div style="font-size:13px;">📄 ${file.name}</div><button class="btn btn-ghost btn-sm" id="removeFile" style="margin-top:6px;">Remove</button>`;
+      }
+    });
+
+    document.getElementById('removeFile')?.addEventListener('click', () => {
+      uploadedFile = null;
+      document.getElementById('noteFile').value            = '';
+      document.getElementById('uploadPreview').style.display = 'none';
+      document.getElementById('uploadArea').style.display    = 'block';
+    });
+
+    // ── Line items ────────────────────────────────────────
+    function itemOptions(selectedId = '') {
+      return stockItems.map(i =>
+        `<option value="${i.id}" data-unit="${i.unit_of_measure}" ${i.id === selectedId ? 'selected' : ''}>${i.name}</option>`
+      ).join('');
+    }
+
+    function storeOptions(selectedId = '') {
+      return stores.map(s =>
+        `<option value="${s.id}" ${s.id === selectedId ? 'selected' : ''}>${s.name}</option>`
+      ).join('');
+    }
+
+    function addLine() {
+      const idx  = lineCount++;
+      const div  = document.createElement('div');
+      div.className = 'line-item';
+      div.id        = `line-${idx}`;
+      div.innerHTML = `
+        <div class="line-item-header">
+          <div class="form-group" style="margin:0;">
+            <label>Stock Item *</label>
+            <select class="line-item-select" data-idx="${idx}" onchange="updateLineUnit(${idx})">
+              <option value="">— Select item —</option>
+              ${itemOptions()}
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>Total Qty Received *</label>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <input type="number" class="line-qty" data-idx="${idx}" min="0" step="0.01" placeholder="0"
+                oninput="updateRemaining(${idx})">
+              <span class="line-unit" data-idx="${idx}" style="font-size:12px;color:var(--text-muted);white-space:nowrap;"></span>
+            </div>
+          </div>
+          <button class="remove-btn" onclick="removeLine(${idx})" title="Remove">✕</button>
+        </div>
+        <div class="store-split" id="splits-${idx}">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">Allocate to stores:</div>
+          <div id="split-rows-${idx}"></div>
+          <button class="add-split-btn" onclick="addSplit(${idx})">+ Add Store Allocation</button>
+          <div class="split-remaining partial" id="remaining-${idx}" style="display:none;"></div>
+        </div>`;
+      document.getElementById('lineItems').appendChild(div);
+      addSplit(idx);
+    }
+
+    window.updateLineUnit = (idx) => {
+      const sel  = document.querySelector(`.line-item-select[data-idx="${idx}"]`);
+      const unit = sel.options[sel.selectedIndex]?.dataset.unit || '';
+      document.querySelector(`.line-unit[data-idx="${idx}"]`).textContent = unit;
+      updateRemaining(idx);
+    };
+
+    window.addSplit = (idx) => {
+      const splitIdx = document.querySelectorAll(`#split-rows-${idx} .split-row`).length;
+      const div      = document.createElement('div');
+      div.className  = 'split-row';
+      div.dataset.splitIdx = splitIdx;
+      div.innerHTML  = `
+        <select class="split-store" data-line="${idx}">
+          <option value="">— Select store —</option>
+          ${storeOptions()}
+        </select>
+        <input type="number" class="split-qty" data-line="${idx}" min="0" step="0.01" placeholder="0"
+          oninput="updateRemaining(${idx})">
+        <button class="remove-btn" onclick="this.parentElement.remove();updateRemaining(${idx})">✕</button>`;
+      document.getElementById(`split-rows-${idx}`).appendChild(div);
+    };
+
+    window.updateRemaining = (idx) => {
+      const total    = parseFloat(document.querySelector(`.line-qty[data-idx="${idx}"]`)?.value) || 0;
+      const splits   = document.querySelectorAll(`#split-rows-${idx} .split-qty`);
+      const allocated = Array.from(splits).reduce((s, el) => s + (parseFloat(el.value) || 0), 0);
+      const remaining = total - allocated;
+      const el        = document.getElementById(`remaining-${idx}`);
+      const sel       = document.querySelector(`.line-item-select[data-idx="${idx}"]`);
+      const unit      = sel?.options[sel.selectedIndex]?.dataset.unit || '';
+
+      if (total === 0) { el.style.display = 'none'; return; }
+
+      el.style.display = 'inline-block';
+      if (Math.abs(remaining) < 0.001) {
+        el.className = 'split-remaining ok';
+        el.textContent = '✓ Fully allocated';
+      } else if (remaining < 0) {
+        el.className = 'split-remaining over';
+        el.textContent = `Over-allocated by ${Math.abs(remaining).toFixed(2)} ${unit}`;
+      } else {
+        el.className = 'split-remaining partial';
+        el.textContent = `${remaining.toFixed(2)} ${unit} remaining to allocate`;
+      }
+    };
+
+    window.removeLine = (idx) => {
+      document.getElementById(`line-${idx}`)?.remove();
+    };
+
+    document.getElementById('addLineBtn').addEventListener('click', addLine);
+
+    // ── Modal open/close ──────────────────────────────────
+    function openModal() {
+      // Set today's date
+      document.getElementById('deliveryDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('deliveryModal').style.display = 'flex';
+      document.getElementById('lineItems').innerHTML = '';
+      lineCount = 0;
+      uploadedFile = null;
+      document.getElementById('deliveryError').style.display = 'none';
+      document.getElementById('uploadPreview').style.display = 'none';
+      document.getElementById('uploadArea').style.display    = 'block';
+      document.getElementById('supplierName').value  = '';
+      document.getElementById('deliveryRef').value   = '';
+      document.getElementById('deliveryNotes').value = '';
+      addLine();
+    }
+
+    function closeModal() {
+      document.getElementById('deliveryModal').style.display = 'none';
+    }
+
+    document.getElementById('newDeliveryBtn').addEventListener('click', openModal);
+    document.getElementById('deliveryModalClose').addEventListener('click', closeModal);
+    document.getElementById('deliveryModalCancel').addEventListener('click', closeModal);
+
+    // ── Check URL for ?action=new ─────────────────────────
+    if (new URLSearchParams(location.search).get('action') === 'new') openModal();
+
+    // ── Save delivery ─────────────────────────────────────
+    document.getElementById('deliveryModalSave').addEventListener('click', async () => {
+      document.getElementById('deliveryError').style.display = 'none';
+
+      const supplier = document.getElementById('supplierName').value.trim();
+      const date     = document.getElementById('deliveryDate').value;
+      const ref      = document.getElementById('deliveryRef').value.trim();
+      const notes    = document.getElementById('deliveryNotes').value.trim();
+
+      if (!supplier) return showError('Supplier name is required');
+      if (!date)     return showError('Delivery date is required');
+
+      // Validate lines
+      const lineEls = document.querySelectorAll('.line-item');
+      if (!lineEls.length) return showError('Add at least one stock item');
+
+      const lines = [];
+      for (const el of lineEls) {
+        const idx      = el.id.replace('line-', '');
+        const itemSel  = el.querySelector(`.line-item-select[data-idx="${idx}"]`);
+        const qtyEl    = el.querySelector(`.line-qty[data-idx="${idx}"]`);
+        const itemId   = itemSel?.value;
+        const totalQty = parseFloat(qtyEl?.value) || 0;
+
+        if (!itemId)    return showError('Please select a stock item for each line');
+        if (totalQty <= 0) return showError('Quantity must be greater than 0');
+
+        const splits = [];
+        el.querySelectorAll('.split-row').forEach(row => {
+          const storeId  = row.querySelector('.split-store')?.value;
+          const splitQty = parseFloat(row.querySelector('.split-qty')?.value) || 0;
+          if (storeId && splitQty > 0) splits.push({ store_id: storeId, qty: splitQty });
+        });
+
+        if (!splits.length) return showError(`Please allocate ${itemSel.options[itemSel.selectedIndex].text} to at least one store`);
+
+        const allocated = splits.reduce((s, r) => s + r.qty, 0);
+        if (Math.abs(allocated - totalQty) > 0.01) return showError(`${itemSel.options[itemSel.selectedIndex].text}: allocated quantity (${allocated}) doesn't match received quantity (${totalQty})`);
+
+        splits.forEach(s => lines.push({ stock_item_id: itemId, store_id: s.store_id, quantity_delivered: s.qty }));
+      }
+
+      const saveBtn = document.getElementById('deliveryModalSave');
+      saveBtn.textContent = 'Saving…'; saveBtn.disabled = true;
+
+      // 1. Create delivery header
+      const { data: delivery, error: deliveryErr } = await supabase
+        .from('depotiq_deliveries')
+        .insert({ supplier_name: supplier, delivery_date: date, delivery_note_ref: ref || null, notes: notes || null, received_by: session.user.id })
+        .select('id').single();
+
+      if (deliveryErr) {
+        showError(deliveryErr.message);
+        saveBtn.textContent = 'Save Delivery'; saveBtn.disabled = false;
+        return;
+      }
+
+      // 2. Upload image if present
+      if (uploadedFile) {
+        const ext  = uploadedFile.name.split('.').pop();
+        const path = `${delivery.id}/${Date.now()}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from(DEPOTIQ_CONFIG.DELIVERY_NOTES_BUCKET)
+          .upload(path, uploadedFile, { contentType: uploadedFile.type });
+
+        if (!uploadErr) {
+          await supabase.from('depotiq_deliveries')
+            .update({ delivery_note_image_url: path })
+            .eq('id', delivery.id);
+        }
+      }
+
+      // 3. Insert delivery lines (triggers update stock)
+      const linePayload = lines.map(l => ({ ...l, delivery_id: delivery.id }));
+      const { error: linesErr } = await supabase.from('depotiq_delivery_lines').insert(linePayload);
+
+      if (linesErr) {
+        showError(linesErr.message);
+        saveBtn.textContent = 'Save Delivery'; saveBtn.disabled = false;
+        return;
+      }
+
+      toast('Delivery recorded successfully');
+      closeModal();
+      saveBtn.textContent = 'Save Delivery'; saveBtn.disabled = false;
+      loadDeliveries();
+    });
+
+    // ── Init ──────────────────────────────────────────────
+    await loadMasterData();
+    loadDeliveries();
+  </script>
+</body>
+</html>
