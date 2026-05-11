@@ -336,8 +336,7 @@
 
       let query = supabase
         .from('depotiq_delivery_lines')
-        .select('quantity_delivered, depotiq_deliveries(supplier_name, delivery_date, delivery_note_ref), depotiq_stock_items(name,unit_of_measure), depotiq_stores(name)')
-        .order('depotiq_deliveries(delivery_date)', { ascending: false });
+        .select('quantity_delivered, depotiq_deliveries(supplier_name, delivery_date, delivery_note_ref), depotiq_stock_items(name,unit_of_measure), depotiq_stores(name)');
 
       const { data, error } = await query;
       if (error) { document.getElementById('deliveryBody').innerHTML = emptyRow(6, 'Failed to load data'); return; }
@@ -390,8 +389,7 @@
 
       let query = supabase
         .from('depotiq_stock_take_lines')
-        .select('expected_quantity, actual_quantity, variance, depotiq_stock_takes(taken_at, depotiq_user_profiles(full_name)), depotiq_stock_items(name,unit_of_measure), depotiq_stores(name)')
-        .order('depotiq_stock_takes(taken_at)', { ascending: false });
+        .select('expected_quantity, actual_quantity, variance, depotiq_stock_takes(taken_at, depotiq_user_profiles(full_name)), depotiq_stock_items(name,unit_of_measure), depotiq_stores(name)');
 
       const { data, error } = await query;
       if (error) { document.getElementById('takesBody').innerHTML = emptyRow(7, 'Failed to load data'); return; }
