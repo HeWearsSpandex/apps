@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DepotIQ — Stores</title>
+  <title>DepotIQ — Stores & Vehicles</title>
   <link rel="stylesheet" href="depotiq.css">
   <style>
-    .stores-grid {
+    .asset-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 16px;
     }
 
-    .store-card {
+    .asset-card {
       background: var(--bg-white);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
@@ -20,10 +20,10 @@
       overflow: hidden;
       transition: box-shadow var(--transition);
     }
-    .store-card:hover { box-shadow: var(--shadow-md); }
+    .asset-card:hover { box-shadow: var(--shadow-md); }
 
-    .store-card-header {
-      padding: 16px 18px 12px;
+    .asset-card-header {
+      padding: 14px 18px 12px;
       border-bottom: 1px solid var(--border-light);
       display: flex;
       align-items: flex-start;
@@ -31,40 +31,49 @@
       gap: 10px;
     }
 
-    .store-card-name {
+    .asset-card-header.vehicle { border-top: 3px solid var(--blue); }
+    .asset-card-header.store   { border-top: 3px solid var(--red); }
+
+    .asset-type-badge {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 2px 7px;
+      border-radius: 10px;
+    }
+    .asset-type-badge.store   { background: var(--red-light);  color: var(--red); }
+    .asset-type-badge.vehicle { background: var(--blue-light); color: var(--blue); }
+
+    .asset-card-name {
       font-size: 15px;
       font-weight: 700;
       color: var(--text);
     }
 
-    .store-card-desc {
+    .asset-card-sub {
       font-size: 12px;
       color: var(--text-muted);
       margin-top: 3px;
     }
 
-    .store-card-body {
-      padding: 14px 18px;
-    }
+    .asset-card-body { padding: 14px 18px; }
 
-    .store-stat-row {
+    .asset-stat-row {
       display: flex;
       gap: 20px;
+      margin-bottom: 10px;
     }
 
-    .store-stat {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .store-stat-value {
+    .asset-stat-value {
       font-size: 26px;
       font-weight: 700;
       color: var(--red);
       line-height: 1;
     }
+    .asset-stat-value.blue { color: var(--blue); }
 
-    .store-stat-label {
+    .asset-stat-label {
       font-size: 10px;
       color: var(--text-muted);
       text-transform: uppercase;
@@ -72,7 +81,22 @@
       margin-top: 2px;
     }
 
-    .store-card-footer {
+    .asset-items-list { margin-top: 8px; }
+
+    .asset-item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 12px;
+    }
+    .asset-item-row:last-child { border-bottom: none; }
+    .asset-item-name  { color: var(--text); font-weight: 600; }
+    .asset-item-qty   { color: var(--text-dim); }
+    .asset-item-qty.low { color: var(--red); font-weight: 700; }
+
+    .asset-card-footer {
       padding: 10px 18px;
       border-top: 1px solid var(--border-light);
       display: flex;
@@ -80,33 +104,42 @@
       justify-content: space-between;
     }
 
-    .store-items-list {
-      margin-top: 12px;
-    }
-
-    .store-item-row {
+    .section-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 7px 0;
-      border-bottom: 1px solid var(--border-light);
-      font-size: 12px;
+      margin-bottom: 14px;
+      margin-top: 24px;
     }
-    .store-item-row:last-child { border-bottom: none; }
 
-    .store-item-name  { color: var(--text); font-weight: 600; }
-    .store-item-qty   { color: var(--text-dim); }
-    .store-item-qty.low { color: var(--red); font-weight: 700; }
+    .section-header:first-child { margin-top: 0; }
 
-    .inactive-banner {
-      background: #fffbe6;
-      border: 1px solid #ffe58f;
-      border-radius: var(--radius);
-      padding: 8px 12px;
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-count {
       font-size: 12px;
-      color: #7c5e00;
-      margin-bottom: 16px;
-      display: none;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .reg-plate {
+      display: inline-block;
+      background: #fff7d6;
+      border: 1px solid #e6c800;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #333;
+      font-family: monospace;
     }
   </style>
 </head>
@@ -117,7 +150,7 @@
     <div class="sidebar-logo">
       <img src="/img/JHB Logo.png" alt="JHB" onerror="this.style.display='none'">
       <span class="sidebar-logo-text">Depot<span>IQ</span></span>
-      <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">‹</button>
+      <button class="sidebar-toggle" id="sidebarToggle">‹</button>
     </div>
     <nav class="sidebar-nav">
       <div class="nav-section">Main</div>
@@ -128,7 +161,7 @@
       <div class="nav-section">Manage</div>
       <a href="stock-levels.html" class="nav-item" data-label="Stock Levels"><span class="icon">📈</span><span class="nav-label-text">Stock Levels</span></a>
       <a href="stock-items.html"  class="nav-item" data-label="Stock Items"><span class="icon">🗂</span><span class="nav-label-text">Stock Items</span></a>
-      <a href="stores.html"       class="nav-item active" data-label="Stores"><span class="icon">🏪</span><span class="nav-label-text">Stores</span></a>
+      <a href="stores.html"       class="nav-item active" data-label="Stores & Vehicles"><span class="icon">🏪</span><span class="nav-label-text">Stores & Vehicles</span></a>
       <a href="reports.html"      class="nav-item" data-label="Reports"><span class="icon">📊</span><span class="nav-label-text">Reports</span></a>
       <div class="nav-section">System</div>
       <a href="settings.html"     class="nav-item" data-label="Settings"><span class="icon">⚙️</span><span class="nav-label-text">Settings</span></a>
@@ -152,25 +185,36 @@
 
       <div class="page-header-row">
         <div>
-          <div class="page-title">Stores</div>
-          <div class="page-subtitle">Manage storage containers and their current stock</div>
+          <div class="page-title">Stores & Vehicles</div>
+          <div class="page-subtitle">Manage storage containers and fleet vehicles</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer;color:var(--text-dim);">
             <input type="checkbox" id="showInactive"> Show inactive
           </label>
+          <button class="btn btn-ghost" id="addVehicleBtn">+ Add Vehicle</button>
           <button class="btn btn-primary" id="addStoreBtn">+ Add Store</button>
         </div>
       </div>
 
-      <div class="inactive-banner" id="inactiveBanner">
-        ⚠ Some inactive stores are shown below.
+      <!-- Stores section -->
+      <div class="section-header">
+        <div class="section-title">
+          🏪 Stores <span class="section-count" id="storeCount"></span>
+        </div>
+      </div>
+      <div id="storesGrid" class="asset-grid">
+        <div class="loading-spinner" style="grid-column:1/-1;"><div class="spinner"></div> Loading…</div>
       </div>
 
-      <div id="storesGrid" class="stores-grid">
-        <div class="loading-spinner" style="grid-column:1/-1;">
-          <div class="spinner"></div> Loading…
+      <!-- Vehicles section -->
+      <div class="section-header">
+        <div class="section-title">
+          🚛 Vehicles <span class="section-count" id="vehicleCount"></span>
         </div>
+      </div>
+      <div id="vehiclesGrid" class="asset-grid">
+        <div class="loading-spinner" style="grid-column:1/-1;"><div class="spinner"></div> Loading…</div>
       </div>
 
     </div>
@@ -180,33 +224,39 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Add / Edit Modal -->
-  <div class="modal-overlay" id="storeModal" style="display:none;">
+  <div class="modal-overlay" id="assetModal" style="display:none;">
     <div class="modal">
       <div class="modal-header">
         <div class="modal-title" id="modalTitle">Add Store</div>
         <button class="modal-close" id="modalClose">✕</button>
       </div>
       <div class="modal-body">
-        <input type="hidden" id="storeId">
+        <input type="hidden" id="assetId">
+        <input type="hidden" id="assetType">
 
         <div class="form-group">
-          <label for="storeName">Store Name *</label>
-          <input type="text" id="storeName" placeholder="e.g. Container A">
+          <label for="assetName" id="nameLabel">Store Name *</label>
+          <input type="text" id="assetName" placeholder="e.g. Container A">
+        </div>
+
+        <div class="form-group" id="registrationGroup" style="display:none;">
+          <label for="assetReg">Registration Plate *</label>
+          <input type="text" id="assetReg" placeholder="e.g. AB12 CDE" style="text-transform:uppercase;">
         </div>
 
         <div class="form-group">
-          <label for="storeDescription">Description</label>
-          <textarea id="storeDescription" rows="2" placeholder="e.g. Main paint storage — left side of depot"></textarea>
+          <label for="assetDescription">Description</label>
+          <textarea id="assetDescription" rows="2" placeholder="Optional description"></textarea>
         </div>
 
         <div class="form-group" id="activeToggleGroup" style="display:none;">
           <label>Status</label>
           <div style="display:flex;gap:10px;margin-top:4px;">
             <label style="display:flex;align-items:center;gap:6px;text-transform:none;font-size:13px;font-weight:400;letter-spacing:0;cursor:pointer;">
-              <input type="radio" name="storeActive" value="true" id="activeYes"> Active
+              <input type="radio" name="assetActive" value="true" id="activeYes"> Active
             </label>
             <label style="display:flex;align-items:center;gap:6px;text-transform:none;font-size:13px;font-weight:400;letter-spacing:0;cursor:pointer;">
-              <input type="radio" name="storeActive" value="false" id="activeNo"> Inactive
+              <input type="radio" name="assetActive" value="false" id="activeNo"> Inactive
             </label>
           </div>
         </div>
@@ -215,7 +265,7 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-ghost" id="modalCancel">Cancel</button>
-        <button class="btn btn-primary" id="modalSave">Save Store</button>
+        <button class="btn btn-primary" id="modalSave">Save</button>
       </div>
     </div>
   </div>
@@ -248,7 +298,6 @@
 
     const { data: profile } = await supabase
       .from('depotiq_user_profiles').select('full_name,role').eq('id', session.user.id).single();
-
     const displayName = profile?.full_name || session.user.email.split('@')[0];
     document.getElementById('userName').textContent   = displayName;
     document.getElementById('userRole').textContent   = profile?.role || 'user';
@@ -270,8 +319,8 @@
     });
 
     // ── State ─────────────────────────────────────────────
-    let allStores    = [];
-    let stockByStore = {};
+    let allAssets    = [];
+    let stockByAsset = {};
     let showInactive = false;
 
     // ── Toast ─────────────────────────────────────────────
@@ -283,102 +332,107 @@
       setTimeout(() => el.remove(), 3500);
     }
 
-    // ── Load stores ───────────────────────────────────────
-    async function loadStores() {
-      const [storesRes, stockRes] = await Promise.all([
-        supabase.from('depotiq_stores').select('*').order('name'),
+    // ── Load assets ───────────────────────────────────────
+    async function loadAssets() {
+      const [assetsRes, stockRes] = await Promise.all([
+        supabase.from('depotiq_stores').select('*').order('asset_type').order('name'),
         supabase.from('depotiq_stock_levels').select('store_id, stock_item_id, item_name, current_quantity, unit_of_measure, minimum_threshold')
       ]);
 
-      if (storesRes.error) { toast('Failed to load stores', 'error'); return; }
+      if (assetsRes.error) { toast('Failed to load assets', 'error'); return; }
+      allAssets = assetsRes.data || [];
 
-      allStores = storesRes.data || [];
-
-      // Group stock by store
-      stockByStore = {};
+      stockByAsset = {};
       (stockRes.data || []).forEach(r => {
-        if (!stockByStore[r.store_id]) stockByStore[r.store_id] = [];
-        stockByStore[r.store_id].push(r);
+        if (!stockByAsset[r.store_id]) stockByAsset[r.store_id] = [];
+        stockByAsset[r.store_id].push(r);
       });
 
-      renderStores();
+      renderAssets();
     }
 
-    function renderStores() {
-      const stores = showInactive ? allStores : allStores.filter(s => s.is_active);
-      const hasInactive = allStores.some(s => !s.is_active);
+    function renderAssets() {
+      const assets   = showInactive ? allAssets : allAssets.filter(a => a.is_active);
+      const stores   = assets.filter(a => a.asset_type === 'store');
+      const vehicles = assets.filter(a => a.asset_type === 'vehicle');
 
-      document.getElementById('inactiveBanner').style.display = (showInactive && hasInactive) ? 'block' : 'none';
+      document.getElementById('storeCount').textContent   = `(${stores.length})`;
+      document.getElementById('vehicleCount').textContent = `(${vehicles.length})`;
 
-      const grid = document.getElementById('storesGrid');
+      renderGrid('storesGrid',   stores,   'store');
+      renderGrid('vehiclesGrid', vehicles, 'vehicle');
+    }
 
-      if (!stores.length) {
+    function renderGrid(gridId, assets, type) {
+      const grid = document.getElementById(gridId);
+
+      if (!assets.length) {
         grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
-          <div class="empty-state-icon">🏪</div>
-          <div class="empty-state-text">No stores yet — add your first store to get started</div>
+          <div class="empty-state-icon">${type === 'store' ? '🏪' : '🚛'}</div>
+          <div class="empty-state-text">No ${type === 'store' ? 'stores' : 'vehicles'} configured yet</div>
         </div>`;
         return;
       }
 
-      grid.innerHTML = stores.map(store => {
-        const items       = stockByStore[store.id] || [];
-        const itemCount   = items.filter(i => parseFloat(i.current_quantity) > 0).length;
-        const lowCount    = items.filter(i => parseFloat(i.current_quantity) <= parseFloat(i.minimum_threshold)).length;
-        const topItems    = items.filter(i => parseFloat(i.current_quantity) > 0)
-                                  .sort((a, b) => b.current_quantity - a.current_quantity)
-                                  .slice(0, 5);
+      grid.innerHTML = assets.map(asset => {
+        const items    = stockByAsset[asset.id] || [];
+        const inStock  = items.filter(i => parseFloat(i.current_quantity) > 0);
+        const lowCount = items.filter(i => parseFloat(i.current_quantity) <= parseFloat(i.minimum_threshold) && parseFloat(i.minimum_threshold) > 0).length;
+        const topItems = inStock.sort((a,b) => b.current_quantity - a.current_quantity).slice(0, 5);
 
         const itemsHtml = topItems.length
           ? topItems.map(i => {
               const qty = parseFloat(i.current_quantity);
-              const low = qty <= parseFloat(i.minimum_threshold);
+              const low = parseFloat(i.minimum_threshold) > 0 && qty <= parseFloat(i.minimum_threshold);
               return `
-                <div class="store-item-row">
-                  <span class="store-item-name">${i.item_name}</span>
-                  <span class="store-item-qty ${low ? 'low' : ''}">
-                    ${qty % 1 === 0 ? qty : qty.toFixed(2)} ${i.unit_of_measure}
-                    ${low ? ' ⚠' : ''}
+                <div class="asset-item-row">
+                  <span class="asset-item-name">${i.item_name}</span>
+                  <span class="asset-item-qty ${low ? 'low' : ''}">
+                    ${qty % 1 === 0 ? qty : qty.toFixed(2)} ${i.unit_of_measure}${low ? ' ⚠' : ''}
                   </span>
                 </div>`;
-            }).join('') + (items.filter(i => parseFloat(i.current_quantity) > 0).length > 5
-              ? `<div style="font-size:11px;color:var(--text-muted);padding:6px 0;">
-                  + ${items.filter(i => parseFloat(i.current_quantity) > 0).length - 5} more items
-                </div>` : '')
-          : `<div style="font-size:12px;color:var(--text-muted);padding:8px 0;">No stock in this store</div>`;
+            }).join('') +
+            (inStock.length > 5 ? `<div style="font-size:11px;color:var(--text-muted);padding:5px 0;">+ ${inStock.length - 5} more items</div>` : '')
+          : `<div style="font-size:12px;color:var(--text-muted);padding:6px 0;">No stock recorded</div>`;
 
         return `
-          <div class="store-card" style="${!store.is_active ? 'opacity:0.6;' : ''}">
-            <div class="store-card-header">
-              <div>
-                <div class="store-card-name">${store.name}</div>
-                ${store.description ? `<div class="store-card-desc">${store.description}</div>` : ''}
+          <div class="asset-card" style="${!asset.is_active ? 'opacity:0.6;' : ''}">
+            <div class="asset-card-header ${type}">
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                  <span class="asset-type-badge ${type}">${type === 'store' ? 'Store' : 'Vehicle'}</span>
+                  ${!asset.is_active ? '<span class="badge badge-neutral">Inactive</span>' : ''}
+                </div>
+                <div class="asset-card-name">${asset.name}</div>
+                ${asset.asset_type === 'vehicle' && asset.registration
+                  ? `<div class="asset-card-sub"><span class="reg-plate">${asset.registration}</span></div>`
+                  : asset.description ? `<div class="asset-card-sub">${asset.description}</div>` : ''}
               </div>
-              ${!store.is_active ? `<span class="badge badge-neutral">Inactive</span>` : ''}
             </div>
-            <div class="store-card-body">
-              <div class="store-stat-row">
-                <div class="store-stat">
-                  <div class="store-stat-value">${itemCount}</div>
-                  <div class="store-stat-label">Item${itemCount !== 1 ? 's' : ''} in stock</div>
+            <div class="asset-card-body">
+              <div class="asset-stat-row">
+                <div>
+                  <div class="asset-stat-value ${type === 'vehicle' ? 'blue' : ''}">${inStock.length}</div>
+                  <div class="asset-stat-label">Items in stock</div>
                 </div>
                 ${lowCount > 0 ? `
-                  <div class="store-stat">
-                    <div class="store-stat-value" style="color:var(--red);">${lowCount}</div>
-                    <div class="store-stat-label">Low / empty</div>
+                  <div>
+                    <div class="asset-stat-value" style="color:var(--red);">${lowCount}</div>
+                    <div class="asset-stat-label">Low / empty</div>
                   </div>` : ''}
               </div>
-              <div class="store-items-list">${itemsHtml}</div>
+              <div class="asset-items-list">${itemsHtml}</div>
             </div>
-            <div class="store-card-footer">
+            <div class="asset-card-footer">
               <span style="font-size:11px;color:var(--text-muted);">
-                ${new Date(store.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}
+                Added ${new Date(asset.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}
               </span>
               <div style="display:flex;gap:6px;">
-                <button class="btn btn-ghost btn-sm" onclick="openEditModal('${store.id}')">Edit</button>
+                <button class="btn btn-ghost btn-sm" onclick="openEditModal('${asset.id}')">Edit</button>
                 <button class="btn btn-ghost btn-sm"
-                  onclick="confirmToggle('${store.id}','${store.name}',${store.is_active})"
-                  style="${store.is_active ? 'color:var(--red);' : 'color:var(--green);'}">
-                  ${store.is_active ? 'Retire' : 'Activate'}
+                  onclick="confirmToggle('${asset.id}','${asset.name}',${asset.is_active})"
+                  style="${asset.is_active ? 'color:var(--red);' : 'color:var(--green);'}">
+                  ${asset.is_active ? 'Retire' : 'Activate'}
                 </button>
               </div>
             </div>
@@ -389,97 +443,118 @@
     // ── Show inactive toggle ──────────────────────────────
     document.getElementById('showInactive').addEventListener('change', e => {
       showInactive = e.target.checked;
-      renderStores();
+      renderAssets();
     });
 
     // ── Modal helpers ─────────────────────────────────────
-    function openModal()  { document.getElementById('storeModal').style.display = 'flex'; }
+    function openModal(type) {
+      const isVehicle = type === 'vehicle';
+      document.getElementById('nameLabel').textContent         = isVehicle ? 'Vehicle Name *' : 'Store Name *';
+      document.getElementById('assetName').placeholder         = isVehicle ? 'e.g. Van 1 — Wayne' : 'e.g. Container A';
+      document.getElementById('assetType').value               = type;
+      document.getElementById('registrationGroup').style.display = isVehicle ? 'block' : 'none';
+      document.getElementById('assetModal').style.display      = 'flex';
+    }
+
     function closeModal() {
-      document.getElementById('storeModal').style.display = 'none';
-      document.getElementById('modalError').style.display = 'none';
-      document.getElementById('storeId').value          = '';
-      document.getElementById('storeName').value        = '';
-      document.getElementById('storeDescription').value = '';
+      document.getElementById('assetModal').style.display      = 'none';
+      document.getElementById('modalError').style.display      = 'none';
+      document.getElementById('assetId').value                 = '';
+      document.getElementById('assetName').value               = '';
+      document.getElementById('assetReg').value                = '';
+      document.getElementById('assetDescription').value        = '';
       document.getElementById('activeToggleGroup').style.display = 'none';
     }
 
     function showModalError(msg) {
       const el = document.getElementById('modalError');
-      el.textContent = msg;
-      el.style.display = 'block';
+      el.textContent = msg; el.style.display = 'block';
     }
 
     document.getElementById('addStoreBtn').addEventListener('click', () => {
       document.getElementById('modalTitle').textContent = 'Add Store';
-      closeModal();
-      openModal();
+      closeModal(); openModal('store');
+    });
+
+    document.getElementById('addVehicleBtn').addEventListener('click', () => {
+      document.getElementById('modalTitle').textContent = 'Add Vehicle';
+      closeModal(); openModal('vehicle');
     });
 
     window.openEditModal = (id) => {
-      const store = allStores.find(s => s.id === id);
-      if (!store) return;
+      const asset = allAssets.find(a => a.id === id);
+      if (!asset) return;
+      const isVehicle = asset.asset_type === 'vehicle';
 
-      document.getElementById('modalTitle').textContent    = 'Edit Store';
-      document.getElementById('storeId').value            = store.id;
-      document.getElementById('storeName').value          = store.name;
-      document.getElementById('storeDescription').value   = store.description || '';
+      document.getElementById('modalTitle').textContent = isVehicle ? 'Edit Vehicle' : 'Edit Store';
+      document.getElementById('assetId').value          = asset.id;
+      document.getElementById('assetName').value        = asset.name;
+      document.getElementById('assetReg').value         = asset.registration || '';
+      document.getElementById('assetDescription').value = asset.description || '';
       document.getElementById('activeToggleGroup').style.display = 'block';
-      document.getElementById(store.is_active ? 'activeYes' : 'activeNo').checked = true;
-      openModal();
+      document.getElementById(asset.is_active ? 'activeYes' : 'activeNo').checked = true;
+
+      openModal(asset.asset_type);
     };
 
     document.getElementById('modalClose').addEventListener('click', closeModal);
     document.getElementById('modalCancel').addEventListener('click', closeModal);
-    document.getElementById('storeModal').addEventListener('click', e => {
-      if (e.target === document.getElementById('storeModal')) closeModal();
+    document.getElementById('assetModal').addEventListener('click', e => {
+      if (e.target === document.getElementById('assetModal')) closeModal();
     });
 
     document.getElementById('modalSave').addEventListener('click', async () => {
-      const id          = document.getElementById('storeId').value;
-      const name        = document.getElementById('storeName').value.trim();
-      const description = document.getElementById('storeDescription').value.trim();
-      const isActive    = id ? document.querySelector('input[name="storeActive"]:checked')?.value !== 'false' : true;
+      const id          = document.getElementById('assetId').value;
+      const type        = document.getElementById('assetType').value;
+      const name        = document.getElementById('assetName').value.trim();
+      const reg         = document.getElementById('assetReg').value.trim().toUpperCase();
+      const description = document.getElementById('assetDescription').value.trim();
+      const isActive    = id ? document.querySelector('input[name="assetActive"]:checked')?.value !== 'false' : true;
 
-      if (!name) return showModalError('Store name is required');
+      if (!name) return showModalError(`${type === 'vehicle' ? 'Vehicle' : 'Store'} name is required`);
+      if (type === 'vehicle' && !id && !reg) return showModalError('Registration plate is required');
 
       document.getElementById('modalSave').textContent = 'Saving…';
       document.getElementById('modalSave').disabled    = true;
 
-      const payload = { name, description, is_active: isActive };
+      const payload = {
+        name, description: description || null,
+        asset_type: type, is_active: isActive,
+        registration: reg || null,
+      };
 
       const { error } = id
         ? await supabase.from('depotiq_stores').update(payload).eq('id', id)
         : await supabase.from('depotiq_stores').insert(payload);
 
-      document.getElementById('modalSave').textContent = 'Save Store';
+      document.getElementById('modalSave').textContent = 'Save';
       document.getElementById('modalSave').disabled    = false;
 
       if (error) { showModalError(error.message); return; }
 
-      toast(id ? 'Store updated' : 'Store added');
+      toast(id ? `${type === 'vehicle' ? 'Vehicle' : 'Store'} updated` : `${type === 'vehicle' ? 'Vehicle' : 'Store'} added`);
       closeModal();
-      loadStores();
+      loadAssets();
     });
 
     // ── Activate / Retire ─────────────────────────────────
     window.confirmToggle = (id, name, isActive) => {
-      document.getElementById('confirmTitle').textContent = isActive ? 'Retire Store' : 'Activate Store';
+      const asset   = allAssets.find(a => a.id === id);
+      const typeStr = asset?.asset_type === 'vehicle' ? 'Vehicle' : 'Store';
+      document.getElementById('confirmTitle').textContent = isActive ? `Retire ${typeStr}` : `Activate ${typeStr}`;
       document.getElementById('confirmText').innerHTML   = isActive
-        ? `Retire <strong>${name}</strong>? It will no longer appear in delivery or stock take screens. Existing stock records are preserved.`
-        : `Reactivate <strong>${name}</strong>? It will appear again in delivery and stock take screens.`;
+        ? `Retire <strong>${name}</strong>? It will no longer appear in delivery or stock take screens.`
+        : `Reactivate <strong>${name}</strong>?`;
       const okBtn = document.getElementById('confirmOk');
       okBtn.style.background = isActive ? 'var(--red)' : 'var(--green)';
       okBtn.style.color      = '#fff';
       okBtn.textContent      = isActive ? 'Retire' : 'Activate';
-
       okBtn.onclick = async () => {
-        const { error } = await supabase
-          .from('depotiq_stores').update({ is_active: !isActive }).eq('id', id);
+        const { error } = await supabase.from('depotiq_stores').update({ is_active: !isActive }).eq('id', id);
         if (error) toast(error.message, 'error');
-        else { toast(isActive ? 'Store retired' : 'Store activated'); loadStores(); }
+        else { toast(isActive ? `${typeStr} retired` : `${typeStr} activated`); loadAssets(); }
         document.getElementById('confirmModal').style.display = 'none';
       };
-
       document.getElementById('confirmModal').style.display = 'flex';
     };
 
@@ -487,7 +562,7 @@
     document.getElementById('confirmCancel').addEventListener('click', () => document.getElementById('confirmModal').style.display = 'none');
 
     // ── Init ──────────────────────────────────────────────
-    loadStores();
+    loadAssets();
   </script>
 </body>
 </html>
