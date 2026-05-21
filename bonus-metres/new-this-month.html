@@ -16,7 +16,6 @@
       flex-direction: column;
     }
 
-    /* ── HEADER ── */
     .header {
       display: flex;
       align-items: center;
@@ -33,10 +32,7 @@
     .header-updated { font-size: 12px; color: #aaa; text-align: right; }
     .header-updated strong { color: #555; display: block; font-size: 13px; }
 
-    /* ── MONTH NAV ── */
-    .month-nav {
-      display: flex; align-items: center; gap: 10px;
-    }
+    .month-nav { display: flex; align-items: center; gap: 10px; }
     .month-nav-btn {
       width: 32px; height: 32px;
       border: 1.5px solid #e0e0e0;
@@ -60,10 +56,8 @@
     }
     .month-nav-label.current { color: #c00; }
 
-    /* ── MAIN LAYOUT ── */
     .body-wrap { flex: 1; display: flex; gap: 0; overflow: hidden; }
 
-    /* ── PODIUM ── */
     .podium-panel {
       width: 420px; flex-shrink: 0;
       display: flex; flex-direction: column;
@@ -95,10 +89,8 @@
     .podium-place.p2 .podium-block { height: 64px; background: linear-gradient(180deg, rgba(176,184,193,0.25), rgba(176,184,193,0.1)); border: 1px solid rgba(176,184,193,0.2); }
     .podium-place.p3 .podium-block { height: 46px; background: linear-gradient(180deg, rgba(205,127,50,0.25), rgba(205,127,50,0.1)); border: 1px solid rgba(205,127,50,0.2); }
 
-    /* ── DIVIDER ── */
     .divider { width: 1px; background: #e8e8e8; flex-shrink: 0; margin: 16px 0; }
 
-    /* ── LIST PANEL ── */
     .list-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 16px 0 0; background: #fff; }
     .list-header {
       display: grid;
@@ -159,14 +151,14 @@
 
   <div class="header">
     <img src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/JHB%20Logo.png" alt="JHB">
-    <div class="header-title">🏆 Bonus Metres Leaderboard</div>
+    <div class="header-title">&#127942; Bonus Metres Leaderboard</div>
     <div class="header-right">
       <div class="month-nav">
-        <button class="month-nav-btn" id="btn-prev" onclick="changeMonth(-1)" title="Previous month">&#60;</button>
-        <div class="month-nav-label" id="month-label">Loading…</div>
-        <button class="month-nav-btn" id="btn-next" onclick="changeMonth(1)" title="Next month">&#62;</button>
+        <button class="month-nav-btn" id="btn-prev" onclick="changeMonth(-1)" title="Previous period">&#60;</button>
+        <div class="month-nav-label" id="month-label">Loading...</div>
+        <button class="month-nav-btn" id="btn-next" onclick="changeMonth(1)" title="Next period">&#62;</button>
       </div>
-      <div class="header-updated" id="update-lbl">Loading…</div>
+      <div class="header-updated" id="update-lbl">Loading...</div>
     </div>
   </div>
 
@@ -197,77 +189,73 @@
     const SUPABASE_URL = 'https://oxgehlmalbvppjmdaswn.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
     const sb           = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const IMG_PATH     = `${SUPABASE_URL}/storage/v1/object/public/images/`;
+    const IMG_PATH     = SUPABASE_URL + '/storage/v1/object/public/images/';
 
-    // ── State ──────────────────────────────────────────────────────────────
-    let monthEndRuns = [];  // sorted newest first, index 0 = current (unpaid)
-    let currentIdx   = 0;  // 0 = current unpaid month, 1+ = historical month ends
+    let monthEndRuns = [];
+    let currentIdx   = 0;
     let scrollAnim   = null;
 
-    // ── Image helpers ───────────────────────────────────────────────────────
     function safeImg(name, size) {
-      return new Promise(res => {
-        const img = new Image(); img.crossOrigin = 'anonymous';
-        img.onload  = () => res(img.src);
-        img.onerror = () => res(null);
-        img.src = `${IMG_PATH}${encodeURIComponent(name)}_cvface1.jpg`;
+      return new Promise(function(res) {
+        var img = new Image(); img.crossOrigin = 'anonymous';
+        img.onload  = function() { res(img.src); };
+        img.onerror = function() { res(null); };
+        img.src = IMG_PATH + encodeURIComponent(name) + '_cvface1.jpg';
       });
     }
 
     function initialsDataUrl(initials, size) {
-      const c = document.createElement('canvas'); c.width = c.height = size;
-      const ctx = c.getContext('2d');
+      var c = document.createElement('canvas'); c.width = c.height = size;
+      var ctx = c.getContext('2d');
       ctx.fillStyle = '#1a1a2e'; ctx.beginPath(); ctx.arc(size/2,size/2,size/2,0,2*Math.PI); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.floor(size*0.33)}px Arial`;
+      ctx.fillStyle = '#fff'; ctx.font = 'bold ' + Math.floor(size*0.33) + 'px Arial';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(initials, size/2, size/2 + 1);
       return c.toDataURL();
     }
 
-    // ── Month navigation ────────────────────────────────────────────────────
     function changeMonth(dir) {
-      const newIdx = currentIdx + dir;
+      var newIdx = currentIdx + dir;
       if (newIdx < 0 || newIdx >= monthEndRuns.length) return;
       currentIdx = newIdx;
       loadLeaderboard();
     }
 
     function updateNav() {
-      const run = monthEndRuns[currentIdx];
-      const lbl = document.getElementById('month-label');
-      const btnPrev = document.getElementById('btn-prev');
-      const btnNext = document.getElementById('btn-next');
+      var run     = monthEndRuns[currentIdx];
+      var lbl     = document.getElementById('month-label');
+      var btnPrev = document.getElementById('btn-prev');
+      var btnNext = document.getElementById('btn-next');
 
       lbl.textContent = run.label;
       lbl.className   = 'month-nav-label' + (currentIdx === 0 ? ' current' : '');
-
       btnNext.disabled = currentIdx === 0;
       btnPrev.disabled = currentIdx === monthEndRuns.length - 1;
 
-      // Update last column label
       document.getElementById('list-col-label').textContent =
         currentIdx === 0 ? 'Last Activity' : 'Bonus Paid';
     }
 
-    // ── Init: load month end runs, then show current ────────────────────────
     async function init() {
-      const { data: runs } = await sb
+      var result = await sb
         .from('month_end_runs')
         .select('id, period_name, payment_date, total_paid')
         .order('payment_date', { ascending: false });
 
-      // Index 0 = current outstanding month (unpaid transactions)
+      var runs = result.data || [];
+
       monthEndRuns = [
-        { id: null, label: 'Current Month', payment_date: null, isCurrent: true }
+        { id: null, label: 'Outstanding', payment_date: null, isCurrent: true }
       ];
 
-      // Add real month end runs, skipping Year End entries (£0 total, internal)
-      (runs || []).forEach(r => {
-        if (parseFloat(r.total_paid) === 0) return; // skip internal year-end runs
+      runs.forEach(function(r) {
+        // Skip year-end internal runs (zero total)
+        if (parseFloat(r.total_paid || 0) === 0) return;
         monthEndRuns.push({
           id:           r.id,
           label:        r.period_name,
           payment_date: r.payment_date,
+          total_paid:   r.total_paid,
           isCurrent:    false
         });
       });
@@ -276,21 +264,18 @@
       await loadLeaderboard();
     }
 
-    // ── Load and render leaderboard for currentIdx ──────────────────────────
     async function loadLeaderboard() {
-      // Stop any running scroll animation
       if (scrollAnim) { cancelAnimationFrame(scrollAnim); scrollAnim = null; }
 
-      // Show spinners, clear content
-      (document.getElementById('podium-spinner') || {style:{}}).style.display = 'flex';
-      (document.getElementById('list-spinner') || {style:{}}).style.display   = 'flex';
+      document.getElementById('podium-spinner').style.display = 'flex';
+      document.getElementById('list-spinner').style.display   = 'flex';
       document.getElementById('podium-places').innerHTML = '';
       document.getElementById('list-scroll').innerHTML   = '';
 
       updateNav();
 
-      const run = monthEndRuns[currentIdx];
-      let ranked = [];
+      var run    = monthEndRuns[currentIdx];
+      var ranked = [];
 
       if (run.isCurrent) {
         ranked = await loadCurrentMonth();
@@ -300,59 +285,68 @@
 
       await render(ranked, run);
 
-      // Start auto-scroll only on current month (TV display mode)
       if (run.isCurrent) {
         setTimeout(startPingPongScroll, 2000);
       }
     }
 
-    // ── Current month: unpaid transactions ──────────────────────────────────
     async function loadCurrentMonth() {
-      const { data: ops, error } = await sb
+      var result = await sb
         .from('transaction_operatives')
-        .select(`employee_id, share_value,
-                 transactions!inner(id, bonus_metres, date_paid, created_at),
-                 employees!inner(full_name, initials, status)`)
+        .select('employee_id, share_value, transaction_id, transactions!inner(id, bonus_metres, date_paid, created_at), employees!inner(full_name, initials, status)')
         .is('transactions.date_paid', null);
 
-      if (error || !ops) return [];
+      var ops = result.data || [];
+      if (!ops.length) return [];
 
       // Count operatives per transaction for metres split
-      const txMeta = {};
-      ops.forEach(op => {
-        const txId = op.transactions?.id;
+      var txMeta = {};
+      ops.forEach(function(op) {
+        var txId = op.transactions && op.transactions.id;
         if (!txId) return;
-        if (!txMeta[txId]) txMeta[txId] = { metres: parseFloat(op.transactions.bonus_metres), count: 0, created_at: op.transactions.created_at };
+        if (!txMeta[txId]) txMeta[txId] = {
+          metres:     parseFloat(op.transactions.bonus_metres || 0),
+          count:      0,
+          created_at: op.transactions.created_at
+        };
         txMeta[txId].count++;
       });
 
-      // Track latest entry for header
-      let latestCreated = null;
-      ops.forEach(op => {
-        const c = op.transactions?.created_at;
+      var latestCreated = null;
+      ops.forEach(function(op) {
+        var c = op.transactions && op.transactions.created_at;
         if (c && (!latestCreated || c > latestCreated)) latestCreated = c;
       });
 
-      const lbl = document.getElementById('update-lbl');
+      var lbl = document.getElementById('update-lbl');
       if (latestCreated) {
-        const d = new Date(latestCreated);
-        lbl.innerHTML = `Last entry: <strong>${d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})} at ${d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</strong>`;
+        var d = new Date(latestCreated);
+        lbl.innerHTML = 'Last entry: <strong>' +
+          d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) +
+          ' at ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) + '</strong>';
       } else {
         lbl.textContent = 'No outstanding entries';
       }
 
-      // Build per-person totals
-      const empMap = {};
-      ops.forEach(op => {
-        const emp = op.employees;
+      var empMap = {};
+      ops.forEach(function(op) {
+        var emp = op.employees;
         if (!emp || emp.status === 'inactive') return;
-        const txId = op.transactions?.id;
+        var txId = op.transactions && op.transactions.id;
         if (!txId) return;
-        const id = op.employee_id;
-        if (!empMap[id]) empMap[id] = { id, name: emp.full_name, initials: emp.initials, bonus: 0, metres: 0, visits: 0, lastActivity: null };
-        empMap[id].bonus  += parseFloat(op.share_value);
+        var id = op.employee_id;
+        if (!empMap[id]) empMap[id] = {
+          id:           id,
+          name:         emp.full_name,
+          initials:     emp.initials,
+          bonus:        0,
+          metres:       0,
+          visits:       0,
+          lastActivity: null
+        };
+        empMap[id].bonus  += parseFloat(op.share_value || 0);
         empMap[id].visits++;
-        const tx = txMeta[txId];
+        var tx = txMeta[txId];
         if (tx) {
           empMap[id].metres += tx.metres / tx.count;
           if (tx.created_at && (!empMap[id].lastActivity || tx.created_at > empMap[id].lastActivity)) {
@@ -364,228 +358,228 @@
       return rankPeople(Object.values(empMap));
     }
 
-    // ── Historical month: from month_end_lines + paid transactions ──────────
     async function loadHistoricalMonth(run) {
-      // Get month_end_lines for this run (has net_payable per person)
-      const { data: lines } = await sb
-        .from('month_end_lines')
-        .select(`employee_id, gross_earned, net_payable,
-                 employees!inner(full_name, initials, status)`)
-        .eq('month_end_id', run.id);
+      // Get all transaction_operatives for this payment date
+      // First get transaction IDs paid on this date
+      var txResult = await sb
+        .from('transactions')
+        .select('id, bonus_metres, date_paid')
+        .eq('date_paid', run.payment_date);
 
-      // Get paid transactions for this payment date to calculate metres
-      const { data: ops } = await sb
+      var transactions = txResult.data || [];
+      if (!transactions.length) return [];
+
+      var txIds = transactions.map(function(t) { return t.id; });
+
+      // Build tx lookup
+      var txLookup = {};
+      transactions.forEach(function(t) {
+        txLookup[t.id] = { metres: parseFloat(t.bonus_metres || 0), count: 0 };
+      });
+
+      // Get operatives for those transactions
+      var opsResult = await sb
         .from('transaction_operatives')
-        .select(`employee_id, share_value,
-                 transactions!inner(id, bonus_metres, date_paid)`)
-        .eq('transactions.date_paid', run.payment_date);
+        .select('employee_id, share_value, transaction_id, employees!inner(full_name, initials, status)')
+        .in('transaction_id', txIds);
 
-      // Count operatives per transaction for metres split
-      const txMeta = {};
-      (ops || []).forEach(op => {
-        const txId = op.transactions?.id;
-        if (!txId) return;
-        if (!txMeta[txId]) txMeta[txId] = { metres: parseFloat(op.transactions.bonus_metres), count: 0 };
-        txMeta[txId].count++;
+      var ops = opsResult.data || [];
+
+      // Count crew per transaction
+      ops.forEach(function(op) {
+        if (txLookup[op.transaction_id]) txLookup[op.transaction_id].count++;
       });
 
-      // Build metres per employee from paid transactions
-      const metresMap = {};
-      (ops || []).forEach(op => {
-        const txId = op.transactions?.id;
-        if (!txId) return;
-        const id = op.employee_id;
-        const tx = txMeta[txId];
-        if (tx) metresMap[id] = (metresMap[id] || 0) + tx.metres / tx.count;
+      // Build per-employee totals
+      var empMap = {};
+      ops.forEach(function(op) {
+        var emp = op.employees;
+        if (!emp) return;
+        var id  = op.employee_id;
+        var tx  = txLookup[op.transaction_id];
+        if (!empMap[id]) empMap[id] = {
+          id:       id,
+          name:     emp.full_name,
+          initials: emp.initials,
+          bonus:    0,
+          metres:   0,
+          lastActivity: null
+        };
+        empMap[id].bonus += parseFloat(op.share_value || 0);
+        if (tx && tx.count > 0) empMap[id].metres += tx.metres / tx.count;
       });
 
-      // Build ranked list from month_end_lines
-      const people = (lines || [])
-        .filter(l => l.employees && parseFloat(l.gross_earned) > 0)
-        .map(l => ({
-          id:       l.employee_id,
-          name:     l.employees.full_name,
-          initials: l.employees.initials,
-          bonus:    parseFloat(l.net_payable),
-          metres:   metresMap[l.employee_id] || 0,
-          lastActivity: null,
-          netPayable: parseFloat(l.net_payable)
-        }));
+      var lbl = document.getElementById('update-lbl');
+      lbl.innerHTML = 'Paid: <strong>&#163;' + parseFloat(run.total_paid || 0).toFixed(2) + '</strong>';
 
-      const lbl = document.getElementById('update-lbl');
-      lbl.innerHTML = `Paid: <strong>£${parseFloat(run.total_paid || 0).toFixed(2)}</strong>`;
-
-      return rankPeople(people);
+      return rankPeople(Object.values(empMap));
     }
 
-    // ── Rank by metres, assign joint ranks ──────────────────────────────────
     function rankPeople(people) {
-      const ranked = people
-        .filter(e => e.metres > 0 || e.bonus > 0)
-        .sort((a, b) => b.metres - a.metres);
-      let rank = 1;
-      ranked.forEach((e, i) => {
+      var ranked = people
+        .filter(function(e) { return e.metres > 0 || e.bonus > 0; })
+        .sort(function(a, b) { return b.metres - a.metres; });
+      var rank = 1;
+      ranked.forEach(function(e, i) {
         if (i > 0 && e.metres < ranked[i-1].metres) rank = i + 1;
         e.rank = rank;
       });
       return ranked;
     }
 
-    // ── Render podium + list ─────────────────────────────────────────────────
     async function render(ranked, run) {
-      (document.getElementById('podium-spinner') || {style:{}}).style.display = 'none';
+      document.getElementById('podium-spinner').style.display = 'none';
 
       if (!ranked.length) {
         document.getElementById('podium-places').innerHTML = '<div class="empty">No data for this period</div>';
         document.getElementById('list-scroll').innerHTML   = '';
-        (document.getElementById('list-spinner') || {style:{}}).style.display = 'none';
+        document.getElementById('list-spinner').style.display = 'none';
         return;
       }
 
-      // Load previous ranks from localStorage for arrows (current month only)
-      let prevRanks = {};
+      var prevRanks = {};
       if (run.isCurrent) {
         try { prevRanks = JSON.parse(localStorage.getItem('jhb_lb_ranks') || '{}'); } catch(e) {}
-        const newRanks = {};
-        ranked.forEach(e => { newRanks[e.id] = e.rank; });
+        var newRanks = {};
+        ranked.forEach(function(e) { newRanks[e.id] = e.rank; });
         try { localStorage.setItem('jhb_lb_ranks', JSON.stringify(newRanks)); } catch(e) {}
       }
 
-      // ── Podium ──────────────────────────────────────────────────────────
-      const podiumGroups = [];
-      let podiumCount = 0;
-      for (const e of ranked) {
+      // Podium
+      var podiumGroups = [];
+      var podiumCount  = 0;
+      for (var i = 0; i < ranked.length; i++) {
+        var e = ranked[i];
         if (e.rank > 3 || podiumCount >= 6) break;
-        const existing = podiumGroups.find(g => g.rank === e.rank);
+        var existing = null;
+        for (var j = 0; j < podiumGroups.length; j++) {
+          if (podiumGroups[j].rank === e.rank) { existing = podiumGroups[j]; break; }
+        }
         if (existing) { existing.people.push(e); }
         else { podiumGroups.push({ rank: e.rank, people: [e] }); }
         podiumCount++;
       }
 
-      const podiumOrder = [
-        podiumGroups.find(g => g.rank === 2),
-        podiumGroups.find(g => g.rank === 1),
-        podiumGroups.find(g => g.rank === 3),
+      var podiumOrder = [
+        podiumGroups.find(function(g) { return g.rank === 2; }),
+        podiumGroups.find(function(g) { return g.rank === 1; }),
+        podiumGroups.find(function(g) { return g.rank === 3; })
       ].filter(Boolean);
 
-      const rankMeta = {
-        1: { cls:'p1', crown:'🥇', blockH:90, num:'1st' },
-        2: { cls:'p2', crown:'🥈', blockH:64, num:'2nd' },
-        3: { cls:'p3', crown:'🥉', blockH:46, num:'3rd' },
+      var rankMeta = {
+        1: { cls:'p1', crown:'&#129351;', blockH:90, num:'1st' },
+        2: { cls:'p2', crown:'&#129352;', blockH:64, num:'2nd' },
+        3: { cls:'p3', crown:'&#129353;', blockH:46, num:'3rd' }
       };
 
-      const podiumHtml = await Promise.all(podiumOrder.map(async g => {
-        const meta    = rankMeta[g.rank];
-        const isJoint = g.people.length > 1;
-        const imgs    = await Promise.all(g.people.map(p => safeImg(p.name, 100)));
+      var podiumHtml = await Promise.all(podiumOrder.map(async function(g) {
+        var meta    = rankMeta[g.rank];
+        var isJoint = g.people.length > 1;
+        var imgs    = await Promise.all(g.people.map(function(p) { return safeImg(p.name, 100); }));
 
-        const faces = g.people.map((p, i) => {
-          const fallback = initialsDataUrl(p.initials, 100);
-          const size = isJoint ? 60 : (meta.cls === 'p1' ? 100 : meta.cls === 'p2' ? 80 : 70);
-          return `<div style="display:flex;flex-direction:column;align-items:center;${isJoint?'margin:0 2px':''}">
-            <img class="podium-face" src="${imgs[i] || fallback}" onerror="this.src='${fallback}'" alt="${p.name}" style="width:${size}px;height:${size}px">
-            <div class="podium-name">${p.name.split(' ')[0]}</div>
-          </div>`;
+        var faces = g.people.map(function(p, i) {
+          var fallback = initialsDataUrl(p.initials, 100);
+          var size = isJoint ? 60 : (meta.cls === 'p1' ? 100 : meta.cls === 'p2' ? 80 : 70);
+          return '<div style="display:flex;flex-direction:column;align-items:center;' + (isJoint?'margin:0 2px':'') + '">' +
+            '<img class="podium-face" src="' + (imgs[i] || fallback) + '" onerror="this.src=\'' + fallback + '\'" alt="' + p.name + '" style="width:' + size + 'px;height:' + size + 'px">' +
+            '<div class="podium-name">' + p.name.split(' ')[0] + '</div>' +
+            '</div>';
         }).join('');
 
-        // Show metres for current, bonus for historical
-        const statStr = run.isCurrent
-          ? `${Math.round(g.people[0].metres).toLocaleString()}m${isJoint ? ' each' : ''}`
-          : `£${g.people[0].bonus.toFixed(2)}${isJoint ? ' each' : ''}`;
+        var statStr = run.isCurrent
+          ? Math.round(g.people[0].metres).toLocaleString() + 'm' + (isJoint ? ' each' : '')
+          : '&#163;' + g.people[0].bonus.toFixed(2) + (isJoint ? ' each' : '');
 
-        return `<div class="podium-place ${meta.cls}">
-          <div class="podium-face-wrap">
-            <div class="podium-crown">${isJoint ? '=' : ''}${meta.crown}</div>
-            <div style="display:flex;align-items:flex-end;justify-content:center">${faces}</div>
-          </div>
-          <div class="podium-metres">${statStr}</div>
-          <div class="podium-block" style="height:${meta.blockH}px">${isJoint ? '=' : ''}${meta.num}</div>
-        </div>`;
+        return '<div class="podium-place ' + meta.cls + '">' +
+          '<div class="podium-face-wrap">' +
+          '<div class="podium-crown">' + (isJoint ? '=' : '') + meta.crown + '</div>' +
+          '<div style="display:flex;align-items:flex-end;justify-content:center">' + faces + '</div>' +
+          '</div>' +
+          '<div class="podium-metres">' + statStr + '</div>' +
+          '<div class="podium-block" style="height:' + meta.blockH + 'px">' + (isJoint ? '=' : '') + meta.num + '</div>' +
+          '</div>';
       }));
 
       document.getElementById('podium-places').innerHTML = podiumHtml.join('');
 
-      // ── List ────────────────────────────────────────────────────────────
-      const rankCounts = {};
-      ranked.forEach(e => { rankCounts[e.rank] = (rankCounts[e.rank] || 0) + 1; });
-      const tiedRanks  = new Set(Object.entries(rankCounts).filter(([,c]) => c > 1).map(([r]) => parseInt(r)));
-      const podiumRanks = new Set(podiumGroups.map(g => g.rank));
-      const rest = ranked.filter(e => !podiumRanks.has(e.rank));
+      // List
+      var rankCounts = {};
+      ranked.forEach(function(e) { rankCounts[e.rank] = (rankCounts[e.rank] || 0) + 1; });
+      var tiedRanks  = new Set(Object.keys(rankCounts).filter(function(r) { return rankCounts[r] > 1; }).map(Number));
+      var podiumRankSet = new Set(podiumGroups.map(function(g) { return g.rank; }));
+      var rest = ranked.filter(function(e) { return !podiumRankSet.has(e.rank); });
 
-      const listImgs = await Promise.all(rest.map(p => safeImg(p.name, 36)));
+      var listImgs = await Promise.all(rest.map(function(p) { return safeImg(p.name, 36); }));
 
       document.getElementById('list-scroll').innerHTML = rest.length === 0
         ? '<div class="empty" style="padding:30px">Top 3 shown in podium</div>'
-        : rest.map((p, i) => {
-            const fallback = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'><circle cx='18' cy='18' r='18' fill='%23e8e8e8'/><text x='18' y='23' text-anchor='middle' font-size='11' font-weight='700' fill='%23999' font-family='Arial'>${p.initials}</text></svg>`;
-            const rankLabel = tiedRanks.has(p.rank) ? `=${p.rank}` : p.rank;
+        : rest.map(function(p, i) {
+            var fallback = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'><circle cx='18' cy='18' r='18' fill='%23e8e8e8'/><text x='18' y='23' text-anchor='middle' font-size='11' font-weight='700' fill='%23999' font-family='Arial'>" + p.initials + "</text></svg>";
+            var rankLabel = tiedRanks.has(p.rank) ? '=' + p.rank : p.rank;
 
-            // Arrow — current month only
-            let arrowHtml = '';
+            var arrowHtml = '';
             if (run.isCurrent) {
-              const prev = prevRanks[p.id];
+              var prev = prevRanks[p.id];
               if (prev === undefined) {
-                arrowHtml = `<span class="row-arrow same" title="New entry">●</span>`;
+                arrowHtml = '<span class="row-arrow same" title="New entry">&#9679;</span>';
               } else if (p.rank < prev) {
-                arrowHtml = `<span class="row-arrow up" title="Up ${prev - p.rank}">▲ ${prev - p.rank}</span>`;
+                arrowHtml = '<span class="row-arrow up" title="Up ' + (prev-p.rank) + '">&#9650; ' + (prev-p.rank) + '</span>';
               } else if (p.rank > prev) {
-                arrowHtml = `<span class="row-arrow down" title="Down ${p.rank - prev}">▼ ${p.rank - prev}</span>`;
+                arrowHtml = '<span class="row-arrow down" title="Down ' + (p.rank-prev) + '">&#9660; ' + (p.rank-prev) + '</span>';
               } else {
-                arrowHtml = `<span class="row-arrow same">—</span>`;
+                arrowHtml = '<span class="row-arrow same">&#8212;</span>';
               }
             }
 
-            // Right column: last activity for current, bonus paid for historical
-            let rightCol = '';
+            var rightCol = '';
             if (run.isCurrent && p.lastActivity) {
-              const d    = new Date(p.lastActivity);
-              const days = Math.floor((new Date() - d) / 86400000);
-              const cls  = days <= 3 ? 'recent' : days >= 14 ? 'stale' : '';
-              rightCol = `<div class="row-activity ${cls}">${d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</div>`;
+              var d    = new Date(p.lastActivity);
+              var days = Math.floor((new Date() - d) / 86400000);
+              var cls  = days <= 3 ? 'recent' : days >= 14 ? 'stale' : '';
+              rightCol = '<div class="row-activity ' + cls + '">' + d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}) + '</div>';
             } else if (!run.isCurrent) {
-              rightCol = `<div class="row-activity" style="color:#1a1a1a;font-weight:600">£${p.bonus.toFixed(2)}</div>`;
+              rightCol = '<div class="row-activity" style="color:#1a1a1a;font-weight:600">&#163;' + p.bonus.toFixed(2) + '</div>';
             } else {
-              rightCol = `<div class="row-activity">—</div>`;
+              rightCol = '<div class="row-activity">&#8212;</div>';
             }
 
-            return `<div class="list-row">
-              <div class="row-rank ${p.rank <= 10 ? 'top10' : ''}">${rankLabel}</div>
-              <div class="row-face"><img src="${listImgs[i] || fallback}" onerror="this.src='${fallback}'" alt="${p.name}"></div>
-              <div class="row-name">${p.name} ${arrowHtml}</div>
-              <div class="row-metres">${Math.round(p.metres).toLocaleString()}m</div>
-              ${rightCol}
-            </div>`;
+            return '<div class="list-row">' +
+              '<div class="row-rank ' + (p.rank <= 10 ? 'top10' : '') + '">' + rankLabel + '</div>' +
+              '<div class="row-face"><img src="' + (listImgs[i] || fallback) + '" onerror="this.src=\'' + fallback + '\'" alt="' + p.name + '"></div>' +
+              '<div class="row-name">' + p.name + ' ' + arrowHtml + '</div>' +
+              '<div class="row-metres">' + Math.round(p.metres).toLocaleString() + 'm</div>' +
+              rightCol +
+              '</div>';
           }).join('');
 
-      (document.getElementById('list-spinner') || {style:{}}).style.display = 'none';
+      document.getElementById('list-spinner').style.display = 'none';
     }
 
-    // ── Ping-pong scroll (current month TV display) ──────────────────────────
     function startPingPongScroll() {
-      const ct = document.getElementById('list-scroll');
-      const speed = 0.04, pauseMs = 1500;
-      let dir = 1, paused = false, last = performance.now(), elapsed = 0;
+      var ct = document.getElementById('list-scroll');
+      var speed = 0.04, pauseMs = 1500;
+      var dir = 1, paused = false, last = performance.now(), elapsed = 0;
       function step(now) {
-        const dt = now - last; last = now;
+        var dt = now - last; last = now;
         if (paused) {
           elapsed += dt;
           if (elapsed >= pauseMs) { paused = false; elapsed = 0; }
         } else {
           ct.scrollTop += speed * dt * dir;
-          const max = ct.scrollHeight - ct.clientHeight;
+          var max = ct.scrollHeight - ct.clientHeight;
           if (max <= 0) return;
-          if (ct.scrollTop >= max)  { ct.scrollTop = max; dir = -1; paused = true; }
-          else if (ct.scrollTop <= 0) { ct.scrollTop = 0; dir = 1; paused = true; }
+          if (ct.scrollTop >= max)       { ct.scrollTop = max; dir = -1; paused = true; }
+          else if (ct.scrollTop <= 0)    { ct.scrollTop = 0;   dir =  1; paused = true; }
         }
         scrollAnim = requestAnimationFrame(step);
       }
       scrollAnim = requestAnimationFrame(step);
     }
 
-    init().catch(e => {
+    init().catch(function(e) {
       console.error(e);
-      (document.getElementById('podium-spinner') || {style:{}}).style.display = 'none';
-      (document.getElementById('list-spinner') || {style:{}}).style.display   = 'none';
+      document.getElementById('podium-spinner').style.display = 'none';
+      document.getElementById('list-spinner').style.display   = 'none';
     });
   </script>
 </body>
