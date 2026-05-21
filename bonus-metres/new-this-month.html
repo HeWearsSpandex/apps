@@ -215,9 +215,14 @@
     }
 
     function changeMonth(dir) {
+      console.log('changeMonth called, dir:', dir, 'currentIdx:', currentIdx, 'total runs:', monthEndRuns.length);
       var newIdx = currentIdx + dir;
-      if (newIdx < 0 || newIdx >= monthEndRuns.length) return;
+      if (newIdx < 0 || newIdx >= monthEndRuns.length) {
+        console.log('Out of bounds, ignoring');
+        return;
+      }
       currentIdx = newIdx;
+      console.log('New currentIdx:', currentIdx, 'run:', monthEndRuns[currentIdx]);
       loadLeaderboard();
     }
 
