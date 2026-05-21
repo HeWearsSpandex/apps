@@ -358,15 +358,20 @@
     }
 
     async function loadHistoricalMonth(run) {
-      // Get all transaction_operatives for this payment date
-      // First get transaction IDs paid on this date
+      console.log('loadHistoricalMonth called for:', run.label, 'payment_date:', run.payment_date);
+
       var txResult = await sb
         .from('transactions')
         .select('id, bonus_metres, date_paid')
         .eq('date_paid', run.payment_date);
 
+      console.log('transactions result:', txResult.data ? txResult.data.length + ' rows' : 'null', txResult.error);
+
       var transactions = txResult.data || [];
-      if (!transactions.length) return [];
+      if (!transactions.length) {
+        console.log('No transactions found for payment_date:', run.payment_date);
+        return [];
+      }
 
       var txIds = transactions.map(function(t) { return t.id; });
 
