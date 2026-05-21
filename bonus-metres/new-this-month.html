@@ -154,9 +154,9 @@
     <div class="header-title">&#127942; Bonus Metres Leaderboard</div>
     <div class="header-right">
       <div class="month-nav">
-        <button class="month-nav-btn" id="btn-prev" onclick="changeMonth(-1)" title="Previous period">&#60;</button>
+        <button class="month-nav-btn" id="btn-prev" onclick="changeMonth(1)" title="Previous period">&#60;</button>
         <div class="month-nav-label" id="month-label">Loading...</div>
-        <button class="month-nav-btn" id="btn-next" onclick="changeMonth(1)" title="Next period">&#62;</button>
+        <button class="month-nav-btn" id="btn-next" onclick="changeMonth(-1)" title="Next period">&#62;</button>
       </div>
       <div class="header-updated" id="update-lbl">Loading...</div>
     </div>
@@ -234,8 +234,8 @@
 
       lbl.textContent = run.label;
       lbl.className   = 'month-nav-label' + (currentIdx === 0 ? ' current' : '');
-      btnNext.disabled = currentIdx === 0;
-      btnPrev.disabled = currentIdx === monthEndRuns.length - 1;
+      btnNext.disabled = currentIdx === 0;                          // can't go newer than Outstanding
+      btnPrev.disabled = currentIdx === monthEndRuns.length - 1;   // can't go older than oldest run
 
       document.getElementById('list-col-label').textContent =
         currentIdx === 0 ? 'Last Activity' : 'Bonus Paid';
