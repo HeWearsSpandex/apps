@@ -267,10 +267,9 @@
     async function loadLeaderboard() {
       if (scrollAnim) { cancelAnimationFrame(scrollAnim); scrollAnim = null; }
 
-      document.getElementById('podium-spinner').style.display = 'flex';
-      document.getElementById('list-spinner').style.display   = 'flex';
-      document.getElementById('podium-places').innerHTML = '';
-      document.getElementById('list-scroll').innerHTML   = '';
+      // Show spinners via CSS class rather than element lookup
+      document.getElementById('podium-places').innerHTML = '<div class="spinner-overlay" id="podium-spinner"><div class="spinner"></div></div>';
+      document.getElementById('list-scroll').innerHTML   = '<div class="spinner-overlay" id="list-spinner"><div class="spinner"></div></div>';
 
       updateNav();
 
@@ -428,12 +427,12 @@
     }
 
     async function render(ranked, run) {
-      document.getElementById('podium-spinner').style.display = 'none';
+      var ps2 = document.getElementById('podium-spinner'); if(ps2) ps2.style.display = 'none';
 
       if (!ranked.length) {
         document.getElementById('podium-places').innerHTML = '<div class="empty">No data for this period</div>';
         document.getElementById('list-scroll').innerHTML   = '';
-        document.getElementById('list-spinner').style.display = 'none';
+        var ls2 = document.getElementById('list-spinner'); if(ls2) ls2.style.display = 'none';
         return;
       }
 
@@ -552,7 +551,7 @@
               '</div>';
           }).join('');
 
-      document.getElementById('list-spinner').style.display = 'none';
+      var ls2 = document.getElementById('list-spinner'); if(ls2) ls2.style.display = 'none';
     }
 
     function startPingPongScroll() {
@@ -578,8 +577,8 @@
 
     init().catch(function(e) {
       console.error(e);
-      document.getElementById('podium-spinner').style.display = 'none';
-      document.getElementById('list-spinner').style.display   = 'none';
+      var ps2 = document.getElementById('podium-spinner'); if(ps2) ps2.style.display = 'none';
+      var ls3 = document.getElementById('list-spinner'); if(ls3) ls3.style.display = 'none';
     });
   </script>
 </body>
