@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
@@ -215,14 +215,9 @@
     }
 
     function changeMonth(dir) {
-      console.log('changeMonth called, dir:', dir, 'currentIdx:', currentIdx, 'total runs:', monthEndRuns.length);
       var newIdx = currentIdx + dir;
-      if (newIdx < 0 || newIdx >= monthEndRuns.length) {
-        console.log('Out of bounds, ignoring');
-        return;
-      }
+      if (newIdx < 0 || newIdx >= monthEndRuns.length) return;
       currentIdx = newIdx;
-      console.log('New currentIdx:', currentIdx, 'run:', monthEndRuns[currentIdx]);
       loadLeaderboard();
     }
 
@@ -237,8 +232,7 @@
       btnNext.disabled = currentIdx === 0;                          // can't go newer than Outstanding
       btnPrev.disabled = currentIdx === monthEndRuns.length - 1;   // can't go older than oldest run
 
-      document.getElementById('list-col-label').textContent =
-        currentIdx === 0 ? 'Last Activity' : 'Bonus Paid';
+      document.getElementById('list-col-label').textContent = 'Last Activity';
     }
 
     async function init() {
@@ -495,9 +489,7 @@
             '</div>';
         }).join('');
 
-        var statStr = run.isCurrent
-          ? Math.round(g.people[0].metres).toLocaleString() + 'm' + (isJoint ? ' each' : '')
-          : '&#163;' + g.people[0].bonus.toFixed(2) + (isJoint ? ' each' : '');
+        var statStr = Math.round(g.people[0].metres).toLocaleString() + 'm' + (isJoint ? ' each' : '');
 
         return '<div class="podium-place ' + meta.cls + '">' +
           '<div class="podium-face-wrap">' +
@@ -546,8 +538,6 @@
               var days = Math.floor((new Date() - d) / 86400000);
               var cls  = days <= 3 ? 'recent' : days >= 14 ? 'stale' : '';
               rightCol = '<div class="row-activity ' + cls + '">' + d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}) + '</div>';
-            } else if (!run.isCurrent) {
-              rightCol = '<div class="row-activity" style="color:#1a1a1a;font-weight:600">&#163;' + p.bonus.toFixed(2) + '</div>';
             } else {
               rightCol = '<div class="row-activity">&#8212;</div>';
             }
