@@ -298,6 +298,7 @@
       const dateTo  = document.getElementById('f-date-to').value;
       const minVal  = parseFloat(document.getElementById('f-min-val').value) || null;
       const maxVal  = parseFloat(document.getElementById('f-max-val').value) || null;
+      const typeFilter = document.getElementById('f-type').value;
 
       try {
         let query = sb
@@ -353,6 +354,11 @@
 
         let results = [...jobs, ...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
 
+        // Apply type filter
+        if (typeFilter === 'job')           results = results.filter(r => r._source === 'job');
+        if (typeFilter === 'deduction')     results = results.filter(r => r._source === 'deduction');
+        if (typeFilter === 'special_bonus') results = results.filter(r => r._source === 'special_bonus');
+
         currentResults = results;
         renderResults(results);
 
@@ -372,6 +378,7 @@
         .forEach(id => document.getElementById(id).value = '');
       document.getElementById('f-employee').value = '';
       document.getElementById('f-status').value   = 'unpaid';
+      document.getElementById('f-type').value     = '';
       runSearch();
     }
 
