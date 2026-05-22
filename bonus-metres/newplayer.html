@@ -475,7 +475,7 @@
 
         const unpaidJobs    = unpaidOps     || [];
         const paidJobs      = allOps        || [];
-        const unpaidDeds    = (unpaidEntries|| []).filter(e => e.type === 'deduction');
+        const unpaidDeds = (unpaidEntries|| []).filter(e => e.type === 'deduction' && !(e.reason && e.reason.startsWith('Carry-over')));
         const unpaidBonuses = (unpaidEntries|| []).filter(e => e.type === 'special_bonus');
         const hist          = history        || [];
 
