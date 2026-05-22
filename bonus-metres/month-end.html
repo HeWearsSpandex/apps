@@ -636,9 +636,11 @@
           if (!empMap[entry.employee_id]) return;
           if (entry.type === 'special_bonus') {
             empMap[entry.employee_id].special_bonuses += parseFloat(entry.amount);
-          } else if (entry.type === 'deduction') {
-            empMap[entry.employee_id].deductions += parseFloat(entry.amount);
-          }
+      } else if (entry.type === 'deduction') {
+      // Exclude carry-overs — already in carry_over_in from month_end_lines
+      if (entry.reason && entry.reason.startsWith('Carry-over')) return;
+      empMap[entry.employee_id].deductions += parseFloat(entry.amount);
+      }
         });
 
         // 5. Calculate net payable and carry-over out
