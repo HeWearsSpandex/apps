@@ -287,12 +287,14 @@
       }
 
       // Load deductions for this payment (bonus_entries with date_paid = payment)
+      // Exclude carry-over entries as they are already shown via month_end_lines.carry_over_in
       const { data: dedRows } = await sb
         .from('bonus_entries')
         .select('id, date, type, amount, reason')
         .eq('employee_id', emp.id)
         .eq('date_paid', payment)
-        .eq('type', 'deduction');
+        .eq('type', 'deduction')
+        .not('reason', 'ilike', 'Carry-over%');
 
       const jobs = myOps.filter(o => o.tx);
       const deds = dedRows || [];
