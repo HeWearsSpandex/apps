@@ -29,197 +29,70 @@
       --radius:   10px;
     }
 
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: var(--grey);
-      color: var(--text);
-      min-height: 100vh;
-    }
-
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--grey); color: var(--text); min-height: 100vh; }
     .main { margin-left: 220px; padding: 28px 32px; min-height: 100vh; }
-
     .page-header { margin-bottom: 28px; }
     .page-header h2 { font-size: 22px; font-weight: 700; }
     .page-header p  { font-size: 13px; color: var(--muted); margin-top: 3px; }
 
-    /* ── STEPS ── */
-    .steps {
-      display: flex;
-      align-items: center;
-      gap: 0;
-      margin-bottom: 28px;
-    }
-    .step {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 20px;
-      background: var(--white);
-      border: 1px solid var(--border);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--muted);
-      flex: 1;
-      justify-content: center;
-    }
+    .steps { display: flex; align-items: center; gap: 0; margin-bottom: 28px; }
+    .step { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: var(--white); border: 1px solid var(--border); font-size: 13px; font-weight: 600; color: var(--muted); flex: 1; justify-content: center; }
     .step:first-child { border-radius: var(--radius) 0 0 var(--radius); }
     .step:last-child  { border-radius: 0 var(--radius) var(--radius) 0; }
-    .step .step-num {
-      width: 22px; height: 22px;
-      border-radius: 50%;
-      background: var(--border);
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .step.active {
-      background: var(--blue-lt);
-      border-color: var(--blue);
-      color: var(--blue);
-    }
+    .step .step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--border); color: var(--muted); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .step.active { background: var(--blue-lt); border-color: var(--blue); color: var(--blue); }
     .step.active .step-num { background: var(--blue); color: var(--white); }
-    .step.done {
-      background: var(--green-lt);
-      border-color: var(--green);
-      color: var(--green);
-    }
+    .step.done { background: var(--green-lt); border-color: var(--green); color: var(--green); }
     .step.done .step-num { background: var(--green); color: var(--white); }
 
-    /* ── CARD ── */
-    .card {
-      background: var(--white);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      margin-bottom: 20px;
-      overflow: hidden;
-    }
-    .card-header {
-      padding: 16px 24px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
+    .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; overflow: hidden; }
+    .card-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
     .card-header h3 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
     .card-body   { padding: 24px; }
-    .card-footer {
-      padding: 14px 24px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      background: var(--grey);
-    }
+    .card-footer { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--grey); }
 
-    /* ── FORM ── */
     .form-row  { display: grid; gap: 16px; margin-bottom: 16px; }
     .form-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
     .form-row.cols-2 { grid-template-columns: 1fr 1fr; }
     .form-group { display: flex; flex-direction: column; gap: 5px; }
-    label {
-      font-size: 11px; font-weight: 700; color: var(--muted);
-      text-transform: uppercase; letter-spacing: 0.5px;
-    }
+    label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
     label .req { color: var(--red); margin-left: 2px; }
-    input[type=text], input[type=date] {
-      padding: 9px 12px;
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      font-size: 14px;
-      font-family: inherit;
-      outline: none;
-      background: var(--white);
-      transition: border-color 0.15s, box-shadow 0.15s;
-      width: 100%;
-    }
+    input[type=text], input[type=date] { padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; background: var(--white); transition: border-color 0.15s, box-shadow 0.15s; width: 100%; }
     input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(204,0,0,0.08); }
     .field-hint { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
-    /* ── BUTTONS ── */
-    .btn {
-      padding: 10px 22px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      border: none;
-      transition: all 0.15s;
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      font-family: inherit;
-    }
-    .btn-primary       { background: var(--red);   color: var(--white); }
+    .btn { padding: 10px 22px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; transition: all 0.15s; display: inline-flex; align-items: center; gap: 7px; font-family: inherit; }
+    .btn-primary { background: var(--red); color: var(--white); }
     .btn-primary:hover { background: var(--red-dk); }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-green         { background: var(--green);  color: var(--white); }
-    .btn-green:hover   { opacity: 0.9; }
+    .btn-green { background: var(--green); color: var(--white); }
+    .btn-green:hover { opacity: 0.9; }
     .btn-green:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-ghost         { background: var(--grey);   color: var(--muted); border: 1px solid var(--border); }
-    .btn-ghost:hover   { border-color: var(--red);  color: var(--red); }
-    .btn-blue          { background: var(--blue);   color: var(--white); }
-    .btn-blue:hover    { opacity: 0.9; }
+    .btn-ghost { background: var(--grey); color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--red); color: var(--red); }
+    .btn-blue { background: var(--blue); color: var(--white); }
+    .btn-blue:hover { opacity: 0.9; }
 
-    /* ── SUMMARY STATS ── */
-    .summary-stats {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    .stat-card {
-      background: var(--white);
-      border-radius: var(--radius);
-      padding: 14px 16px;
-      box-shadow: var(--shadow);
-      border-left: 4px solid var(--border);
-    }
+    .summary-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+    .stat-card { background: var(--white); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); border-left: 4px solid var(--border); }
     .stat-card.blue   { border-left-color: var(--blue); }
     .stat-card.green  { border-left-color: var(--green); }
     .stat-card.red    { border-left-color: var(--red); }
     .stat-card.orange { border-left-color: var(--orange); }
     .stat-card.gold   { border-left-color: var(--gold); }
-    .stat-val  { font-size: 22px; font-weight: 700; line-height: 1.2; }
-    .stat-lbl  { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
+    .stat-val { font-size: 22px; font-weight: 700; line-height: 1.2; }
+    .stat-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
     .stat-card.blue   .stat-val { color: var(--blue); }
     .stat-card.green  .stat-val { color: var(--green); }
     .stat-card.red    .stat-val { color: var(--red); }
     .stat-card.orange .stat-val { color: var(--orange); }
     .stat-card.gold   .stat-val { color: var(--gold); }
 
-    /* ── PREVIEW TABLE ── */
-    .preview-table-wrap {
-      overflow-x: auto;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-    }
-    .preview-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-      min-width: 800px;
-    }
-    .preview-table th {
-      padding: 10px 14px;
-      text-align: left;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      color: var(--muted);
-      background: var(--grey);
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-    }
+    .preview-table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+    .preview-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 800px; }
+    .preview-table th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); background: var(--grey); border-bottom: 1px solid var(--border); white-space: nowrap; }
     .preview-table th.num { text-align: right; }
-    .preview-table td {
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border);
-      vertical-align: middle;
-    }
+    .preview-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
     .preview-table tr:last-child td { border-bottom: none; }
     .preview-table tr:hover td { background: #fafafa; }
     .preview-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -230,77 +103,26 @@
     .val-carry    { color: var(--orange); font-weight: 600; }
 
     .emp-cell { display: flex; align-items: center; gap: 8px; }
-    .emp-avatar {
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 1.5px solid var(--border);
-      flex-shrink: 0;
-    }
-    .emp-initials-badge {
-      font-size: 10px;
-      background: var(--grey);
-      padding: 1px 6px;
-      border-radius: 6px;
-      color: var(--muted);
-      font-weight: 700;
-    }
-
+    .emp-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; }
+    .emp-initials-badge { font-size: 10px; background: var(--grey); padding: 1px 6px; border-radius: 6px; color: var(--muted); font-weight: 700; }
     .zero-row td { opacity: 0.45; }
 
-    /* ── LOCKED BANNER ── */
-    .locked-banner {
-      background: var(--green-lt);
-      border: 1.5px solid var(--green);
-      border-radius: var(--radius);
-      padding: 16px 20px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
+    .locked-banner { background: var(--green-lt); border: 1.5px solid var(--green); border-radius: var(--radius); padding: 16px 20px; display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
     .locked-banner .icon { font-size: 24px; }
     .locked-banner h4 { font-size: 14px; font-weight: 700; color: var(--green); }
     .locked-banner p  { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
-    /* ── HISTORY ── */
-    .history-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--border);
-    }
+    .history-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
     .history-item:last-child { border-bottom: none; }
-    .history-left h4  { font-size: 14px; font-weight: 600; }
-    .history-left p   { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .history-right    { display: flex; align-items: center; gap: 10px; }
+    .history-left h4 { font-size: 14px; font-weight: 600; }
+    .history-left p  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .history-right   { display: flex; align-items: center; gap: 10px; }
+    .badge-locked    { background: var(--green-lt); color: var(--green); font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 10px; }
 
-    .badge-locked   { background: var(--green-lt); color: var(--green);   font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 10px; }
+    .warn-box { background: var(--orange-lt); border: 1.5px solid var(--orange); border-radius: var(--radius); padding: 14px 18px; font-size: 13px; color: var(--orange); margin-bottom: 16px; display: flex; gap: 10px; align-items: flex-start; }
 
-    /* ── WARN BOX ── */
-    .warn-box {
-      background: var(--orange-lt);
-      border: 1.5px solid var(--orange);
-      border-radius: var(--radius);
-      padding: 14px 18px;
-      font-size: 13px;
-      color: var(--orange);
-      margin-bottom: 16px;
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-    }
-
-    /* ── SPINNER ── */
     .spinner-wrap { display: flex; justify-content: center; padding: 40px; }
-    .spinner {
-      width: 32px; height: 32px;
-      border: 3px solid var(--border);
-      border-top-color: var(--red);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     @media (max-width: 900px) {
@@ -319,25 +141,20 @@
   <div id="sidebarMount"></div>
 
   <div class="main" id="mainContent" style="display:none">
-
     <div class="page-header">
       <h2>Month End</h2>
       <p>Calculate, preview and commit the monthly bonus payment run</p>
     </div>
 
-    <!-- Steps indicator -->
     <div class="steps">
       <div class="step active" id="step-1"><span class="step-num">1</span> Set Up</div>
       <div class="step"        id="step-2"><span class="step-num">2</span> Preview</div>
       <div class="step"        id="step-3"><span class="step-num">3</span> Commit</div>
     </div>
 
-    <!-- ── STEP 1: SET UP ── -->
     <div id="panel-setup">
       <div class="card">
-        <div class="card-header">
-          <h3>📅 Configure Payment Run</h3>
-        </div>
+        <div class="card-header"><h3>&#128197; Configure Payment Run</h3></div>
         <div class="card-body">
           <div class="form-row cols-3">
             <div class="form-group">
@@ -357,55 +174,48 @@
             </div>
           </div>
           <div class="warn-box" id="existing-warn" style="display:none">
-            ⚠️ <span id="existing-warn-text"></span>
+            &#9888;&#65039; <span id="existing-warn-text"></span>
           </div>
         </div>
         <div class="card-footer">
           <div style="font-size:12px;color:var(--muted)">All unpaid transactions up to the cutoff date will be included</div>
-          <button class="btn btn-primary" tabindex="4" onclick="runPreview()">Calculate Preview →</button>
+          <button class="btn btn-primary" tabindex="4" onclick="runPreview()">Calculate Preview &#8594;</button>
         </div>
       </div>
 
-      <!-- Previous runs -->
       <div class="card">
-        <div class="card-header"><h3>🗂️ Previous Runs</h3></div>
+        <div class="card-header"><h3>&#128194; Previous Runs</h3></div>
         <div class="card-body" id="history-body">
           <div class="spinner-wrap"><div class="spinner"></div></div>
         </div>
       </div>
 
-      <!-- Year End -->
       <div class="card" style="border-left: 4px solid var(--orange)">
-        <div class="card-header">
-          <h3>📅 Year End</h3>
-        </div>
+        <div class="card-header"><h3>&#128197; Year End</h3></div>
         <div class="card-body">
           <p style="font-size:13px;color:var(--muted);margin-bottom:16px">
             Running year end will calculate any employees with a negative balance and carry their debt forward into the new financial year as a deduction dated 1st April. Unpaid job bonuses are left as-is and roll forward naturally.
           </p>
           <div id="year-end-status" style="margin-bottom:12px"></div>
           <div id="year-end-confirm" style="display:none;background:var(--orange-lt);border:1px solid var(--orange);border-radius:8px;padding:14px;margin-bottom:12px">
-            <p style="font-size:13px;font-weight:600;color:var(--orange);margin-bottom:10px">⚠️ Are you sure you want to run year end for <span id="ye-period-label"></span>?</p>
+            <p style="font-size:13px;font-weight:600;color:var(--orange);margin-bottom:10px">&#9888;&#65039; Are you sure you want to run year end for <span id="ye-period-label"></span>?</p>
             <p style="font-size:12px;color:var(--muted);margin-bottom:12px">This will create carry-over deduction entries for employees in debt. This cannot be undone.</p>
             <div style="display:flex;gap:8px">
               <button class="btn btn-ghost" onclick="cancelYearEnd()">Cancel</button>
-              <button class="btn" style="background:var(--orange);color:#fff" onclick="runYearEnd()">✓ Confirm Year End</button>
+              <button class="btn" style="background:var(--orange);color:#fff" onclick="runYearEnd()">&#10003; Confirm Year End</button>
             </div>
           </div>
-          <button class="btn btn-ghost" id="ye-btn" onclick="initiateYearEnd()">📅 Run Year End</button>
+          <button class="btn btn-ghost" id="ye-btn" onclick="initiateYearEnd()">&#128197; Run Year End</button>
         </div>
       </div>
     </div>
 
-    <!-- ── STEP 2: PREVIEW ── -->
     <div id="panel-preview" style="display:none">
-
       <div class="summary-stats" id="summary-stats"></div>
-
       <div class="card">
         <div class="card-header">
-          <h3>👁️ Payment Preview — <span id="preview-period-label"></span></h3>
-          <button class="btn btn-ghost" onclick="backToSetup()">← Back</button>
+          <h3>&#128065;&#65039; Payment Preview &#8212; <span id="preview-period-label"></span></h3>
+          <button class="btn btn-ghost" onclick="backToSetup()">&#8592; Back</button>
         </div>
         <div class="card-body" style="padding:0">
           <div class="preview-table-wrap">
@@ -429,29 +239,27 @@
         <div class="card-footer">
           <div style="font-size:12px;color:var(--muted)" id="preview-footer-note"></div>
           <div style="display:flex;gap:10px">
-            <button class="btn btn-ghost" onclick="backToSetup()">← Reconfigure</button>
-            <button class="btn btn-green" id="commit-btn" onclick="confirmCommit()">✓ Commit & Pay</button>
+            <button class="btn btn-ghost" onclick="backToSetup()">&#8592; Reconfigure</button>
+            <button class="btn btn-green" id="commit-btn" onclick="confirmCommit()">&#10003; Commit &amp; Pay</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ── STEP 3: COMMITTED ── -->
     <div id="panel-committed" style="display:none">
       <div class="locked-banner">
-        <div class="icon">✅</div>
+        <div class="icon">&#9989;</div>
         <div>
           <h4 id="committed-title">Month end committed</h4>
           <p id="committed-subtitle"></p>
         </div>
       </div>
       <div style="display:flex;gap:12px;margin-bottom:24px">
-        <button class="btn btn-blue" onclick="downloadCSV()">⬇️ Download Payroll CSV</button>
+        <button class="btn btn-blue" onclick="downloadCSV()">&#11015;&#65039; Download Payroll CSV</button>
         <button class="btn btn-ghost" onclick="resetToSetup()">Run Another Month End</button>
       </div>
-      <!-- Show the committed table read-only -->
       <div class="card">
-        <div class="card-header"><h3>📋 Committed Summary</h3></div>
+        <div class="card-header"><h3>&#128203; Committed Summary</h3></div>
         <div class="card-body" style="padding:0">
           <div class="preview-table-wrap">
             <table class="preview-table">
@@ -473,27 +281,21 @@
         </div>
       </div>
     </div>
-
   </div>
 
   <script>
-    // ── State ─────────────────────────────────────────────────────────────────
-    let previewData    = [];   // array of line objects
-    let previewConfig  = {};   // { periodName, paymentDate, cutoffDate }
+    let previewData    = [];
+    let previewConfig  = {};
     let committedRunId = null;
     let allEmployees   = [];
 
-    // ── Init ──────────────────────────────────────────────────────────────────
     async function init() {
       const ok = await requireAuth();
       if (!ok) return;
       document.getElementById('mainContent').style.display = 'block';
-
-      // Default payment date to today
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('payment-date').value = today;
       document.getElementById('cutoff-date').value  = today;
-
       await Promise.all([loadEmployees(), loadHistory()]);
     }
 
@@ -505,7 +307,6 @@
       allEmployees = data || [];
     }
 
-    // ── History ───────────────────────────────────────────────────────────────
     async function loadHistory() {
       const { data, error } = await sb
         .from('month_end_runs')
@@ -515,32 +316,27 @@
 
       const el = document.getElementById('history-body');
       if (error || !data?.length) {
-        el.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No month-end runs yet</div>`;
+        el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No month-end runs yet</div>';
         return;
       }
 
-      // Use document_path column — more reliable than storage list check
       el.innerHTML = data.map(run => {
         const pd     = new Date(run.payment_date).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
         const pa     = new Date(run.processed_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
         const hasPdf = !!run.document_path;
-        return `<div class="history-item">
-          <div class="history-left">
-            <h4>${run.period_name}</h4>
-            <p>Payment date: ${pd} &nbsp;·&nbsp; Processed: ${pa} &nbsp;·&nbsp; Total paid: £${parseFloat(run.total_paid||0).toFixed(2)}</p>
-          </div>
-          <div class="history-right">
-            <span class="badge-locked">🔒 Locked</span>
-            <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="redownloadCSV('${run.id}', '${run.period_name}')">⬇️ CSV</button>
-            ${hasPdf
-              ? `<button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="downloadPDF('${run.id}', '${run.period_name}')">📄 PDF</button>`
-              : `<button class="btn btn-ghost" id="pdf-btn-${run.id}" style="font-size:12px;padding:6px 12px;opacity:0.5" onclick="regeneratePDF('${run.id}', '${run.period_name}')">📄 Generate PDF</button>`}
-          </div>
-        </div>`;
+        return '<div class="history-item">' +
+          '<div class="history-left"><h4>' + run.period_name + '</h4>' +
+          '<p>Payment date: ' + pd + ' &nbsp;&middot;&nbsp; Processed: ' + pa + ' &nbsp;&middot;&nbsp; Total paid: &pound;' + parseFloat(run.total_paid||0).toFixed(2) + '</p></div>' +
+          '<div class="history-right">' +
+          '<span class="badge-locked">&#128274; Locked</span>' +
+          '<button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="redownloadCSV(\'' + run.id + '\', \'' + run.period_name + '\')">&#11015;&#65039; CSV</button>' +
+          (hasPdf
+            ? '<button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="downloadPDF(\'' + run.id + '\', \'' + run.period_name + '\')">&#128196; PDF</button>'
+            : '<button class="btn btn-ghost" id="pdf-btn-' + run.id + '" style="font-size:12px;padding:6px 12px;opacity:0.5" onclick="regeneratePDF(\'' + run.id + '\', \'' + run.period_name + '\')">&#128196; Generate PDF</button>') +
+          '</div></div>';
       }).join('');
     }
 
-    // ── Preview ───────────────────────────────────────────────────────────────
     async function runPreview() {
       const periodName  = document.getElementById('period-name').value.trim();
       const paymentDate = document.getElementById('payment-date').value;
@@ -550,7 +346,6 @@
       if (!paymentDate) { showToast('Payment date is required', 'error'); return; }
       if (!cutoffDate)  { showToast('Cutoff date is required', 'error'); return; }
 
-      // Check for duplicate period
       const { data: existing } = await sb
         .from('month_end_runs')
         .select('id, period_name')
@@ -560,14 +355,13 @@
       if (existing?.length) {
         document.getElementById('existing-warn').style.display = 'flex';
         document.getElementById('existing-warn-text').textContent =
-          `A month-end run for payment date ${paymentDate} already exists (${existing[0].period_name}). Please choose a different date.`;
+          'A month-end run for payment date ' + paymentDate + ' already exists (' + existing[0].period_name + '). Please choose a different date.';
         return;
       }
       document.getElementById('existing-warn').style.display = 'none';
 
       previewConfig = { periodName, paymentDate, cutoffDate };
 
-      // Show preview panel
       document.getElementById('panel-setup').style.display    = 'none';
       document.getElementById('panel-preview').style.display  = 'block';
       document.getElementById('panel-committed').style.display = 'none';
@@ -585,19 +379,20 @@
         // 1. Get all unpaid job bonuses up to cutoff
         const { data: txOps } = await sb
           .from('transaction_operatives')
-          .select(`share_value, employee_id,
-                   transactions!inner(id, date, date_paid)`)
+          .select('share_value, employee_id, transactions!inner(id, date, date_paid)')
           .is('transactions.date_paid', null)
           .lte('transactions.date', cutoffDate);
 
         // 2. Get all unpaid bonus entries up to cutoff
+        //    EXCLUDE carry-over entries — these are handled via carry_over_in from month_end_lines
         const { data: bonusEntries } = await sb
           .from('bonus_entries')
-          .select('employee_id, type, amount, date_paid, date')
+          .select('employee_id, type, amount, date_paid, date, reason')
           .is('date_paid', null)
-          .lte('date', cutoffDate);
+          .lte('date', cutoffDate)
+          .not('reason', 'ilike', 'Carry-over%');
 
-        // 3. Get carry-overs from last month-end
+        // 3. Get carry-overs from last month-end lines
         const { data: lastRun } = await sb
           .from('month_end_runs')
           .select('id')
@@ -618,7 +413,7 @@
         const empMap = {};
         allEmployees.forEach(e => {
           empMap[e.id] = {
-            employee: e,
+            employee:        e,
             job_bonuses:     0,
             special_bonuses: 0,
             deductions:      0,
@@ -636,17 +431,17 @@
           if (!empMap[entry.employee_id]) return;
           if (entry.type === 'special_bonus') {
             empMap[entry.employee_id].special_bonuses += parseFloat(entry.amount);
-      } else if (entry.type === 'deduction') {
-      // Exclude carry-overs — already in carry_over_in from month_end_lines
-      if (entry.reason && entry.reason.startsWith('Carry-over')) return;
-      empMap[entry.employee_id].deductions += parseFloat(entry.amount);
-      }
+          } else if (entry.type === 'deduction') {
+            // Extra safety check — skip any carry-overs that slipped through the query filter
+            if (entry.reason && entry.reason.startsWith('Carry-over')) return;
+            empMap[entry.employee_id].deductions += parseFloat(entry.amount);
+          }
         });
 
         // 5. Calculate net payable and carry-over out
         previewData = Object.values(empMap).map(e => {
-          const gross = e.job_bonuses + e.special_bonuses;
-          const net   = gross - e.deductions - e.carry_over_in;
+          const gross         = e.job_bonuses + e.special_bonuses;
+          const net           = gross - e.deductions - e.carry_over_in;
           const netPayable    = Math.max(0, net);
           const carryOverOut  = net < 0 ? Math.abs(net) : 0;
           return {
@@ -671,14 +466,13 @@
     function round2(n) { return Math.round(n * 100) / 100; }
 
     function fmt(n) {
-      if (n === 0) return '<span class="val-zero">£0.00</span>';
-      return `£${Math.abs(n).toFixed(2)}`;
+      if (n === 0) return '<span class="val-zero">&pound;0.00</span>';
+      return '&pound;' + Math.abs(n).toFixed(2);
     }
 
     function renderPreview() {
       const tbody = document.getElementById('preview-tbody');
       const tfoot = document.getElementById('preview-tfoot');
-
       const totals = { job: 0, special: 0, ded: 0, co_in: 0, net: 0, co_out: 0 };
 
       tbody.innerHTML = previewData.map(line => {
@@ -692,78 +486,58 @@
         const isZero = line.net_payable === 0 && line.job_bonuses === 0 &&
                        line.special_bonuses === 0 && line.deductions === 0 &&
                        line.carry_over_in === 0;
-        const rowCls = isZero ? 'zero-row' : '';
-        const imgSrc = `/img/${encodeURIComponent(line.employee.full_name)}_cvface1.png`;
-        const fallback = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'><circle cx='14' cy='14' r='14' fill='%23ddd'/><text x='14' y='19' text-anchor='middle' font-size='11' fill='%23999'>${line.employee.full_name.charAt(0)}</text></svg>`;
+        const rowCls  = isZero ? 'zero-row' : '';
+        const imgSrc  = '/img/' + encodeURIComponent(line.employee.full_name) + '_cvface1.png';
+        const fallback = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'><circle cx='14' cy='14' r='14' fill='%23ddd'/><text x='14' y='19' text-anchor='middle' font-size='11' fill='%23999'>" + line.employee.full_name.charAt(0) + "</text></svg>";
 
-        return `<tr class="${rowCls}">
-          <td>
-            <div class="emp-cell">
-              <img class="emp-avatar" src="${imgSrc}" onerror="this.src='${fallback}'">
-              ${line.employee.full_name}
-              <span class="emp-initials-badge">${line.employee.initials}</span>
-            </div>
-          </td>
-          <td class="num">${line.job_bonuses > 0 ? `<span class="val-positive">${fmt(line.job_bonuses)}</span>` : fmt(0)}</td>
-          <td class="num">${line.special_bonuses > 0 ? `<span class="val-positive">${fmt(line.special_bonuses)}</span>` : fmt(0)}</td>
-          <td class="num">${line.deductions > 0 ? `<span class="val-negative">-${fmt(line.deductions)}</span>` : fmt(0)}</td>
-          <td class="num">${line.carry_over_in > 0 ? `<span class="val-negative">-${fmt(line.carry_over_in)}</span>` : fmt(0)}</td>
-          <td class="num">${line.net_payable > 0 ? `<span class="val-positive">${fmt(line.net_payable)}</span>` : fmt(0)}</td>
-          <td class="num">${line.carry_over_out > 0 ? `<span class="val-carry">${fmt(line.carry_over_out)}</span>` : fmt(0)}</td>
-        </tr>`;
+        return '<tr class="' + rowCls + '">' +
+          '<td><div class="emp-cell">' +
+          '<img class="emp-avatar" src="' + imgSrc + '" onerror="this.src=\'' + fallback + '\'">' +
+          line.employee.full_name +
+          '<span class="emp-initials-badge">' + line.employee.initials + '</span>' +
+          '</div></td>' +
+          '<td class="num">' + (line.job_bonuses > 0 ? '<span class="val-positive">' + fmt(line.job_bonuses) + '</span>' : fmt(0)) + '</td>' +
+          '<td class="num">' + (line.special_bonuses > 0 ? '<span class="val-positive">' + fmt(line.special_bonuses) + '</span>' : fmt(0)) + '</td>' +
+          '<td class="num">' + (line.deductions > 0 ? '<span class="val-negative">-' + fmt(line.deductions) + '</span>' : fmt(0)) + '</td>' +
+          '<td class="num">' + (line.carry_over_in > 0 ? '<span class="val-negative">-' + fmt(line.carry_over_in) + '</span>' : fmt(0)) + '</td>' +
+          '<td class="num">' + (line.net_payable > 0 ? '<span class="val-positive">' + fmt(line.net_payable) + '</span>' : fmt(0)) + '</td>' +
+          '<td class="num">' + (line.carry_over_out > 0 ? '<span class="val-carry">' + fmt(line.carry_over_out) + '</span>' : fmt(0)) + '</td>' +
+          '</tr>';
       }).join('');
 
-      tfoot.innerHTML = `<tr style="background:var(--grey);font-weight:700">
-        <td style="padding:10px 14px">Totals</td>
-        <td class="num" style="padding:10px 14px">£${totals.job.toFixed(2)}</td>
-        <td class="num" style="padding:10px 14px">£${totals.special.toFixed(2)}</td>
-        <td class="num" style="padding:10px 14px">£${totals.ded.toFixed(2)}</td>
-        <td class="num" style="padding:10px 14px">£${totals.co_in.toFixed(2)}</td>
-        <td class="num" style="padding:10px 14px;color:var(--green)">£${totals.net.toFixed(2)}</td>
-        <td class="num" style="padding:10px 14px;color:var(--orange)">£${totals.co_out.toFixed(2)}</td>
-      </tr>`;
+      tfoot.innerHTML = '<tr style="background:var(--grey);font-weight:700">' +
+        '<td style="padding:10px 14px">Totals</td>' +
+        '<td class="num" style="padding:10px 14px">&pound;' + totals.job.toFixed(2) + '</td>' +
+        '<td class="num" style="padding:10px 14px">&pound;' + totals.special.toFixed(2) + '</td>' +
+        '<td class="num" style="padding:10px 14px">&pound;' + totals.ded.toFixed(2) + '</td>' +
+        '<td class="num" style="padding:10px 14px">&pound;' + totals.co_in.toFixed(2) + '</td>' +
+        '<td class="num" style="padding:10px 14px;color:var(--green)">&pound;' + totals.net.toFixed(2) + '</td>' +
+        '<td class="num" style="padding:10px 14px;color:var(--orange)">&pound;' + totals.co_out.toFixed(2) + '</td>' +
+        '</tr>';
 
-      // Summary stats
       const withPayment  = previewData.filter(l => l.net_payable > 0).length;
       const withCarryOut = previewData.filter(l => l.carry_over_out > 0).length;
-      document.getElementById('summary-stats').innerHTML = `
-        <div class="stat-card blue">
-          <div class="stat-val">${previewData.length}</div>
-          <div class="stat-lbl">Employees</div>
-        </div>
-        <div class="stat-card green">
-          <div class="stat-val">£${totals.net.toFixed(2)}</div>
-          <div class="stat-lbl">Total Payable</div>
-        </div>
-        <div class="stat-card gold">
-          <div class="stat-val">£${totals.job.toFixed(2)}</div>
-          <div class="stat-lbl">Job Bonuses</div>
-        </div>
-        <div class="stat-card red">
-          <div class="stat-val">${withCarryOut}</div>
-          <div class="stat-lbl">Carry-overs Out</div>
-        </div>
-        <div class="stat-card orange">
-          <div class="stat-val">${withPayment}</div>
-          <div class="stat-lbl">Staff Being Paid</div>
-        </div>`;
+      document.getElementById('summary-stats').innerHTML =
+        '<div class="stat-card blue"><div class="stat-val">' + previewData.length + '</div><div class="stat-lbl">Employees</div></div>' +
+        '<div class="stat-card green"><div class="stat-val">&pound;' + totals.net.toFixed(2) + '</div><div class="stat-lbl">Total Payable</div></div>' +
+        '<div class="stat-card gold"><div class="stat-val">&pound;' + totals.job.toFixed(2) + '</div><div class="stat-lbl">Job Bonuses</div></div>' +
+        '<div class="stat-card red"><div class="stat-val">' + withCarryOut + '</div><div class="stat-lbl">Carry-overs Out</div></div>' +
+        '<div class="stat-card orange"><div class="stat-val">' + withPayment + '</div><div class="stat-lbl">Staff Being Paid</div></div>';
 
       const zeroCount = previewData.filter(l => l.net_payable === 0 && l.job_bonuses === 0).length;
       document.getElementById('preview-footer-note').textContent =
-        `${zeroCount} employee${zeroCount !== 1 ? 's' : ''} with no activity are shown greyed out`;
+        zeroCount + ' employee' + (zeroCount !== 1 ? 's' : '') + ' with no activity are shown greyed out';
     }
 
-    // ── Commit ────────────────────────────────────────────────────────────────
     async function confirmCommit() {
       const btn = document.getElementById('commit-btn');
       btn.disabled = true;
-      btn.textContent = 'Committing…';
+      btn.textContent = 'Committing...';
 
       try {
         const { periodName, paymentDate, cutoffDate } = previewConfig;
         const totalPaid = previewData.reduce((s, l) => s + l.net_payable, 0);
 
-        // 1. Insert month_end_runs record
         const { data: run, error: runErr } = await sb
           .from('month_end_runs')
           .insert({
@@ -779,7 +553,6 @@
         if (runErr) throw new Error(runErr.message);
         committedRunId = run.id;
 
-        // 2. Insert month_end_lines
         const lines = previewData.map(l => ({
           month_end_id:    run.id,
           employee_id:     l.employee.id,
@@ -792,7 +565,6 @@
         const { error: linesErr } = await sb.from('month_end_lines').insert(lines);
         if (linesErr) throw new Error(linesErr.message);
 
-        // 3. Stamp date_paid on all unpaid transactions up to cutoff
         const { error: txErr } = await sb
           .from('transactions')
           .update({ date_paid: paymentDate })
@@ -800,15 +572,25 @@
           .lte('date', cutoffDate);
         if (txErr) throw new Error(txErr.message);
 
-        // 4. Stamp date_paid on all unpaid bonus_entries up to cutoff
+        // Stamp date_paid on bonus_entries EXCLUDING carry-overs (they get new entries below)
         const { error: beErr } = await sb
           .from('bonus_entries')
           .update({ date_paid: paymentDate })
           .is('date_paid', null)
-          .lte('date', cutoffDate);
+          .lte('date', cutoffDate)
+          .not('reason', 'ilike', 'Carry-over%');
         if (beErr) throw new Error(beErr.message);
 
-        // 5. Create carry-over deduction entries for next month
+        // Also stamp the carry-over entries that were included in this run
+        const { error: coStampErr } = await sb
+          .from('bonus_entries')
+          .update({ date_paid: paymentDate })
+          .is('date_paid', null)
+          .lte('date', cutoffDate)
+          .ilike('reason', 'Carry-over%');
+        if (coStampErr) throw new Error(coStampErr.message);
+
+        // Create new carry-over deduction entries for next month
         const carryOvers = previewData
           .filter(l => l.carry_over_out > 0)
           .map(l => ({
@@ -816,7 +598,7 @@
             type:        'deduction',
             employee_id: l.employee.id,
             amount:      l.carry_over_out,
-            reason:      `Carry-over from ${periodName}`,
+            reason:      'Carry-over from ' + periodName,
             date_paid:   null,
             created_by:  currentUser.id
           }));
@@ -826,29 +608,26 @@
           if (coErr) throw new Error(coErr.message);
         }
 
-        // Mirror the table into committed view (kept for reference)
         document.getElementById('committed-tbody').innerHTML = document.getElementById('preview-tbody').innerHTML;
         document.getElementById('committed-tfoot').innerHTML = document.getElementById('preview-tfoot').innerHTML;
 
         await loadHistory();
-        showToast(`✓ ${periodName} committed — £${totalPaid.toFixed(2)} total`, 'success');
+        showToast('&#10003; ' + periodName + ' committed &mdash; &pound;' + totalPaid.toFixed(2) + ' total', 'success');
         await auditLog('month_end_committed', 'month_end_run', committedRunId,
           periodName,
           { payment_date: paymentDate, total_paid: totalPaid, employees_paid: previewData.filter(l => l.net_payable > 0).length }
         );
 
-        // Generate and store PDF
-        btn.textContent = '⏳ Building PDF…';
+        btn.textContent = '&#9203; Building PDF...';
         try {
           await generateAndStorePDF(committedRunId, periodName, paymentDate, totalPaid, previewData);
           await loadHistory();
-          showToast('✓ PDF saved — returning to setup', 'success');
+          showToast('&#10003; PDF saved', 'success');
         } catch(pdfErr) {
           console.error('PDF generation failed:', pdfErr);
-          showToast(`PDF failed (${pdfErr.message}) — use Generate PDF in history`, 'warning');
+          showToast('PDF failed (' + pdfErr.message + ') &mdash; use Generate PDF in history', 'warning');
         }
 
-        // Return to setup after a short pause so user can see the success message
         await new Promise(r => setTimeout(r, 2000));
         resetToSetup();
 
@@ -856,27 +635,22 @@
         console.error(e);
         showToast('Commit failed: ' + e.message, 'error');
         btn.disabled = false;
-        btn.textContent = '✓ Commit & Pay';
+        btn.textContent = '&#10003; Commit &amp; Pay';
       }
     }
 
-    // ── CSV Export ────────────────────────────────────────────────────────────
     function buildCSV(data, periodName, paymentDate) {
       const pd = new Date(paymentDate).toLocaleDateString('en-GB');
       const rows = [
-        [`JHB Bonus Metres — ${periodName}`],
-        [`Payment Date: ${pd}`],
+        ['JHB Bonus Metres — ' + periodName],
+        ['Payment Date: ' + pd],
         [],
         ['Employee', 'Initials', 'Job Bonuses', 'Special Bonuses', 'Deductions', 'Carry-over In', 'Net Payable', 'Carry-over Out'],
         ...data.map(l => [
-          l.employee.full_name,
-          l.employee.initials,
-          l.job_bonuses.toFixed(2),
-          l.special_bonuses.toFixed(2),
-          l.deductions.toFixed(2),
-          l.carry_over_in.toFixed(2),
-          l.net_payable.toFixed(2),
-          l.carry_over_out.toFixed(2),
+          l.employee.full_name, l.employee.initials,
+          l.job_bonuses.toFixed(2), l.special_bonuses.toFixed(2),
+          l.deductions.toFixed(2), l.carry_over_in.toFixed(2),
+          l.net_payable.toFixed(2), l.carry_over_out.toFixed(2),
         ]),
         [],
         ['TOTALS', '',
@@ -888,7 +662,7 @@
           data.reduce((s,l)=>s+l.carry_over_out,0).toFixed(2),
         ]
       ];
-      return rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+      return rows.map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(',')).join('\n');
     }
 
     function triggerDownload(csv, filename) {
@@ -901,11 +675,9 @@
 
     function downloadCSV() {
       const csv = buildCSV(previewData, previewConfig.periodName, previewConfig.paymentDate);
-      const fn  = `JHB_MonthEnd_${previewConfig.periodName.replace(/\s+/g,'-')}.csv`;
+      const fn  = 'JHB_MonthEnd_' + previewConfig.periodName.replace(/\s+/g,'-') + '.csv';
       triggerDownload(csv, fn);
-      auditLog('export_csv', 'month_end_run', committedRunId, fn,
-        { period: previewConfig.periodName, rows: previewData.length }
-      );
+      auditLog('export_csv', 'month_end_run', committedRunId, fn, { period: previewConfig.periodName, rows: previewData.length });
     }
 
     async function redownloadCSV(runId, periodName) {
@@ -917,7 +689,7 @@
 
       const data = (lines || []).map(l => ({
         employee:        { full_name: l.employees.full_name, initials: l.employees.initials },
-        job_bonuses:     parseFloat(l.gross_earned) - parseFloat(l.deductions >= 0 ? 0 : 0), // approximate
+        job_bonuses:     parseFloat(l.gross_earned),
         special_bonuses: 0,
         deductions:      parseFloat(l.deductions),
         carry_over_in:   parseFloat(l.carry_over_in),
@@ -926,19 +698,16 @@
       }));
 
       const csv = buildCSV(data, run.period_name, run.payment_date);
-      const fn = `JHB_MonthEnd_${run.period_name.replace(/\s+/g,'-')}.csv`;
+      const fn  = 'JHB_MonthEnd_' + run.period_name.replace(/\s+/g,'-') + '.csv';
       triggerDownload(csv, fn);
-      auditLog('export_csv', 'month_end_run', runId, fn,
-        { period: run.period_name, rows: data.length }
-      );
+      auditLog('export_csv', 'month_end_run', runId, fn, { period: run.period_name, rows: data.length });
     }
 
-    // ── Navigation ────────────────────────────────────────────────────────────
     function setStep(n) {
       [1,2,3].forEach(i => {
-        const el = document.getElementById(`step-${i}`);
+        const el = document.getElementById('step-' + i);
         el.className = 'step' + (i < n ? ' done' : i === n ? ' active' : '');
-        el.querySelector('.step-num').textContent = i < n ? '✓' : i;
+        el.querySelector('.step-num').textContent = i < n ? '&#10003;' : i;
       });
     }
 
@@ -950,16 +719,11 @@
     }
 
     function resetToSetup() {
-      previewData   = [];
-      previewConfig = {};
-      committedRunId = null;
+      previewData = []; previewConfig = {}; committedRunId = null;
       backToSetup();
     }
 
-    // ── PDF Generation ────────────────────────────────────────────────────────
-
     async function generateAndStorePDF(runId, periodName, paymentDate, totalPaid, lines) {
-      // Normalise field names — previewData uses job_bonuses, month_end_lines uses gross_earned
       const normLines = lines.map(l => ({
         employee:       l.employee || l.employees,
         gross_earned:   parseFloat(l.gross_earned ?? ((l.job_bonuses || 0) + (l.special_bonuses || 0))),
@@ -970,61 +734,44 @@
       })).sort((a, b) => b.net_payable - a.net_payable);
 
       const dateStr = new Date(paymentDate).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
-      const genStr  = `Generated by ${currentAdmin?.name || currentUser?.email} on ${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}`;
+      const genStr  = 'Generated by ' + (currentAdmin?.name || currentUser?.email) + ' on ' + new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
 
       if (!window.jspdf) throw new Error('jsPDF not loaded');
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-      // ── Logo ──────────────────────────────────────────────────────────────
       try {
-        const logoUrl = `${SUPABASE_URL}/storage/v1/object/public/images/JHB%20Logo.png`;
+        const logoUrl  = SUPABASE_URL + '/storage/v1/object/public/images/JHB%20Logo.png';
         const logoResp = await fetch(logoUrl);
         const logoBlob = await logoResp.blob();
-        const logoData = await new Promise(res => {
-          const reader = new FileReader();
-          reader.onload = () => res(reader.result);
-          reader.readAsDataURL(logoBlob);
-        });
+        const logoData = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(logoBlob); });
         doc.addImage(logoData, 'PNG', 10, 8, 30, 15);
-      } catch(e) { /* skip logo if unavailable */ }
+      } catch(e) {}
 
-      // ── Header text ───────────────────────────────────────────────────────
-      doc.setFontSize(18); doc.setFont('helvetica', 'bold');
-      doc.setTextColor(204, 0, 0);
+      doc.setFontSize(18); doc.setFont('helvetica', 'bold'); doc.setTextColor(204, 0, 0);
       doc.text('JHB Bonus Metres', 297 - 10, 12, { align: 'right' });
+      doc.setFontSize(11); doc.setFont('helvetica', 'normal'); doc.setTextColor(51, 51, 51);
+      doc.text(periodName, 297 - 10, 18, { align: 'right' });
+      doc.text('Payment Date: ' + dateStr, 297 - 10, 23, { align: 'right' });
+      doc.setDrawColor(204, 0, 0); doc.setLineWidth(0.5); doc.line(10, 27, 287, 27);
 
-      doc.setFontSize(11); doc.setFont('helvetica', 'normal');
-      doc.setTextColor(51, 51, 51);
-      doc.text(periodName,  297 - 10, 18, { align: 'right' });
-      doc.text(`Payment Date: ${dateStr}`, 297 - 10, 23, { align: 'right' });
-
-      // ── Red divider line ──────────────────────────────────────────────────
-      doc.setDrawColor(204, 0, 0); doc.setLineWidth(0.5);
-      doc.line(10, 27, 287, 27);
-
-      // ── Table ─────────────────────────────────────────────────────────────
-      const fmt = n => `£${parseFloat(n).toFixed(2)}`;
-      const fmtDed = n => parseFloat(n) > 0 ? `-£${parseFloat(n).toFixed(2)}` : '—';
+      const fmtP = n => '£' + parseFloat(n).toFixed(2);
+      const fmtD = n => parseFloat(n) > 0 ? '-£' + parseFloat(n).toFixed(2) : '—';
 
       const tableRows = normLines.map(l => [
-        l.employee?.full_name || '—',
-        l.employee?.initials  || '—',
-        fmt(l.gross_earned),
-        fmtDed(l.deductions),
-        fmtDed(l.carry_over_in),
-        fmt(l.net_payable),
-        parseFloat(l.carry_over_out) > 0 ? fmt(l.carry_over_out) : '—',
+        l.employee?.full_name || '—', l.employee?.initials || '—',
+        fmtP(l.gross_earned), fmtD(l.deductions), fmtD(l.carry_over_in),
+        fmtP(l.net_payable),
+        parseFloat(l.carry_over_out) > 0 ? fmtP(l.carry_over_out) : '—',
       ]);
 
-      // Totals row
       tableRows.push([
-        `TOTALS (${normLines.length} employees)`, '',
-        fmt(normLines.reduce((s,l) => s + l.gross_earned, 0)),
-        `-£${normLines.reduce((s,l) => s + l.deductions, 0).toFixed(2)}`,
-        `-£${normLines.reduce((s,l) => s + l.carry_over_in, 0).toFixed(2)}`,
-        fmt(totalPaid),
-        fmt(normLines.reduce((s,l) => s + l.carry_over_out, 0)),
+        'TOTALS (' + normLines.length + ' employees)', '',
+        fmtP(normLines.reduce((s,l) => s + l.gross_earned, 0)),
+        '-£' + normLines.reduce((s,l) => s + l.deductions, 0).toFixed(2),
+        '-£' + normLines.reduce((s,l) => s + l.carry_over_in, 0).toFixed(2),
+        fmtP(totalPaid),
+        fmtP(normLines.reduce((s,l) => s + l.carry_over_out, 0)),
       ]);
 
       doc.autoTable({
@@ -1035,15 +782,11 @@
         styles: { fontSize: 9, cellPadding: 3, overflow: 'linebreak' },
         headStyles: { fillColor: [204, 0, 0], textColor: 255, fontStyle: 'bold', fontSize: 9 },
         columnStyles: {
-          0: { cellWidth: 55 },
-          1: { cellWidth: 18, halign: 'center' },
-          2: { cellWidth: 32, halign: 'right' },
-          3: { cellWidth: 28, halign: 'right' },
-          4: { cellWidth: 30, halign: 'right' },
-          5: { cellWidth: 32, halign: 'right', fontStyle: 'bold' },
+          0: { cellWidth: 55 }, 1: { cellWidth: 18, halign: 'center' },
+          2: { cellWidth: 32, halign: 'right' }, 3: { cellWidth: 28, halign: 'right' },
+          4: { cellWidth: 30, halign: 'right' }, 5: { cellWidth: 32, halign: 'right', fontStyle: 'bold' },
           6: { cellWidth: 32, halign: 'right' },
         },
-        // Style the totals row
         didParseCell: (data) => {
           if (data.row.index === tableRows.length - 1) {
             data.cell.styles.fontStyle = 'bold';
@@ -1053,51 +796,38 @@
         },
       });
 
-      // ── Footer ────────────────────────────────────────────────────────────
       const pageH = doc.internal.pageSize.getHeight();
       doc.setFontSize(8); doc.setTextColor(170, 170, 170);
       doc.text(genStr, 297 - 10, pageH - 6, { align: 'right' });
       doc.text('JHB Bonus Metres — Confidential', 10, pageH - 6);
 
-      // ── Store in Supabase ─────────────────────────────────────────────────
-      const pdfBytes  = doc.output('arraybuffer');
-      const pdfBlob   = new Blob([pdfBytes], { type: 'application/pdf' });
-      const fileName  = `month-end/${runId}.pdf`;
+      const pdfBytes = doc.output('arraybuffer');
+      const pdfBlob  = new Blob([pdfBytes], { type: 'application/pdf' });
+      const fileName = 'month-end/' + runId + '.pdf';
 
-      const { error } = await sb.storage.from('documents').upload(fileName, pdfBlob, {
-        upsert: true,
-        contentType: 'application/pdf'
-      });
+      const { error } = await sb.storage.from('documents').upload(fileName, pdfBlob, { upsert: true, contentType: 'application/pdf' });
       if (error) throw new Error(error.message);
 
-      // Verify file is actually in storage before marking as done
-      const { data: verifyData, error: verifyErr } = await sb.storage
-        .from('documents').download(fileName);
+      const { data: verifyData, error: verifyErr } = await sb.storage.from('documents').download(fileName);
       if (verifyErr || !verifyData) throw new Error('PDF upload could not be verified');
 
       await sb.from('month_end_runs').update({ document_path: fileName }).eq('id', runId);
     }
 
     async function downloadPDF(runId, periodName) {
-      const fileName = `month-end/${runId}.pdf`;
+      const fileName = 'month-end/' + runId + '.pdf';
       const { data, error } = await sb.storage.from('documents').download(fileName);
       if (error) { showToast('Could not download report: ' + error.message, 'error'); return; }
       const url = URL.createObjectURL(data);
       const a   = document.createElement('a');
-      a.href     = url;
-      a.download = `JHB_MonthEnd_${periodName.replace(/\s+/g, '-')}.pdf`;
-      a.click();
+      a.href = url; a.download = 'JHB_MonthEnd_' + periodName.replace(/\s+/g, '-') + '.pdf'; a.click();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
-      auditLog('export_pdf', 'month_end_run', runId,
-        `JHB_MonthEnd_${periodName.replace(/\s+/g, '-')}.pdf`, { period: periodName }
-      );
+      auditLog('export_pdf', 'month_end_run', runId, 'JHB_MonthEnd_' + periodName.replace(/\s+/g, '-') + '.pdf', { period: periodName });
     }
 
     async function regeneratePDF(runId, periodName) {
-      // Disable the button and show progress
-      const btn = document.getElementById(`pdf-btn-${runId}`);
-      if (btn) { btn.disabled = true; btn.textContent = '⏳ Fetching data…'; }
-
+      const btn = document.getElementById('pdf-btn-' + runId);
+      if (btn) { btn.disabled = true; btn.textContent = '&#9203; Fetching data...'; }
       try {
         const { data: run }   = await sb.from('month_end_runs').select('*').eq('id', runId).single();
         const { data: lines } = await sb.from('month_end_lines')
@@ -1106,80 +836,48 @@
           .order('net_payable', { ascending: false });
 
         const pdfLines = (lines || []).map(l => ({
-          employee:      l.employees,
-          gross_earned:  l.gross_earned,
-          deductions:    l.deductions,
-          carry_over_in: l.carry_over_in,
-          net_payable:   l.net_payable,
-          carry_over_out:l.carry_over_out,
+          employee: l.employees, gross_earned: l.gross_earned, deductions: l.deductions,
+          carry_over_in: l.carry_over_in, net_payable: l.net_payable, carry_over_out: l.carry_over_out,
         }));
 
-        // Update button text for each stage
-        const currentBtn = document.getElementById(`pdf-btn-${runId}`);
-        if (currentBtn) currentBtn.textContent = '⏳ Building PDF…';
+        const currentBtn = document.getElementById('pdf-btn-' + runId);
+        if (currentBtn) currentBtn.textContent = '&#9203; Building PDF...';
 
         await generateAndStorePDF(runId, run.period_name, run.payment_date, parseFloat(run.total_paid), pdfLines);
-
-        showToast('✓ PDF ready — reloading…', 'success');
-
-        // Reload history — this re-renders the row with the correct 📄 PDF button
+        showToast('&#10003; PDF ready', 'success');
         await loadHistory();
-
       } catch(e) {
         console.error('PDF generation error:', e);
         showToast('Failed: ' + e.message, 'error');
-        // Re-render history to restore button to original state
         await loadHistory();
       }
     }
-
-    // ── Year End ──────────────────────────────────────────────────────────────
 
     function getFYBounds() {
       const now    = new Date();
       const fyYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
       return {
-        from:    `${fyYear}-04-01`,
-        to:      `${fyYear + 1}-03-31`,
-        newYear: `${fyYear + 1}-04-01`,
-        label:   `Apr ${fyYear} – Mar ${fyYear + 1}`,
-        fyYear
+        from: fyYear + '-04-01', to: (fyYear + 1) + '-03-31',
+        newYear: (fyYear + 1) + '-04-01',
+        label: 'Apr ' + fyYear + ' - Mar ' + (fyYear + 1), fyYear
       };
     }
 
     async function initiateYearEnd() {
-      const { from, to, label } = getFYBounds();
+      const { label } = getFYBounds();
       document.getElementById('ye-period-label').textContent = label;
-
       const statusEl = document.getElementById('year-end-status');
       statusEl.innerHTML = '<div class="spinner-wrap" style="padding:10px"><div class="spinner"></div></div>';
 
-      // Block if any unpaid transactions exist
-      const { count: unpaidTx } = await sb
-        .from('transactions')
-        .select('id', { count: 'exact', head: true })
-        .is('date_paid', null);
-
-      const { count: unpaidEntries } = await sb
-        .from('bonus_entries')
-        .select('id', { count: 'exact', head: true })
-        .is('date_paid', null);
+      const { count: unpaidTx } = await sb.from('transactions').select('id', { count: 'exact', head: true }).is('date_paid', null);
+      const { count: unpaidEntries } = await sb.from('bonus_entries').select('id', { count: 'exact', head: true }).is('date_paid', null);
 
       if (unpaidTx > 0 || unpaidEntries > 0) {
-        statusEl.innerHTML = `
-          <div style="background:var(--red-lt);border:1px solid var(--red);border-radius:8px;padding:12px;font-size:13px;color:var(--red);font-weight:600">
-            ✕ Cannot run year end — there are still ${(unpaidTx || 0) + (unpaidEntries || 0)} unpaid transaction${((unpaidTx || 0) + (unpaidEntries || 0)) !== 1 ? 's' : ''} outstanding. Please complete month end first.
-          </div>`;
+        statusEl.innerHTML = '<div style="background:var(--red-lt);border:1px solid var(--red);border-radius:8px;padding:12px;font-size:13px;color:var(--red);font-weight:600">&#10005; Cannot run year end &mdash; there are still ' + ((unpaidTx||0) + (unpaidEntries||0)) + ' unpaid transactions outstanding. Please complete month end first.</div>';
         return;
       }
 
-      // All clear — check for any unpaid carry-over deductions (opening balances)
-      const { data: entries } = await sb
-        .from('bonus_entries')
-        .select('employee_id, type, amount, employees(full_name, status)')
-        .is('date_paid', null);
-
-      // Calculate net balance from any remaining unpaid entries (carry-overs/opening balances)
+      const { data: entries } = await sb.from('bonus_entries').select('employee_id, type, amount, employees(full_name, status)').is('date_paid', null);
       const balances = {};
       (entries || []).forEach(e => {
         if (!balances[e.employee_id]) balances[e.employee_id] = { name: e.employees?.full_name || e.employee_id, balance: 0 };
@@ -1187,24 +885,15 @@
         if (e.type === 'special_bonus') balances[e.employee_id].balance += parseFloat(e.amount || 0);
       });
 
-      // Find employees in debt
-      const inDebt = Object.entries(balances)
-        .filter(([, e]) => e.balance < 0)
-        .map(([id, e]) => ({ id, name: e.name, balance: e.balance }));
+      const inDebt = Object.entries(balances).filter(([,e]) => e.balance < 0).map(([id,e]) => ({ id, name: e.name, balance: e.balance }));
 
       if (!inDebt.length) {
-        statusEl.innerHTML = `<div style="background:var(--green-lt);border-radius:8px;padding:12px;font-size:13px;color:var(--green);font-weight:600">✓ No employees in debt — no carry-overs needed</div>`;
-        document.getElementById('year-end-confirm').style.display = 'block';
+        statusEl.innerHTML = '<div style="background:var(--green-lt);border-radius:8px;padding:12px;font-size:13px;color:var(--green);font-weight:600">&#10003; No employees in debt &mdash; no carry-overs needed</div>';
       } else {
-        statusEl.innerHTML = `
-          <div style="background:var(--orange-lt);border-radius:8px;padding:12px;margin-bottom:8px">
-            <p style="font-size:13px;font-weight:600;color:var(--orange);margin-bottom:8px">⚠️ ${inDebt.length} employee${inDebt.length > 1 ? 's' : ''} will have debt carried forward:</p>
-            ${inDebt.map(e => `<div style="font-size:12px;color:var(--muted);padding:2px 0">${e.name} — <strong style="color:var(--orange)">-£${Math.abs(e.balance).toFixed(2)}</strong></div>`).join('')}
-          </div>`;
-        document.getElementById('year-end-confirm').style.display = 'block';
+        statusEl.innerHTML = '<div style="background:var(--orange-lt);border-radius:8px;padding:12px;margin-bottom:8px"><p style="font-size:13px;font-weight:600;color:var(--orange);margin-bottom:8px">&#9888;&#65039; ' + inDebt.length + ' employee' + (inDebt.length > 1 ? 's' : '') + ' will have debt carried forward:</p>' +
+          inDebt.map(e => '<div style="font-size:12px;color:var(--muted);padding:2px 0">' + e.name + ' &mdash; <strong style="color:var(--orange)">-&pound;' + Math.abs(e.balance).toFixed(2) + '</strong></div>').join('') + '</div>';
       }
-
-      // Store for use in runYearEnd
+      document.getElementById('year-end-confirm').style.display = 'block';
       window._yearEndDebt = inDebt;
     }
 
@@ -1218,36 +907,29 @@
       const { newYear, label } = getFYBounds();
       const inDebt = window._yearEndDebt || [];
       const btn = document.querySelector('#year-end-confirm .btn[onclick="runYearEnd()"]');
-      btn.disabled = true; btn.textContent = 'Running…';
+      btn.disabled = true; btn.textContent = 'Running...';
 
       try {
-        // Create carry-over deductions for employees in debt
         if (inDebt.length) {
           const records = inDebt.map(e => ({
-            date:        newYear,
-            type:        'deduction',
-            employee_id: e.id,
-            amount:      parseFloat(Math.abs(e.balance).toFixed(2)),
-            reason:      `Carry-over from previous year (${label})`,
-            created_by:  currentUser.id
+            date: newYear, type: 'deduction', employee_id: e.id,
+            amount: parseFloat(Math.abs(e.balance).toFixed(2)),
+            reason: 'Carry-over from previous year (' + label + ')',
+            created_by: currentUser.id
           }));
           const { error } = await sb.from('bonus_entries').insert(records);
           if (error) throw new Error(error.message);
         }
 
-        await auditLog('year_end_committed', 'year_end', null, label,
-          { period: label, carry_overs: inDebt.length, new_year_date: newYear }
-        );
-
-        showToast(`✓ Year end complete — ${inDebt.length} carry-over${inDebt.length !== 1 ? 's' : ''} created`, 'success');
+        await auditLog('year_end_committed', 'year_end', null, label, { period: label, carry_overs: inDebt.length, new_year_date: newYear });
+        showToast('&#10003; Year end complete &mdash; ' + inDebt.length + ' carry-over' + (inDebt.length !== 1 ? 's' : '') + ' created', 'success');
         cancelYearEnd();
         document.getElementById('year-end-status').innerHTML =
-          `<div style="background:var(--green-lt);border-radius:8px;padding:12px;font-size:13px;color:var(--green);font-weight:600">✓ Year end for ${label} completed on ${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}</div>`;
-
+          '<div style="background:var(--green-lt);border-radius:8px;padding:12px;font-size:13px;color:var(--green);font-weight:600">&#10003; Year end for ' + label + ' completed on ' + new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' }) + '</div>';
       } catch(e) {
         showToast('Year end failed: ' + e.message, 'error');
         console.error(e);
-        btn.disabled = false; btn.textContent = '✓ Confirm Year End';
+        btn.disabled = false; btn.textContent = '&#10003; Confirm Year End';
       }
     }
 

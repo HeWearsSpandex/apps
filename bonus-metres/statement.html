@@ -302,7 +302,7 @@
       const grossEarned  = melRow ? parseFloat(melRow.gross_earned  || 0) : jobs.reduce((s, o) => s + parseFloat(o.share_value), 0);
       const deductions   = melRow ? parseFloat(melRow.deductions    || 0) : deds.reduce((s, d) => s + parseFloat(d.amount), 0);
       const carryOverIn  = melRow ? parseFloat(melRow.carry_over_in || 0) : 0;
-      const netPayable   = melRow ? parseFloat(melRow.net_payable   || 0) : Math.max(0, grossEarned - deductions);
+      const netPayable   = melRow ? parseFloat(melRow.net_payable   || 0) : Math.max(0, grossEarned - deductions - carryOverIn);
       const carryOverOut = melRow ? parseFloat(melRow.carry_over_out|| 0) : 0;
 
       const periodLabel  = run ? run.period_name : fmtPeriod(payment);
@@ -347,7 +347,6 @@
       }
       html += '<div class="summary-card gold"><div class="sc-val">' + jobs.length + '</div><div class="sc-lbl">Jobs This Period</div></div>';
       html += '</div>';
-
       // Net payable banner
       html += '<div class="' + netBannerClass + '">';
       html += '<div><div class="net-lbl">' + netLabel + '</div><div class="net-val">' + fmt(netPayable) + '</div>' + netNote + '</div>';
