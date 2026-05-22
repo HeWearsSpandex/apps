@@ -137,6 +137,15 @@
           </select>
         </div>
         <div class="filter-group">
+          <label>Type</label>
+          <select id="f-type" onchange="scheduleSearch()">
+            <option value="">All</option>
+            <option value="job">Job only</option>
+            <option value="deduction">Deduction only</option>
+            <option value="special_bonus">Special Bonus only</option>
+          </select>
+        </div>
+        <div class="filter-group">
           <label>Date From</label>
           <input type="date" id="f-date-from" onchange="scheduleSearch()">
         </div>
