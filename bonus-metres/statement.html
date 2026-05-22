@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bonus Statement</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      min-height: 100%;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    .header {
+      background: #fff;
+      padding: 10px 16px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    .header img { max-width: 80px; height: auto; }
+
+    .page { max-width: 560px; margin: 0 auto; padding: 16px 12px 40px; }
+
+    /* Hero */
+    .hero {
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 16px; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .hero-face img {
+      width: 56px; height: 56px; border-radius: 50%;
+      object-fit: cover; border: 3px solid #ddd; flex-shrink: 0;
+    }
+    .hero-name { font-size: 20px; font-weight: 700; color: #1a1a1a; margin-bottom: 2px; }
+    .hero-period {
+      font-size: 13px; color: #fff;
+      background: #c00; border-radius: 4px;
+      padding: 2px 10px; display: inline-block;
+      font-weight: 600;
+    }
+
+    /* Summary cards */
+    .summary-row {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-bottom: 12px;
+    }
+    .summary-card {
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 12px 14px;
+      border-left: 4px solid #e0e0e0;
+    }
+    .summary-card.green  { border-left-color: #2a9d2a; }
+    .summary-card.red    { border-left-color: #c00; }
+    .summary-card.gold   { border-left-color: #f9a825; }
+    .summary-card.blue   { border-left-color: #1a73e8; }
+    .sc-val { font-size: 22px; font-weight: 700; line-height: 1.2; }
+    .sc-lbl { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 3px; }
+    .summary-card.green .sc-val { color: #2a9d2a; }
+    .summary-card.red   .sc-val { color: #c00; }
+    .summary-card.gold  .sc-val { color: #f9a825; }
+    .summary-card.blue  .sc-val { color: #1a73e8; }
+
+    /* Net payable banner */
+    .net-banner {
+      background: #1b5e20; color: #fff;
+      border-radius: 10px; padding: 16px 18px;
+      margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .net-banner.carry { background: #e65100; }
+    .net-banner.zero  { background: #555; }
+    .net-lbl { font-size: 12px; font-weight: 600; opacity: 0.85; margin-bottom: 4px; }
+    .net-val { font-size: 32px; font-weight: 700; line-height: 1; }
+    .net-icon { font-size: 40px; }
+
+    /* Arrears notice */
+    .arrears-notice {
+      background: #fff3e0; border-left: 4px solid #e65100;
+      border-radius: 8px; padding: 10px 14px;
+      font-size: 12px; color: #7a3300;
+      margin-bottom: 12px; line-height: 1.5;
+    }
+
+    /* Jobs section */
+    .section {
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      overflow: hidden; margin-bottom: 12px;
+    }
+    .section-header {
+      padding: 12px 14px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .section-header h3 { font-size: 13px; font-weight: 700; margin: 0; }
+    .section-header .chip {
+      font-size: 12px; font-weight: 700;
+      padding: 2px 10px; border-radius: 10px;
+    }
+    .chip.green  { background: #e8f5e9; color: #2a9d2a; }
+    .chip.red    { background: #fff0f0; color: #c00; }
+
+    .job-row {
+      display: flex; align-items: flex-start;
+      padding: 10px 14px; border-bottom: 1px solid #f5f5f5; gap: 10px;
+    }
+    .job-row:last-child { border-bottom: none; }
+    .job-date { flex-shrink: 0; width: 40px; text-align: center; padding-top: 2px; }
+    .job-date .day { font-size: 16px; font-weight: 700; color: #333; line-height: 1; }
+    .job-date .mon { font-size: 9px; color: #bbb; text-transform: uppercase; }
+    .job-info { flex: 1; min-width: 0; }
+    .job-site { font-size: 13px; font-weight: 600; color: #222; }
+    .job-ref  { font-size: 10px; color: #bbb; margin-top: 1px; }
+    .job-meta { font-size: 10px; color: #999; margin-top: 2px; }
+    .job-val  { font-size: 14px; font-weight: 700; color: #2a9d2a; flex-shrink: 0; padding-top: 4px; }
+
+    .ded-row {
+      display: flex; align-items: center;
+      padding: 10px 14px; border-bottom: 1px solid #f5f5f5; gap: 10px;
+    }
+    .ded-row:last-child { border-bottom: none; }
+    .ded-icon   { font-size: 18px; flex-shrink: 0; }
+    .ded-info   { flex: 1; min-width: 0; }
+    .ded-reason { font-size: 13px; font-weight: 600; color: #222; }
+    .ded-date   { font-size: 10px; color: #bbb; margin-top: 1px; }
+    .ded-val    { font-size: 14px; font-weight: 700; color: #c00; flex-shrink: 0; }
+
+    .empty-row { padding: 16px 14px; text-align: center; color: #bbb; font-size: 12px; }
+
+    /* Footer link */
+    .footer-link {
+      text-align: center; padding: 8px;
+      font-size: 12px; color: #bbb;
+    }
+    .footer-link a { color: #1a73e8; text-decoration: none; }
+
+    /* Spinner */
+    .spinner-wrap { display: flex; justify-content: center; padding: 60px 20px; }
+    .spinner { width: 40px; height: 40px; border: 4px solid #f0f0f0; border-top-color: #c00; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .not-found { text-align: center; padding: 60px 20px; color: #666; }
+    .not-found h2 { color: #333; margin-bottom: 8px; }
+    .error { text-align: center; padding: 40px 20px; color: #c00; }
+
+    @media (min-width: 480px) {
+      .hero-name { font-size: 24px; }
+      .net-val   { font-size: 38px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <img src="https://oxgehlmalbvppjmdaswn.supabase.co/storage/v1/object/public/images/JHB%20Logo.png" alt="JHB">
+  </div>
+
+  <div class="page" id="page">
+    <div class="spinner-wrap"><div class="spinner"></div></div>
+  </div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://oxgehlmalbvppjmdaswn.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_43D7ggkEiM_OpKpakPVxSQ_uHN35QbN';
+    const sb       = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const IMG_PATH = SUPABASE_URL + '/storage/v1/object/public/images/';
+
+    function getParams() {
+      const p = new URLSearchParams(location.search);
+      return {
+        name:    decodeURIComponent(p.get('name') || '').trim(),
+        payment: p.get('payment') || ''
+      };
+    }
+
+    function fmt(n) { return '£' + parseFloat(n || 0).toFixed(2); }
+
+    function fmtDate(str) {
+      const d = new Date(str);
+      return {
+        day:  d.getDate(),
+        mon:  d.toLocaleDateString('en-GB', { month: 'short' }),
+        full: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+      };
+    }
+
+    function fmtPaymentDate(str) {
+      return new Date(str).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    function fmtPeriod(str) {
+      return new Date(str).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    }
+
+    async function loadFaceDataUrl(name) {
+      return new Promise(res => {
+        const img = new Image(); img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const c = document.createElement('canvas'); c.width = c.height = 64;
+          c.getContext('2d').drawImage(img, 0, 0, 64, 64);
+          res(c.toDataURL());
+        };
+        img.onerror = () => res(null);
+        img.src = IMG_PATH + encodeURIComponent(name.trim()) + '_cvface1.jpg';
+      });
+    }
+
+    async function build() {
+      const { name, payment } = getParams();
+      const page = document.getElementById('page');
+
+      if (!name || !payment) {
+        page.innerHTML = '<div class="not-found"><h2>Invalid link</h2><p>This statement link is not valid.</p></div>';
+        return;
+      }
+
+      // Load employee
+      const { data: empRows } = await sb
+        .from('employees')
+        .select('id, full_name, initials')
+        .eq('full_name', name)
+        .limit(1);
+
+      if (!empRows || !empRows.length) {
+        page.innerHTML = '<div class="not-found"><h2>Not found</h2><p>No employee found for this link.</p></div>';
+        return;
+      }
+
+      const emp = empRows[0];
+
+      // Load month end run for this payment date
+      const { data: runRows } = await sb
+        .from('month_end_runs')
+        .select('id, period_name, payment_date, total_paid')
+        .eq('payment_date', payment)
+        .limit(1);
+
+      const run = runRows?.[0] || null;
+
+      // Load month_end_lines for this employee + run
+      let melRow = null;
+      if (run) {
+        const { data: melRows } = await sb
+          .from('month_end_lines')
+          .select('gross_earned, deductions, carry_over_in, net_payable, carry_over_out')
+          .eq('employee_id', emp.id)
+          .eq('month_end_id', run.id)
+          .limit(1);
+        melRow = melRows?.[0] || null;
+      }
+
+      // Load paid transactions for this payment date for this employee
+      const { data: txRows } = await sb
+        .from('transactions')
+        .select('id, date, job_ref, site_name, bonus_metres')
+        .eq('date_paid', payment)
+        .order('date', { ascending: false });
+
+      const txIds = (txRows || []).map(t => t.id);
+
+      // Load operatives for those transactions
+      let myOps = [];
+      if (txIds.length) {
+        const { data: opsRows } = await sb
+          .from('transaction_operatives')
+          .select('transaction_id, share_value, employee_id')
+          .in('transaction_id', txIds);
+
+        // Count crew per transaction
+        const crewCount = {};
+        (opsRows || []).forEach(o => { crewCount[o.transaction_id] = (crewCount[o.transaction_id] || 0) + 1; });
+
+        // My share rows
+        myOps = (opsRows || [])
+          .filter(o => o.employee_id === emp.id)
+          .map(o => ({
+            ...o,
+            tx: txRows.find(t => t.id === o.transaction_id),
+            crew: crewCount[o.transaction_id] || 1
+          }));
+      }
+
+      // Load deductions for this payment (bonus_entries with date_paid = payment)
+      const { data: dedRows } = await sb
+        .from('bonus_entries')
+        .select('id, date, type, amount, reason')
+        .eq('employee_id', emp.id)
+        .eq('date_paid', payment)
+        .eq('type', 'deduction');
+
+      const jobs = myOps.filter(o => o.tx);
+      const deds = dedRows || [];
+
+      const grossEarned  = melRow ? parseFloat(melRow.gross_earned  || 0) : jobs.reduce((s, o) => s + parseFloat(o.share_value), 0);
+      const deductions   = melRow ? parseFloat(melRow.deductions    || 0) : deds.reduce((s, d) => s + parseFloat(d.amount), 0);
+      const carryOverIn  = melRow ? parseFloat(melRow.carry_over_in || 0) : 0;
+      const netPayable   = melRow ? parseFloat(melRow.net_payable   || 0) : Math.max(0, grossEarned - deductions);
+      const carryOverOut = melRow ? parseFloat(melRow.carry_over_out|| 0) : 0;
+
+      const periodLabel  = run ? run.period_name : fmtPeriod(payment);
+      const payDateLabel = fmtPaymentDate(payment);
+      const faceUrl      = await loadFaceDataUrl(name);
+      const faceHtml     = faceUrl
+        ? '<img src="' + faceUrl + '" alt="' + name + '">'
+        : '<img src="data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 64 64\'><circle cx=\'32\' cy=\'32\' r=\'32\' fill=\'%23ddd\'/><text x=\'32\' y=\'40\' text-anchor=\'middle\' font-size=\'24\' font-weight=\'700\' fill=\'%23999\' font-family=\'Arial\'>' + emp.initials + '</text></svg>" alt="' + name + '">';
+
+      // Build net payable banner
+      let netBannerClass = 'net-banner';
+      let netIcon = '💷';
+      let netLabel = 'Net Payment — ' + payDateLabel;
+      let netNote  = '';
+      if (netPayable <= 0 && carryOverOut > 0) {
+        netBannerClass = 'net-banner carry';
+        netIcon  = '⚠️';
+        netLabel = 'No payment this period';
+        netNote  = '<div style="font-size:11px;opacity:0.85;margin-top:6px;">Arrears of ' + fmt(carryOverOut) + ' carried forward to next payment</div>';
+      } else if (netPayable <= 0) {
+        netBannerClass = 'net-banner zero';
+        netIcon  = '—';
+        netLabel = 'No payment due this period';
+      }
+
+      // Build HTML
+      let html = '';
+
+      // Hero
+      html += '<div class="hero">';
+      html += '<div class="hero-face">' + faceHtml + '</div>';
+      html += '<div><div class="hero-name">' + name + '</div>';
+      html += '<div class="hero-period">' + periodLabel + ' Bonus Statement</div></div>';
+      html += '</div>';
+
+      // Summary cards
+      html += '<div class="summary-row">';
+      html += '<div class="summary-card green"><div class="sc-val">' + fmt(grossEarned) + '</div><div class="sc-lbl">Job Bonuses</div></div>';
+      html += '<div class="summary-card ' + (deductions > 0 ? 'red' : 'green') + '"><div class="sc-val">' + (deductions > 0 ? '-' : '') + fmt(deductions) + '</div><div class="sc-lbl">Deductions</div></div>';
+      if (carryOverIn > 0) {
+        html += '<div class="summary-card red"><div class="sc-val">-' + fmt(carryOverIn) + '</div><div class="sc-lbl">Arrears Brought Forward</div></div>';
+      }
+      html += '<div class="summary-card gold"><div class="sc-val">' + jobs.length + '</div><div class="sc-lbl">Jobs This Period</div></div>';
+      html += '</div>';
+
+      // Net payable banner
+      html += '<div class="' + netBannerClass + '">';
+      html += '<div><div class="net-lbl">' + netLabel + '</div><div class="net-val">' + fmt(netPayable) + '</div>' + netNote + '</div>';
+      html += '<div class="net-icon">' + netIcon + '</div>';
+      html += '</div>';
+
+      // Arrears notice
+      if (carryOverIn > 0) {
+        html += '<div class="arrears-notice">⚠️ This payment includes <strong>' + fmt(carryOverIn) + '</strong> of arrears brought forward from a previous period.</div>';
+      }
+
+      // Jobs section
+      html += '<div class="section">';
+      html += '<div class="section-header"><h3>🔧 Jobs (' + jobs.length + ')</h3><span class="chip green">' + fmt(grossEarned) + '</span></div>';
+      if (jobs.length === 0) {
+        html += '<div class="empty-row">No jobs for this period</div>';
+      } else {
+        jobs.forEach(o => {
+          const d = fmtDate(o.tx.date);
+          const metres = Math.round(parseFloat(o.tx.bonus_metres || 0) / o.crew);
+          html += '<div class="job-row">';
+          html += '<div class="job-date"><div class="day">' + d.day + '</div><div class="mon">' + d.mon + '</div></div>';
+          html += '<div class="job-info"><div class="job-site">' + (o.tx.site_name || '—') + '</div>';
+          html += '<div class="job-ref">' + (o.tx.job_ref || '') + '</div>';
+          html += '<div class="job-meta">' + metres.toLocaleString() + 'm &middot; ' + o.crew + ' crew</div></div>';
+          html += '<div class="job-val">' + fmt(o.share_value) + '</div>';
+          html += '</div>';
+        });
+      }
+      html += '</div>';
+
+      // Deductions section
+      if (deds.length > 0) {
+        const totalDeds = deds.reduce((s, d) => s + parseFloat(d.amount), 0);
+        html += '<div class="section">';
+        html += '<div class="section-header"><h3>➖ Deductions (' + deds.length + ')</h3><span class="chip red">-' + fmt(totalDeds) + '</span></div>';
+        deds.forEach(d => {
+          const dt = fmtDate(d.date);
+          html += '<div class="ded-row">';
+          html += '<div class="ded-icon">➖</div>';
+          html += '<div class="ded-info"><div class="ded-reason">' + (d.reason || 'Deduction') + '</div>';
+          html += '<div class="ded-date">' + dt.full + '</div></div>';
+          html += '<div class="ded-val">-' + fmt(d.amount) + '</div>';
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+
+      // Footer link to full stats
+      const statsUrl = 'newplayer.html?name=' + encodeURIComponent(name);
+      html += '<div class="footer-link"><a href="' + statsUrl + '">View full stats &amp; leaderboard &rarr;</a></div>';
+
+      page.innerHTML = html;
+    }
+
+    build().catch(e => {
+      console.error(e);
+      document.getElementById('page').innerHTML = '<div class="error">Error loading statement: ' + e.message + '</div>';
+    });
+  </script>
+</body>
+</html>
