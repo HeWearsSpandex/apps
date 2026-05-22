@@ -354,6 +354,7 @@
         supabase.from('depotiq_stores')
           .select('id, name')
           .eq('is_active', true)
+          .eq('asset_type', 'store')
           .order('name'),
         supabase.from('depotiq_store_stock')
           .select('store_id, stock_item_id, current_quantity'),
