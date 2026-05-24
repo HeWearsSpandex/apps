@@ -322,7 +322,7 @@
         `<div class="loading-spinner"><div class="spinner"></div></div>`;
 
       const [storesRes, itemsRes, stockRes] = await Promise.all([
-        supabase.from('depotiq_stores').select('id, name').eq('is_active', true).order('name'),
+        supabase.from('depotiq_stores').select('id, name').eq('is_active', true).eq('asset_type', 'store').order('name'),
         supabase.from('depotiq_stock_items').select('id, name, unit_of_measure, minimum_threshold, include_in_report')
           .eq('is_active', true)
           .order('include_in_report', { ascending: false })
